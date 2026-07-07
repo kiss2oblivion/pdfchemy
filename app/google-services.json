@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "472051479443",
+    "project_id": "pdfchemy-tools",
+    "storage_bucket": "pdfchemy-tools.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:472051479443:android:53414dc6a0ff03e8ccee66",
+        "android_client_info": {
+          "package_name": "com.example.shrinkpdf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzEwQyuhq7_RXIXfb9i5OfYyUh0-oPGEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
