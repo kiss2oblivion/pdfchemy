@@ -539,21 +539,21 @@ fun HomeScreen(
                     )
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .weight(1.5f)
-                        .horizontalScroll(rememberScrollState())
+                        .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                         .graphicsLayer {
                             alpha = cardsAlpha.value
                             translationX = cardsOffsetY.value  // slide from right in landscape
                         }
                 ) {
-                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.width(200.dp))
-                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.width(200.dp))
-                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.width(200.dp))
-                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.width(200.dp))
+                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.fillMaxWidth())
+                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.fillMaxWidth())
+                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.fillMaxWidth())
+                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.fillMaxWidth())
                 }
             }
         } else {
