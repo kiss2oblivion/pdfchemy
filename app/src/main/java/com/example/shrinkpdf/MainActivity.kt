@@ -1,6 +1,7 @@
 package com.example.shrinkpdf
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -12,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
@@ -283,7 +285,8 @@ fun MainApp(
             Screen.Home -> HomeScreen(
                 isDarkTheme = isDarkTheme,
                 onToggleTheme = onToggleTheme,
-                onNavigate = { screen -> currentScreen = screen }
+                onNavigate = { screen -> currentScreen = screen },
+                viewModel = viewModel
             )
             Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.CompressPdf -> CompressPdfScreen(viewModel, 0) { currentScreen = Screen.CompressCategory }
@@ -353,6 +356,15 @@ fun MainApp(
                         TextButton(onClick = { viewModel.resetState() }) {
                             Text("OK")
                         }
+                    },
+                    dismissButton = {
+                        if (state.outputUris.isNotEmpty()) {
+                            TextButton(onClick = { 
+                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
+                            }) {
+                                Text("Share")
+                            }
+                        }
                     }
                 )
             }
@@ -364,6 +376,15 @@ fun MainApp(
                     confirmButton = {
                         TextButton(onClick = { viewModel.resetState() }) {
                             Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        if (state.outputUris.isNotEmpty()) {
+                            TextButton(onClick = { 
+                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
+                            }) {
+                                Text("Share")
+                            }
                         }
                     }
                 )
@@ -520,7 +541,8 @@ fun AnimatedMeshBackground() {
 fun HomeScreen(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
-    onNavigate: (Screen) -> Unit
+    onNavigate: (Screen) -> Unit,
+    viewModel: MainViewModel
 ) {
     // --- Safe entrance animation ---
     // Content is ALWAYS composed. Animation only affects visual properties (alpha, translation)
@@ -725,6 +747,8 @@ fun HomeScreen(
                         CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f))
                         CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f))
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    RecentFilesSection(viewModel)
                 }
             }
         }
@@ -2133,3 +2157,58 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
 
 
+@Composable
+fun RecentFilesSection(viewModel: MainViewModel) {
+    val history by viewModel.historyList.collectAsState()
+    val context = LocalContext.current
+
+    if (history.isNotEmpty()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Recent Activity",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    history.take(5).forEach { item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    try {
+                                        val uri = Uri.parse(item.uriString)
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, "application/pdf")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.History,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(item.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                Text(item.action, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

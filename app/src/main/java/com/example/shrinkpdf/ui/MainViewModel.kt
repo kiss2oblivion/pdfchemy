@@ -33,8 +33,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-        private val prefs = application.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE)
+    private val prefs = application.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE)
 
+    private val historyRepository = com.example.shrinkpdf.logic.HistoryRepository(application)
+    private val _historyList = MutableStateFlow(historyRepository.getHistory())
+    val historyList: StateFlow<List<com.example.shrinkpdf.logic.HistoryItem>> = _historyList.asStateFlow()
+
+    fun refreshHistory() {
+        _historyList.value = historyRepository.getHistory()
+    }
     private val _isHapticEnabled = MutableStateFlow(prefs.getBoolean("haptic", true))
     val isHapticEnabled: StateFlow<Boolean> = _isHapticEnabled.asStateFlow()
 
@@ -106,8 +113,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         object Idle : UiState()
         object Processing : UiState()
         data class BatchProcessing(val current: Int, val total: Int, val currentFileName: String) : UiState()
-        data class Success(val title: String, val message: String) : UiState()
-        data class Warning(val title: String, val message: String) : UiState()
+        data class Success(val title: String, val message: String, val outputUris: List<Uri> = emptyList()) : UiState()
+        data class Warning(val title: String, val message: String, val outputUris: List<Uri> = emptyList()) : UiState()
         data class Error(val message: String) : UiState()
     }
 
@@ -268,11 +275,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (report.targetMissed) {
                     _uiState.value = UiState.Warning(
                         "Target Size Unreachable",
-                        "The best possible compression was applied, but the file could not be compressed under ${_targetMb.value} MB without destroying the content.\n\n" + reductionDetails
+                        "The best possible compression was applied, but the file could not be compressed under ${_targetMb.value} MB without destroying the content.\n\n" + reductionDetails,
+                        listOf(destUri)
                     )
                 } else {
-                    _uiState.value = UiState.Success("Compression Result", reductionDetails)
+                    _uiState.value = UiState.Success("Compression Result", reductionDetails, listOf(destUri))
                 }
+                historyRepository.addHistoryItem(destUri, "Compressed PDF", "Compress")
+                refreshHistory()
                 
             }.onFailure { error ->
                 _uiState.value = UiState.Error(error.message ?: "An unknown error occurred.")
@@ -289,7 +299,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val result = TextToPdfConverter.convert(context, _inputText.value, destUri)
             
             result.onSuccess {
-                _uiState.value = UiState.Success("PDF Created", "Your document has been saved successfully.")
+                historyRepository.addHistoryItem(destUri, "Text to PDF", "Convert")
+                refreshHistory()
+                _uiState.value = UiState.Success("PDF Created", "Your document has been saved successfully.", listOf(destUri))
             }.onFailure { error ->
                 _uiState.value = UiState.Error(error.message ?: "Failed to create PDF.")
             }
@@ -420,6 +432,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val total = files.size
             var successCount = 0
             val sizeSavedMap = mutableMapOf<Int, Long>()
+            val outputUris = mutableListOf<Uri>()
 
             files.forEachIndexed { index, selectedFile ->
                 _uiState.value = UiState.BatchProcessing(index + 1, total, selectedFile.name)
@@ -442,6 +455,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 compressResult.onSuccess { report ->
+                    outputUris.add(outputDoc.uri)
                     val compressedSize = try {
                         context.contentResolver.openFileDescriptor(outputDoc.uri, "r")?.use { it.statSize } ?: -1L
                     } catch (e: Exception) { -1L }
@@ -453,18 +467,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             if (successCount == total) {
+                historyRepository.addHistoryItem(destTreeUri, "Batch Compression Folder", "Compress Batch")
+                refreshHistory()
                 val totalSavedBytes = sizeSavedMap.values.sum()
                 val totalSavedStr = formatSize(totalSavedBytes)
                 _uiState.value = UiState.Success(
                     "Batch Compression Finished",
-                    "Successfully compressed all $total files!\nTotal space saved: $totalSavedStr"
+                    "Successfully compressed all $total files!\nTotal space saved: $totalSavedStr",
+                    outputUris
                 )
             } else if (successCount > 0) {
+                historyRepository.addHistoryItem(destTreeUri, "Batch Compression Folder", "Compress Batch")
+                refreshHistory()
                 val totalSavedBytes = sizeSavedMap.values.sum()
                 val totalSavedStr = formatSize(totalSavedBytes)
                 _uiState.value = UiState.Success(
                     "Batch Compression Finished",
-                    "Successfully compressed $successCount of $total files.\nTotal space saved: $totalSavedStr"
+                    "Successfully compressed $successCount of $total files.\nTotal space saved: $totalSavedStr",
+                    outputUris
                 )
             } else {
                 _uiState.value = UiState.Error("Failed to compress any files in the batch.")
@@ -542,7 +562,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             try {
                 PdfManipulator.mergePdfs(context, sourceUris, destUri)
-                _uiState.value = UiState.Success("Merge Complete", "Successfully merged ${sourceUris.size} documents.")
+                historyRepository.addHistoryItem(destUri, "Merged PDF", "Merge")
+                refreshHistory()
+                _uiState.value = UiState.Success("Merge Complete", "Successfully merged ${sourceUris.size} documents.", listOf(destUri))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to merge PDFs.")
             }
@@ -575,7 +597,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.updateMetadata(context, sourceUri, destUri, newMetadata)
             if (result.isSuccess) {
-                _uiState.value = UiState.Success("Metadata Updated", "The document's metadata has been successfully updated.")
+                historyRepository.addHistoryItem(destUri, "Updated Metadata PDF", "Metadata")
+                refreshHistory()
+                _uiState.value = UiState.Success("Metadata Updated", "The document's metadata has been successfully updated.", listOf(destUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to update metadata.")
             }
@@ -587,7 +611,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.clearMetadata(context, sourceUri, destUri)
             if (result.isSuccess) {
-                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped from the document.")
+                historyRepository.addHistoryItem(destUri, "Cleared Metadata PDF", "Metadata")
+                refreshHistory()
+                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped from the document.", listOf(destUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to remove metadata.")
             }
@@ -599,7 +625,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.clearMetadataOverwrite(context, sourceUri)
             if (result.isSuccess) {
-                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped and the original file has been overwritten.")
+                historyRepository.addHistoryItem(sourceUri, "Cleared Metadata PDF", "Metadata")
+                refreshHistory()
+                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped and the original file has been overwritten.", listOf(sourceUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to overwrite metadata.")
             }
@@ -621,7 +649,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val baseName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, sourceUri)?.substringBeforeLast(".") ?: "split_doc"
                 
                 PdfManipulator.splitPdf(context, sourceUri, directory, baseName, pageRange)
-                _uiState.value = UiState.Success("Split Complete", "Successfully split the document into the selected folder.")
+                historyRepository.addHistoryItem(destTreeUri, "Split PDF Folder", "Split")
+                refreshHistory()
+                _uiState.value = UiState.Success("Split Complete", "Successfully split the document into the selected folder.", listOf(destTreeUri))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to split PDF.")
             }
@@ -666,6 +696,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 
                 withContext(Dispatchers.Main) {
+                    historyRepository.addHistoryItem(outputDirectory.uri, "Extracted Images Folder", "Extract Images")
+                    refreshHistory()
                     onComplete(extractedCount, errorCount)
                     _uiState.value = UiState.Idle
                 }
