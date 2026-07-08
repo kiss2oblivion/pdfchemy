@@ -549,10 +549,20 @@ fun HomeScreen(
                             translationX = cardsOffsetY.value  // slide from right in landscape
                         }
                 ) {
-                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxWidth())
-                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxWidth())
-                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxWidth())
-                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxWidth())
+                    Row(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard("Check", "Inspect before sending.", Icons.AutoMirrored.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
+                    }
                 }
             }
         } else {
@@ -637,6 +647,12 @@ fun CategoryCard(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+        }
+    }
+
     val cardModifier = if (isLandscape) {
         modifier.scale(scale)
     } else {
@@ -644,10 +660,7 @@ fun CategoryCard(
     }
 
     Card(
-        onClick = { 
-            view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-            onClick() 
-        },
+        onClick = onClick,
         modifier = cardModifier,
         interactionSource = interactionSource,
         shape = RoundedCornerShape(24.dp),
