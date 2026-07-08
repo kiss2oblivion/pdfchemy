@@ -1396,10 +1396,17 @@ fun LeftPanel(
                             }
                         }
                         
-                        TextButton(
+                        ElevatedButton(
                             onClick = { isListExpanded = !isListExpanded },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                         ) {
+                            Icon(
+                                if (isListExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isListExpanded) "Hide Individual Files" else "View Individual Files")
                         }
                     }
