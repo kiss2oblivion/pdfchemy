@@ -540,20 +540,19 @@ fun HomeScreen(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .weight(1.5f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(vertical = 16.dp)
+                        .padding(vertical = 8.dp)
                         .graphicsLayer {
                             alpha = cardsAlpha.value
                             translationX = cardsOffsetY.value  // slide from right in landscape
                         }
                 ) {
-                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.fillMaxWidth())
-                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.fillMaxWidth())
-                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.fillMaxWidth())
-                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.fillMaxWidth())
+                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxWidth())
+                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxWidth())
+                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxWidth())
+                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxWidth())
                 }
             }
         } else {
@@ -635,13 +634,21 @@ fun CategoryCard(
         label = "scaleAnim"
     )
     val view = androidx.compose.ui.platform.LocalView.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val cardModifier = if (isLandscape) {
+        modifier.scale(scale)
+    } else {
+        modifier.height(160.dp).scale(scale)
+    }
 
     Card(
         onClick = { 
             view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             onClick() 
         },
-        modifier = modifier.height(160.dp).scale(scale),
+        modifier = cardModifier,
         interactionSource = interactionSource,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -664,38 +671,75 @@ fun CategoryCard(
                 shape = RoundedCornerShape(24.dp)
             )
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Start
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Start,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
             }
         }
     }
