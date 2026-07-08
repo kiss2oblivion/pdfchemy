@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.text.font.FontWeight
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.rounded.*
@@ -538,25 +539,21 @@ fun HomeScreen(
                     )
                 }
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
                         .weight(1.5f)
-                        .verticalScroll(rememberScrollState())
+                        .horizontalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                         .graphicsLayer {
                             alpha = cardsAlpha.value
                             translationX = cardsOffsetY.value  // slide from right in landscape
                         }
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f))
-                        CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f))
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f))
-                        CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f))
-                    }
+                    CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.width(200.dp))
+                    CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.width(200.dp))
+                    CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.width(200.dp))
+                    CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.width(200.dp))
                 }
             }
         } else {
