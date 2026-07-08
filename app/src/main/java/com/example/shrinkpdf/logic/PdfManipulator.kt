@@ -40,7 +40,7 @@ object PdfManipulator {
         }
     }
 
-    suspend fun splitPdf(context: Context, sourceUri: Uri, outputDirectory: DocumentFile, baseName: String) {
+    suspend fun splitPdf(context: Context, sourceUri: Uri, outputDirectory: DocumentFile, baseName: String, pageRange: String? = null) {
         withContext(Dispatchers.IO) {
             var document: PDDocument? = null
             try {
@@ -49,14 +49,18 @@ object PdfManipulator {
                     val splitter = Splitter()
                     val pages = splitter.split(document)
                     
+                    val pagesToKeep = parsePageRange(pageRange, pages.size)
+
                     pages.forEachIndexed { index, pageDoc ->
                         try {
-                            val fileName = "${baseName}_page_${index + 1}.pdf"
-                            val newFile = outputDirectory.createFile("application/pdf", fileName)
-                        
-                            if (newFile != null) {
-                                context.contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                    pageDoc.save(outputStream)
+                            if (pagesToKeep.contains(index + 1)) {
+                                val fileName = "${baseName}_page_${index + 1}.pdf"
+                                val newFile = outputDirectory.createFile("application/pdf", fileName)
+                            
+                                if (newFile != null) {
+                                    context.contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
+                                        pageDoc.save(outputStream)
+                                    }
                                 }
                             }
                         } finally {
@@ -68,5 +72,32 @@ object PdfManipulator {
                 document?.close()
             }
         }
+    }
+
+    private fun parsePageRange(rangeStr: String?, totalPages: Int): Set<Int> {
+        if (rangeStr.isNullOrBlank()) {
+            return (1..totalPages).toSet()
+        }
+        val pages = mutableSetOf<Int>()
+        val parts = rangeStr.split(",")
+        for (part in parts) {
+            val trimmed = part.trim()
+            if (trimmed.contains("-")) {
+                val bounds = trimmed.split("-")
+                if (bounds.size == 2) {
+                    val start = bounds[0].trim().toIntOrNull()
+                    val end = bounds[1].trim().toIntOrNull()
+                    if (start != null && end != null && start <= end) {
+                        pages.addAll((start..end).toList())
+                    }
+                }
+            } else {
+                val single = trimmed.toIntOrNull()
+                if (single != null) {
+                    pages.add(single)
+                }
+            }
+        }
+        return pages.filter { it in 1..totalPages }.toSet()
     }
 }

@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shrinkpdf.ui.MainViewModel
 import com.example.shrinkpdf.logic.PdfAnalysis
+import com.example.shrinkpdf.ui.OrganizeCategoryScreen
+import com.example.shrinkpdf.ui.MergePdfScreen
+import com.example.shrinkpdf.ui.SplitPdfScreen
 import com.example.shrinkpdf.ui.textconverter.TextConverterViewModel
 import com.example.shrinkpdf.ui.textconverter.TextConverterScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -283,7 +286,9 @@ fun MainApp(
             Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
             Screen.Settings -> SettingsScreen(viewModel) { currentScreen = Screen.Home }
             Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.OrganizeCategory -> PlaceholderCategoryScreen("Organize", onBack = { currentScreen = Screen.Home })
+            Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+            Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.CheckCategory -> PlaceholderCategoryScreen("Check", onBack = { currentScreen = Screen.Home })
         }
 
@@ -376,6 +381,8 @@ sealed class Screen {
     object CompressCategory : Screen()
     object CreateCategory : Screen()
     object OrganizeCategory : Screen()
+    object MergePdf : Screen()
+    object SplitPdf : Screen()
     object CheckCategory : Screen()
 }
 
@@ -384,7 +391,7 @@ sealed class Screen {
  * Content is always visible — the shimmer is purely additive.
  */
 @Composable
-fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseColor: Color) {
+fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseColor: Color, isDarkTheme: Boolean) {
     val shimmerAnim = remember { Animatable(-1f) }
     
     LaunchedEffect(Unit) {
@@ -409,19 +416,35 @@ fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseCo
 
     val shimmerOffset = shimmerAnim.value
 
-    val highlightColor = baseColor.copy(alpha = 0.5f)
+    val c1 = MaterialTheme.colorScheme.primary
+    val c2 = MaterialTheme.colorScheme.secondary
     val shimmerBrush = Brush.linearGradient(
-        colors = listOf(baseColor, highlightColor, Color.White, highlightColor, baseColor),
+        colors = listOf(c1, c2, Color.White, c2, c1),
         start = Offset(shimmerOffset * 800f, 0f),
-        end = Offset(shimmerOffset * 800f + 400f, 0f)
+        end = Offset(shimmerOffset * 800f + 600f, 0f)
     )
+
+    val textShadow = if (isDarkTheme) {
+        androidx.compose.ui.graphics.Shadow(
+            color = c1.copy(alpha = 0.8f),
+            offset = Offset.Zero,
+            blurRadius = 16f
+        )
+    } else {
+        androidx.compose.ui.graphics.Shadow(
+            color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f),
+            offset = Offset(2f, 2f),
+            blurRadius = 2f
+        )
+    }
 
     Text(
         text = text,
         style = style.copy(
             brush = shimmerBrush,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.5).sp,
+            shadow = textShadow
         )
     )
 }
@@ -574,12 +597,16 @@ fun HomeScreen(
                     ShimmerTitle(
                         text = "PDFchemy Tools",
                         style = MaterialTheme.typography.headlineMedium,
-                        baseColor = MaterialTheme.colorScheme.primary
+                        baseColor = MaterialTheme.colorScheme.primary,
+                        isDarkTheme = isDarkTheme
                     )
                     Text(
-                        text = "Fix documents locally.",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.secondary,
+                        text = "FIX DOCUMENTS LOCALLY",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 2.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         modifier = Modifier.padding(top = 8.dp),
                         textAlign = TextAlign.Center
                     )
@@ -642,12 +669,16 @@ fun HomeScreen(
                     ShimmerTitle(
                         text = "PDFchemy Tools",
                         style = MaterialTheme.typography.headlineLarge,
-                        baseColor = MaterialTheme.colorScheme.primary
+                        baseColor = MaterialTheme.colorScheme.primary,
+                        isDarkTheme = isDarkTheme
                     )
                     Text(
-                        text = "Fix documents locally.",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.secondary,
+                        text = "FIX DOCUMENTS LOCALLY",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 2.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         modifier = Modifier.padding(top = 8.dp, bottom = 48.dp)
                     )
                 }

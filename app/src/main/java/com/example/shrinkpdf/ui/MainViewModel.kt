@@ -435,6 +435,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .coerceIn(0, units.size - 1)
         return String.format("%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
     }
+
+    fun mergePdfs(context: Context, sourceUris: List<Uri>, destUri: Uri) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                PdfManipulator.mergePdfs(context, sourceUris, destUri)
+                _uiState.value = UiState.Success("Merge Complete", "Successfully merged ${sourceUris.size} documents.")
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Failed to merge PDFs.")
+            }
+        }
+    }
+
+    fun splitPdf(context: Context, sourceUri: Uri, destTreeUri: Uri, pageRange: String? = null) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                val directory = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, destTreeUri)
+                if (directory == null || !directory.exists()) {
+                    _uiState.value = UiState.Error("Selected folder is invalid or does not exist.")
+                    return@launch
+                }
+                
+                val baseName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, sourceUri)?.substringBeforeLast(".") ?: "split_doc"
+                
+                PdfManipulator.splitPdf(context, sourceUri, directory, baseName, pageRange)
+                _uiState.value = UiState.Success("Split Complete", "Successfully split the document into the selected folder.")
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Failed to split PDF.")
+            }
+        }
+    }
 }
-
-
