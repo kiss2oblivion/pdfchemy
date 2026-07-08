@@ -38,6 +38,9 @@ import com.example.shrinkpdf.logic.PdfAnalysis
 import com.example.shrinkpdf.ui.OrganizeCategoryScreen
 import com.example.shrinkpdf.ui.MergePdfScreen
 import com.example.shrinkpdf.ui.SplitPdfScreen
+import com.example.shrinkpdf.ui.CheckCategoryScreen
+import com.example.shrinkpdf.ui.InspectMetadataScreen
+import com.example.shrinkpdf.ui.StripMetadataScreen
 import com.example.shrinkpdf.ui.textconverter.TextConverterViewModel
 import com.example.shrinkpdf.ui.textconverter.TextConverterScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -289,7 +292,9 @@ fun MainApp(
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.CheckCategory -> PlaceholderCategoryScreen("Check", onBack = { currentScreen = Screen.Home })
+            Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+            Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
         }
 
         if (uiState is MainViewModel.UiState.Processing || uiState is MainViewModel.UiState.BatchProcessing) {
@@ -340,7 +345,19 @@ fun MainApp(
                     text = { Text(state.message) },
                     confirmButton = {
                         TextButton(onClick = { viewModel.resetState() }) {
-                            Text("Great")
+                            Text("OK")
+                        }
+                    }
+                )
+            }
+            is MainViewModel.UiState.Warning -> {
+                AlertDialog(
+                    onDismissRequest = { viewModel.resetState() },
+                    title = { Text(state.title, color = MaterialTheme.colorScheme.error) },
+                    text = { Text(state.message) },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.resetState() }) {
+                            Text("OK")
                         }
                     }
                 )
@@ -384,6 +401,8 @@ sealed class Screen {
     object MergePdf : Screen()
     object SplitPdf : Screen()
     object CheckCategory : Screen()
+    object InspectMetadata : Screen()
+    object StripMetadata : Screen()
 }
 
 /**
@@ -417,16 +436,15 @@ fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseCo
     val shimmerOffset = shimmerAnim.value
 
     val c1 = MaterialTheme.colorScheme.primary
-    val c2 = MaterialTheme.colorScheme.secondary
     val shimmerBrush = Brush.linearGradient(
-        colors = listOf(c1, c2, Color.White, c2, c1),
+        colors = listOf(baseColor, baseColor.copy(alpha = 0.6f), Color.White, baseColor.copy(alpha = 0.6f), baseColor),
         start = Offset(shimmerOffset * 800f, 0f),
         end = Offset(shimmerOffset * 800f + 600f, 0f)
     )
 
     val textShadow = if (isDarkTheme) {
         androidx.compose.ui.graphics.Shadow(
-            color = c1.copy(alpha = 0.8f),
+            color = c1.copy(alpha = 0.55f),
             offset = Offset.Zero,
             blurRadius = 16f
         )
@@ -582,7 +600,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(72.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), shape = CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = CircleShape)
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -654,7 +672,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .size(96.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), shape = CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = CircleShape)
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1457,20 +1475,104 @@ fun RightPanel(
         return
     }
 
+    val targetMb by viewModel.targetMb.collectAsState()
+    var isTargetSizeEnabled by remember { mutableStateOf(targetMb != null) }
+    var selectedTargetPreset by remember { mutableStateOf<String?>(if (targetMb != null) "Custom" else null) }
+    var customTargetValue by remember { mutableStateOf(targetMb?.toString() ?: "") }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Compression Preset:", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                CompressionPresetButton("Smallest", 0.25f, currentQuality, recQuality == 0.25f) { viewModel.setQuality(0.25f) }
-                CompressionPresetButton("Balanced", 0.50f, currentQuality, recQuality == 0.50f) { viewModel.setQuality(0.50f) }
-                CompressionPresetButton("Best", 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
+                Text("Target File Size", style = MaterialTheme.typography.titleMedium)
+                Switch(
+                    checked = isTargetSizeEnabled,
+                    onCheckedChange = { 
+                        isTargetSizeEnabled = it 
+                        if (!it) {
+                            viewModel.setTargetMb(null)
+                        } else {
+                            if (selectedTargetPreset != "Custom" && selectedTargetPreset != null) {
+                                viewModel.setTargetMb(selectedTargetPreset?.removeSuffix(" MB")?.toFloatOrNull())
+                            }
+                        }
+                    }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (!isTargetSizeEnabled) {
+                Text("Compression Preset:", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    CompressionPresetButton("Smallest", 0.25f, currentQuality, recQuality == 0.25f) { viewModel.setQuality(0.25f) }
+                    CompressionPresetButton("Balanced", 0.50f, currentQuality, recQuality == 0.50f) { viewModel.setQuality(0.50f) }
+                    CompressionPresetButton("Best", 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
+                }
+            } else {
+                Text("Select target size (MB):", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Presets row 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TargetPresetChip("2 MB", selectedTargetPreset == "2 MB", Modifier.weight(1f)) { 
+                        selectedTargetPreset = "2 MB"
+                        viewModel.setTargetMb(2f)
+                    }
+                    TargetPresetChip("5 MB", selectedTargetPreset == "5 MB", Modifier.weight(1f)) { 
+                        selectedTargetPreset = "5 MB"
+                        viewModel.setTargetMb(5f)
+                    }
+                    TargetPresetChip("10 MB", selectedTargetPreset == "10 MB", Modifier.weight(1f)) { 
+                        selectedTargetPreset = "10 MB"
+                        viewModel.setTargetMb(10f)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // Presets row 2
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TargetPresetChip("20 MB", selectedTargetPreset == "20 MB", Modifier.weight(1f)) { 
+                        selectedTargetPreset = "20 MB"
+                        viewModel.setTargetMb(20f)
+                    }
+                    TargetPresetChip("Custom", selectedTargetPreset == "Custom", Modifier.weight(1f)) { 
+                        selectedTargetPreset = "Custom"
+                        viewModel.setTargetMb(customTargetValue.toFloatOrNull())
+                    }
+                }
+                
+                if (selectedTargetPreset == "Custom") {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = customTargetValue,
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                customTargetValue = newValue
+                                viewModel.setTargetMb(newValue.toFloatOrNull())
+                            }
+                        },
+                        label = { Text("Exact MB") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             }
         }
     }
@@ -1724,6 +1826,21 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TargetPresetChip(
+    label: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    ElevatedFilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        modifier = modifier.defaultMinSize(minHeight = 48.dp),
+        label = { Text(label) }
+    )
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompressionPresetButton(

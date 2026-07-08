@@ -29,7 +29,90 @@ object PdfCompressor {
         quality: Float = 0.5f,
         useGrayscale: Boolean = false,
         useLossless: Boolean = false,
-        stripMetadata: Boolean = false
+        stripMetadata: Boolean = false,
+        targetMb: Float? = null
+    ): Result<CompressionReport> = withContext(Dispatchers.IO) {
+        if (targetMb == null) {
+            return@withContext compressSinglePass(context, sourceUri, destUri, quality, useGrayscale, useLossless, stripMetadata)
+        }
+
+        val targetBytes = (targetMb * 1024 * 1024).toLong()
+        var minQuality = 0.05f
+        var maxQuality = 1.0f
+        
+        val cacheDir = context.cacheDir
+        var bestTempFile: java.io.File? = null
+        var bestReport: CompressionReport? = null
+
+        for (i in 0..4) {
+            val currentQuality = (minQuality + maxQuality) / 2
+            val tempFile = java.io.File(cacheDir, "temp_compress_${System.currentTimeMillis()}_$i.pdf")
+            val tempUri = Uri.fromFile(tempFile)
+            
+            val result = compressSinglePass(context, sourceUri, tempUri, currentQuality, useGrayscale, useLossless, stripMetadata)
+            
+            if (result.isFailure) {
+                bestTempFile?.delete()
+                tempFile.delete()
+                return@withContext result
+            }
+            
+            val report = result.getOrThrow()
+            val size = tempFile.length()
+            
+            if (size <= targetBytes) {
+                minQuality = currentQuality // try higher quality
+            } else {
+                maxQuality = currentQuality // need lower quality
+            }
+
+            if (bestTempFile == null) {
+                bestTempFile = tempFile
+                bestReport = report
+            } else {
+                val bestSize = bestTempFile!!.length()
+                if (size <= targetBytes && bestSize <= targetBytes && size > bestSize) {
+                    bestTempFile?.delete()
+                    bestTempFile = tempFile
+                    bestReport = report
+                } else if (size <= targetBytes && bestSize > targetBytes) {
+                    bestTempFile?.delete()
+                    bestTempFile = tempFile
+                    bestReport = report
+                } else if (size > targetBytes && bestSize > targetBytes && size < bestSize) {
+                    bestTempFile?.delete()
+                    bestTempFile = tempFile
+                    bestReport = report
+                } else {
+                    tempFile.delete()
+                }
+            }
+        }
+
+        try {
+            bestTempFile?.inputStream()?.use { input ->
+                context.contentResolver.openOutputStream(destUri)?.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            val finalSize = bestTempFile?.length() ?: Long.MAX_VALUE
+            bestTempFile?.delete()
+            
+            return@withContext Result.success(bestReport!!.copy(targetMissed = finalSize > targetBytes))
+        } catch (e: Exception) {
+            bestTempFile?.delete()
+            return@withContext Result.failure(e)
+        }
+    }
+
+    private suspend fun compressSinglePass(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        quality: Float,
+        useGrayscale: Boolean,
+        useLossless: Boolean,
+        stripMetadata: Boolean
     ): Result<CompressionReport> = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
         var inputStream: InputStream? = null
@@ -67,7 +150,7 @@ object PdfCompressor {
             }
             
             var imagesProcessed = 0
-            val maxDimension = if (quality < 0.4f) 1200f else if (quality < 0.6f) 1800f else 3000f
+            val maxDimension = if (quality < 0.2f) 800f else if (quality < 0.4f) 1200f else if (quality < 0.6f) 1800f else 3000f
 
             for (page in doc.pages) {
                 val resources = page.resources ?: continue
@@ -84,8 +167,6 @@ object PdfCompressor {
                             originalBitmap = xObject.image
                             var bitmap = originalBitmap
                             
-                            // Advanced Technique: Downsampling
-                            // If image is larger than our threshold, scale it down
                             if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
                                 val scale = Math.min(maxDimension / bitmap.width, maxDimension / bitmap.height)
                                 val matrix = Matrix()
@@ -111,7 +192,6 @@ object PdfCompressor {
                         } catch (e: OutOfMemoryError) {
                             System.err.println("OOM while compressing image: ${name.name}")
                         } finally {
-                            // Recycle all intermediate bitmaps to free native memory
                             grayscaleBitmap?.recycle()
                             if (scaledBitmap != null && scaledBitmap !== originalBitmap) scaledBitmap.recycle()
                             originalBitmap?.recycle()
@@ -143,7 +223,8 @@ object PdfCompressor {
     data class CompressionReport(
         val originalSize: Long,
         val imagesProcessed: Int,
-        val hasSignatures: Boolean
+        val hasSignatures: Boolean,
+        val targetMissed: Boolean = false
     )
 
     /**

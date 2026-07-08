@@ -9,6 +9,8 @@ import com.example.shrinkpdf.logic.PdfCompressor
 import com.example.shrinkpdf.logic.PdfAnalysis
 import com.example.shrinkpdf.logic.PdfScenario
 import com.example.shrinkpdf.logic.PdfManipulator
+import com.example.shrinkpdf.logic.PdfMetadata
+import com.example.shrinkpdf.logic.PdfMetadataManager
 import com.example.shrinkpdf.logic.TextToPdfConverter
 import com.example.shrinkpdf.billing.BillingManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,11 +90,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _stripMetadata = MutableStateFlow(false)
     val stripMetadata: StateFlow<Boolean> = _stripMetadata.asStateFlow()
 
+    private val metadataManager = PdfMetadataManager()
+
+    private val _currentMetadata = MutableStateFlow<PdfMetadata?>(null)
+    val currentMetadata: StateFlow<PdfMetadata?> = _currentMetadata.asStateFlow()
+
     sealed class UiState {
         object Idle : UiState()
         object Processing : UiState()
         data class BatchProcessing(val current: Int, val total: Int, val currentFileName: String) : UiState()
         data class Success(val title: String, val message: String) : UiState()
+        data class Warning(val title: String, val message: String) : UiState()
         data class Error(val message: String) : UiState()
     }
 
@@ -178,6 +186,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _targetMb = MutableStateFlow<Float?>(null)
+    val targetMb: StateFlow<Float?> = _targetMb.asStateFlow()
+
+    fun setTargetMb(mb: Float?) {
+        _targetMb.value = mb
+    }
+
     fun compressPdf(context: Context, sourceUri: Uri, destUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -191,7 +206,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 quality = _compressionQuality.value,
                 useGrayscale = _useGrayscale.value,
                 useLossless = _useLossless.value,
-                stripMetadata = _stripMetadata.value
+                stripMetadata = _stripMetadata.value,
+                targetMb = _targetMb.value
             )
             
             result.onSuccess { report ->
@@ -216,7 +232,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         } else {
                             append("Reduced by $reductionPercent% ($saved saved!)\n\n")
                         }
-                        // Verdict based on reduction percent
+                        
                         val verdict = when {
                             compressedSize > originalSize -> "No compression benefit"
                             reductionPercent >= 50 -> "Excellent compression"
@@ -228,7 +244,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         append("Original Size: ${formatSize(originalSize)}\n")
                         append("Compressed Size: ${formatSize(compressedSize)}\n\n")
                         append("Settings Used:\n")
-                        append("- Quality Preset: ${(compressionQuality.value * 100).toInt()}%\n")
+                        if (_targetMb.value != null) {
+                            append("- Target Size: ${_targetMb.value} MB\n")
+                            append("- Auto-Optimized: Yes\n")
+                        } else {
+                            append("- Quality Preset: ${(compressionQuality.value * 100).toInt()}%\n")
+                        }
                         append("- Grayscale: ${if (useGrayscale.value) "Enabled" else "Disabled"}\n")
                         append("- Lossless ZIP: ${if (useLossless.value) "Enabled" else "Disabled"}\n")
                         append("- Metadata Removed: ${if (stripMetadata.value) "Yes" else "No"}")
@@ -237,7 +258,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }.toString()
 
-                _uiState.value = UiState.Success("Compression Result", reductionDetails)
+                if (report.targetMissed) {
+                    _uiState.value = UiState.Warning(
+                        "Target Size Unreachable",
+                        "The best possible compression was applied, but the file could not be compressed under ${_targetMb.value} MB without destroying the content.\n\n" + reductionDetails
+                    )
+                } else {
+                    _uiState.value = UiState.Success("Compression Result", reductionDetails)
+                }
                 
             }.onFailure { error ->
                 _uiState.value = UiState.Error(error.message ?: "An unknown error occurred.")
@@ -339,7 +367,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     quality = _compressionQuality.value,
                     useGrayscale = _useGrayscale.value,
                     useLossless = _useLossless.value,
-                    stripMetadata = _stripMetadata.value
+                    stripMetadata = _stripMetadata.value,
+                    targetMb = _targetMb.value
                 )
 
                 compressResult.onSuccess { report ->
@@ -446,6 +475,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = UiState.Success("Merge Complete", "Successfully merged ${sourceUris.size} documents.")
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to merge PDFs.")
+            }
+        }
+    }
+
+    fun resetMetadata() {
+        _currentMetadata.value = null
+        _pdfAnalysis.value = null
+    }
+
+    fun loadMetadata(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            _isAnalyzing.value = true
+            val metadataResult = metadataManager.getMetadata(context, uri)
+            val analysisResult = PdfCompressor.analyzePdf(context, uri)
+
+            if (metadataResult.isSuccess && analysisResult.isSuccess) {
+                _currentMetadata.value = metadataResult.getOrNull()
+                _pdfAnalysis.value = analysisResult.getOrNull()
+            } else {
+                _uiState.value = UiState.Error("Failed to load metadata or analysis.")
+            }
+            _isAnalyzing.value = false
+        }
+    }
+
+    fun updateMetadata(context: Context, sourceUri: Uri, destUri: Uri, newMetadata: PdfMetadata) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            val result = metadataManager.updateMetadata(context, sourceUri, destUri, newMetadata)
+            if (result.isSuccess) {
+                _uiState.value = UiState.Success("Metadata Updated", "The document's metadata has been successfully updated.")
+            } else {
+                _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to update metadata.")
+            }
+        }
+    }
+
+    fun clearMetadata(context: Context, sourceUri: Uri, destUri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            val result = metadataManager.clearMetadata(context, sourceUri, destUri)
+            if (result.isSuccess) {
+                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped from the document.")
+            } else {
+                _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to remove metadata.")
+            }
+        }
+    }
+
+    fun clearMetadataOverwrite(context: Context, sourceUri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            val result = metadataManager.clearMetadataOverwrite(context, sourceUri)
+            if (result.isSuccess) {
+                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped and the original file has been overwritten.")
+            } else {
+                _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to overwrite metadata.")
             }
         }
     }
