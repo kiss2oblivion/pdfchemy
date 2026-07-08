@@ -76,6 +76,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
+    // Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // 2. Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
@@ -85,6 +88,9 @@ dependencies {
 
     // 4. AdMob
     implementation("com.google.android.gms:play-services-ads:23.2.0")
+
+    // ML Kit Document Scanner
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
 
 
     // 5. Google Play Billing Library

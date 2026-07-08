@@ -189,7 +189,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                             if (inputText.isBlank()) {
                                 Toast.makeText(context, "Please enter some text.", Toast.LENGTH_SHORT).show()
                             } else {
-                                val filename = "converted_${System.currentTimeMillis()}.${outputFormat.name.lowercase()}"
+                                val filename = com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "converted_text", "Document", outputFormat.name.lowercase())
                                 saveFileLauncher.launch(filename)
                             }
                         },

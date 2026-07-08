@@ -16,10 +16,17 @@ import com.example.shrinkpdf.billing.BillingManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import kotlinx.coroutines.withContext
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.cos.COSName
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -285,6 +292,62 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = UiState.Success("PDF Created", "Your document has been saved successfully.")
             }.onFailure { error ->
                 _uiState.value = UiState.Error(error.message ?: "Failed to create PDF.")
+            }
+        }
+    }
+
+    fun convertImagesToPdf(context: Context, imageUris: List<Uri>, destUri: Uri) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                withContext(Dispatchers.IO) {
+                    val document = com.tom_roush.pdfbox.pdmodel.PDDocument()
+                    val total = imageUris.size
+                    
+                    for ((index, uri) in imageUris.withIndex()) {
+                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                            val bitmap = BitmapFactory.decodeStream(inputStream)
+                            if (bitmap != null) {
+                                val page = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4)
+                                document.addPage(page)
+                                
+                                val pdImage = com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(document, bitmap)
+                                val contentStream = com.tom_roush.pdfbox.pdmodel.PDPageContentStream(document, page)
+                                
+                                val pageWidth = page.mediaBox.width
+                                val pageHeight = page.mediaBox.height
+                                val margin = 20f
+                                val maxWidth = pageWidth - margin * 2
+                                val maxHeight = pageHeight - margin * 2
+                                
+                                val imgWidth = bitmap.width.toFloat()
+                                val imgHeight = bitmap.height.toFloat()
+                                
+                                val scale = minOf(maxWidth / imgWidth, maxHeight / imgHeight)
+                                val drawWidth = imgWidth * scale
+                                val drawHeight = imgHeight * scale
+                                
+                                val startX = (pageWidth - drawWidth) / 2
+                                val startY = (pageHeight - drawHeight) / 2
+                                
+                                contentStream.drawImage(pdImage, startX, startY, drawWidth, drawHeight)
+                                contentStream.close()
+                                bitmap.recycle()
+                            }
+                        }
+                    }
+                    
+                    context.contentResolver.openOutputStream(destUri)?.use { out ->
+                        document.save(out)
+                    }
+                    document.close()
+                }
+                _uiState.value = UiState.Success("PDF Created", "Your images have been converted successfully.")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = UiState.Error(e.message ?: "Failed to create PDF from images.")
             }
         }
     }
@@ -561,6 +624,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = UiState.Success("Split Complete", "Successfully split the document into the selected folder.")
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to split PDF.")
+            }
+        }
+    }
+    fun extractImagesFromPdf(pdfUri: Uri, outputDirectory: androidx.documentfile.provider.DocumentFile, context: Context, onComplete: (Int, Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = UiState.Processing
+            var extractedCount = 0
+            var errorCount = 0
+            try {
+                context.contentResolver.openInputStream(pdfUri)?.use { inputStream ->
+                    val document = PDDocument.load(inputStream)
+                    for (pageIndex in 0 until document.numberOfPages) {
+                        val page = document.getPage(pageIndex)
+                        val resources = page.resources
+                        if (resources != null) {
+                            val xObjectNames = resources.xObjectNames
+                            for (xObjectName in xObjectNames) {
+                                val xObject = resources.getXObject(xObjectName)
+                                if (xObject is PDImageXObject) {
+                                    try {
+                                        val bitmap = xObject.image
+                                        if (bitmap != null) {
+                                            val newFile = outputDirectory.createFile("image/jpeg", "extracted_image_${System.currentTimeMillis()}.jpg")
+                                            newFile?.uri?.let { newUri ->
+                                                context.contentResolver.openOutputStream(newUri)?.use { out ->
+                                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+                                                    extractedCount++
+                                                }
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        errorCount++
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    document.close()
+                }
+                
+                withContext(Dispatchers.Main) {
+                    onComplete(extractedCount, errorCount)
+                    _uiState.value = UiState.Idle
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    onComplete(extractedCount, errorCount)
+                    _uiState.value = UiState.Idle
+                }
             }
         }
     }

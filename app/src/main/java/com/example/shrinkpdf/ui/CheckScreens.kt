@@ -48,7 +48,8 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ToolCard(
@@ -62,6 +63,12 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 subtitle = "Strip all metadata properties from the PDF",
                 icon = Icons.Rounded.DeleteSweep,
                 onClick = { onNavigate(Screen.StripMetadata) }
+            )
+            ToolCard(
+                title = "Text Cleaner",
+                subtitle = "Clean, format, and organize text directly",
+                icon = Icons.Rounded.Edit,
+                onClick = { onNavigate(Screen.TextCleaner) }
             )
         }
     }
@@ -191,7 +198,7 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 }
 
                 Button(
-                    onClick = { createDocLauncher.launch("metadata_updated.pdf") },
+                    onClick = { createDocLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "metadata_updated")) },
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
                     Text("Save Changes to New PDF")
@@ -286,7 +293,7 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         Text("Overwrite Original", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     Button(
-                        onClick = { createDocLauncher.launch("stripped_$fileName") },
+                        onClick = { createDocLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "stripped")) },
                         modifier = Modifier.weight(1f).height(56.dp)
                     ) {
                         Text("Save as New", textAlign = androidx.compose.ui.text.style.TextAlign.Center)

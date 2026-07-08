@@ -9,13 +9,17 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.CallSplit
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Merge
 import androidx.compose.material.icons.rounded.PictureAsPdf
-import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import com.example.shrinkpdf.Screen
 import com.example.shrinkpdf.ToolCard
 import kotlinx.coroutines.launch
@@ -55,7 +61,8 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ToolCard(
@@ -69,6 +76,12 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 subtitle = "Extract pages or separate a PDF into multiple files",
                 icon = Icons.Rounded.CallSplit,
                 onClick = { onNavigate(Screen.SplitPdf) }
+            )
+            ToolCard(
+                title = "Extract Images",
+                subtitle = "Extract all images embedded in a PDF",
+                icon = Icons.Rounded.Image,
+                onClick = { onNavigate(Screen.ExtractImages) }
             )
         }
     }
@@ -117,7 +130,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         floatingActionButton = {
             if (selectedFiles.size >= 2) {
                 ExtendedFloatingActionButton(
-                    onClick = { createDocLauncher.launch("merged_document.pdf") },
+                    onClick = { createDocLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "merged")) },
                     icon = { Icon(Icons.Rounded.Merge, "Merge") },
                     text = { Text("Merge") }
                 )
@@ -302,6 +315,143 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         label = { Text("e.g. 1-3, 5, 7-10") },
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedPdfName by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+
+    val directoryPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val documentFile = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, uri)
+            if (documentFile != null && selectedPdfUri != null) {
+                viewModel.extractImagesFromPdf(selectedPdfUri!!, documentFile, context) { extracted, errors ->
+                    if (extracted > 0) {
+                        Toast.makeText(context, "Extracted $extracted images successfully!", Toast.LENGTH_LONG).show()
+                    } else if (errors > 0) {
+                        Toast.makeText(context, "Failed to extract images ($errors errors).", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "No images found in this PDF.", Toast.LENGTH_SHORT).show()
+                    }
+                    onBack()
+                }
+            }
+        }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedPdfUri = it
+            selectedPdfName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, it)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Extract Images", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        },
+        floatingActionButton = {
+            if (selectedPdfUri != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { directoryPickerLauncher.launch(null) },
+                    icon = { Icon(Icons.Rounded.Image, contentDescription = "Extract") },
+                    text = { Text("Extract Images") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (selectedPdfUri == null) {
+                    Icon(
+                        imageVector = Icons.Rounded.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Select a PDF to extract all embedded images.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Icon(Icons.Rounded.UploadFile, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Select PDF")
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(selectedPdfName ?: "Document.pdf", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Ready to extract all images. Tap the button below and choose an output folder.", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            OutlinedButton(onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) }) {
+                                Text("Change PDF")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (uiState is MainViewModel.UiState.Processing) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text("Extracting images...", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }

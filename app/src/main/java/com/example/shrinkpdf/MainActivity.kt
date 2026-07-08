@@ -38,9 +38,12 @@ import com.example.shrinkpdf.logic.PdfAnalysis
 import com.example.shrinkpdf.ui.OrganizeCategoryScreen
 import com.example.shrinkpdf.ui.MergePdfScreen
 import com.example.shrinkpdf.ui.SplitPdfScreen
+import com.example.shrinkpdf.ui.ExtractImagesScreen
 import com.example.shrinkpdf.ui.CheckCategoryScreen
 import com.example.shrinkpdf.ui.InspectMetadataScreen
 import com.example.shrinkpdf.ui.StripMetadataScreen
+import com.example.shrinkpdf.ui.TextCleanerScreen
+import com.example.shrinkpdf.ui.ImagesToPdfScreen
 import com.example.shrinkpdf.ui.textconverter.TextConverterViewModel
 import com.example.shrinkpdf.ui.textconverter.TextConverterScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -286,15 +289,18 @@ fun MainApp(
             Screen.CompressPdf -> CompressPdfScreen(viewModel, 0) { currentScreen = Screen.CompressCategory }
             Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1) { currentScreen = Screen.CompressCategory }
             Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
             Screen.Settings -> SettingsScreen(viewModel) { currentScreen = Screen.Home }
             Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
             Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
         }
 
         if (uiState is MainViewModel.UiState.Processing || uiState is MainViewModel.UiState.BatchProcessing) {
@@ -400,9 +406,12 @@ sealed class Screen {
     object OrganizeCategory : Screen()
     object MergePdf : Screen()
     object SplitPdf : Screen()
+    object ExtractImages : Screen()
     object CheckCategory : Screen()
     object InspectMetadata : Screen()
     object StripMetadata : Screen()
+    object TextCleaner : Screen()
+    object ImagesToPdf : Screen()
 }
 
 /**
@@ -865,6 +874,57 @@ fun CategoryCard(
 @Composable
 fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
     BackHandler { onBack() }
+    val context = LocalContext.current
+    val activity = context as? android.app.Activity
+
+
+    var scannedPdfUri by remember { mutableStateOf<Uri?>(null) }
+
+    val saveScannedPdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri: Uri? ->
+        if (uri != null && scannedPdfUri != null) {
+            try {
+                context.contentResolver.openInputStream(scannedPdfUri!!)?.use { input ->
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Toast.makeText(context, "Scanned PDF saved!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Failed to save PDF", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val scannerLauncherReal = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val scanningResult = com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            scanningResult?.pdf?.uri?.let { pdfUri ->
+                scannedPdfUri = pdfUri
+                saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "scanned_document"))
+            }
+        }
+    }
+
+    fun launchScanner() {
+        if (activity == null) return
+        val options = com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.Builder()
+            .setGalleryImportAllowed(true)
+            .setResultFormats(com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_PDF)
+            .setScannerMode(com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+            .build()
+        val scanner = com.google.mlkit.vision.documentscanner.GmsDocumentScanning.getClient(options)
+        scanner.getStartScanIntent(activity).addOnSuccessListener { intentSender ->
+            scannerLauncherReal.launch(androidx.activity.result.IntentSenderRequest.Builder(intentSender).build())
+        }.addOnFailureListener {
+            Toast.makeText(context, "Scanner not available.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Scaffold(containerColor = Color.Transparent, 
         topBar = {
             TopAppBar(
@@ -878,9 +938,21 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
+            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            ToolCard(
+                title = "Scan to PDF",
+                subtitle = "Use the native document scanner to create a PDF",
+                icon = Icons.Rounded.DocumentScanner,
+                onClick = { launchScanner() }
+            )
+            ToolCard(
+                title = "Images to PDF",
+                subtitle = "Convert JPG, PNG, and other images to a single PDF",
+                icon = Icons.Rounded.PictureAsPdf,
+                onClick = { onNavigate(Screen.ImagesToPdf) }
+            )
             ToolCard(
                 title = "Text to PDF",
                 subtitle = "Convert your notes or .txt files to PDF",
@@ -914,7 +986,7 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
+            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ToolCard(
@@ -1171,7 +1243,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                                 stripMetadata = stripMetadata,
                                 pdfAnalysis = pdfAnalysis,
                                 viewModel = viewModel,
-                                onSaveSingle = { savePdfLauncher.launch("compressed_${sourceName ?: "file.pdf"}") },
+                                    onSaveSingle = { savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "compressed")) },
                                 onSaveBatch = { selectDirectoryLauncher.launch(null) }
                             )
                         }
@@ -1217,7 +1289,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                             viewModel = viewModel,
                             onSaveSingle = { 
                                 com.example.shrinkpdf.ads.AdManager.showAd(context as android.app.Activity, isPremium) {
-                                    savePdfLauncher.launch("compressed_${sourceName ?: "file.pdf"}") 
+                                    savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "compressed")) 
                                 }
                             },
                             onSaveBatch = { 
@@ -1396,10 +1468,14 @@ fun LeftPanel(
                             }
                         }
                         
-                        ElevatedButton(
+                        Button(
                             onClick = { isListExpanded = !isListExpanded },
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
                             Icon(
                                 if (isListExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
@@ -1862,6 +1938,7 @@ fun RightPanel(
             style = MaterialTheme.typography.titleMedium
         )
     }
+    Spacer(modifier = Modifier.height(32.dp))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1927,7 +2004,7 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         if (inputText.isBlank()) {
                             Toast.makeText(context, "Please enter some text.", Toast.LENGTH_SHORT).show()
                         } else {
-                            savePdfLauncher.launch("converted_text.pdf")
+                            savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "converted_text"))
                         }
                     },
                     modifier = Modifier.weight(1f)
