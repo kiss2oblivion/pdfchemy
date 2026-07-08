@@ -563,11 +563,11 @@ fun HomeScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.mascot),
-                            contentDescription = "PDFchemy Mascot",
+                        Icon(
+                            imageVector = Icons.Rounded.PictureAsPdf,
+                            contentDescription = "App Logo",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -631,11 +631,11 @@ fun HomeScreen(
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.mascot),
-                            contentDescription = "PDFchemy Mascot",
+                        Icon(
+                            imageVector = Icons.Rounded.PictureAsPdf,
+                            contentDescription = "App Logo",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -670,6 +670,7 @@ fun HomeScreen(
                 }
             }
         }
+    }
     }
 }
 
