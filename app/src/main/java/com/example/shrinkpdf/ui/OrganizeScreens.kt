@@ -145,8 +145,12 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             } else {
                 Text("Long press and drag to reorder", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    itemsIndexed(selectedFiles) { index, item ->
+                    itemsIndexed(
+                        items = selectedFiles,
+                        key = { _, item -> item.uri.toString() }
+                    ) { _, item ->
                         var isDragging by remember { mutableStateOf(false) }
+                        var accumulatedY by remember { mutableStateOf(0f) }
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
 
                         Card(
@@ -154,28 +158,34 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                                 .shadow(elevation, RoundedCornerShape(12.dp))
-                                .pointerInput(Unit) {
+                                .pointerInput(item) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = { isDragging = true },
+                                        onDragStart = { 
+                                            isDragging = true 
+                                            accumulatedY = 0f
+                                        },
                                         onDragEnd = { isDragging = false },
                                         onDragCancel = { isDragging = false },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
-                                            val y = dragAmount.y
-                                            if (y > 50 && index < selectedFiles.size - 1) {
-                                                val list = selectedFiles.toMutableList()
-                                                val temp = list[index]
-                                                list[index] = list[index + 1]
-                                                list[index + 1] = temp
-                                                selectedFiles = list
-                                                isDragging = false
-                                            } else if (y < -50 && index > 0) {
-                                                val list = selectedFiles.toMutableList()
-                                                val temp = list[index]
-                                                list[index] = list[index - 1]
-                                                list[index - 1] = temp
-                                                selectedFiles = list
-                                                isDragging = false
+                                            accumulatedY += dragAmount.y
+                                            val currentIndex = selectedFiles.indexOf(item)
+                                            if (currentIndex != -1) {
+                                                if (accumulatedY > 150f && currentIndex < selectedFiles.size - 1) {
+                                                    val list = selectedFiles.toMutableList()
+                                                    val temp = list[currentIndex]
+                                                    list[currentIndex] = list[currentIndex + 1]
+                                                    list[currentIndex + 1] = temp
+                                                    selectedFiles = list
+                                                    accumulatedY = 0f
+                                                } else if (accumulatedY < -150f && currentIndex > 0) {
+                                                    val list = selectedFiles.toMutableList()
+                                                    val temp = list[currentIndex]
+                                                    list[currentIndex] = list[currentIndex - 1]
+                                                    list[currentIndex - 1] = temp
+                                                    selectedFiles = list
+                                                    accumulatedY = 0f
+                                                }
                                             }
                                         }
                                     )
