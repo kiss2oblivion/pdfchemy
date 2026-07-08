@@ -473,17 +473,18 @@ fun HomeScreen(
         if (cardsOffsetY.value != 0f) cardsOffsetY.snapTo(0f)
     }
 
-    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+    Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         val configuration = LocalConfiguration.current
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         Row(
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.End
         ) {
             IconButton(onClick = { onNavigate(Screen.Settings) }) {
                 Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
             }
+            Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onToggleTheme) {
                 Icon(
                     imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
