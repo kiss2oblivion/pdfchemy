@@ -27,6 +27,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -84,23 +87,23 @@ val md_theme_light_surfaceVariant = Color(0xFFE1E2E8)
 val md_theme_light_onSurfaceVariant = Color(0xFF44474E)
 val md_theme_light_outline = Color(0xFF74777F)
 
-val md_theme_dark_primary = Color(0xFF56B4E9)
-val md_theme_dark_onPrimary = Color(0xFF003258)
-val md_theme_dark_primaryContainer = Color(0xFF00497D)
-val md_theme_dark_onPrimaryContainer = Color(0xFFD1E4FF)
-val md_theme_dark_secondary = Color(0xFFF0E442)
-val md_theme_dark_onSecondary = Color(0xFF3B3800)
-val md_theme_dark_secondaryContainer = Color(0xFF565200)
-val md_theme_dark_onSecondaryContainer = Color(0xFFFFF05B)
-val md_theme_dark_tertiary = Color(0xFFCC79A7)
-val md_theme_dark_onTertiary = Color(0xFF3F002A)
-val md_theme_dark_tertiaryContainer = Color(0xFF5C003F)
-val md_theme_dark_onTertiaryContainer = Color(0xFFFFD8ED)
-val md_theme_dark_background = Color(0xFF121212)
+val md_theme_dark_primary = Color(0xFF00E5FF) // Neon Cyan
+val md_theme_dark_onPrimary = Color(0xFF00363D)
+val md_theme_dark_primaryContainer = Color(0xFF004F58)
+val md_theme_dark_onPrimaryContainer = Color(0xFF99F5FF)
+val md_theme_dark_secondary = Color(0xFFD500F9) // Magic Purple
+val md_theme_dark_onSecondary = Color(0xFF4A0059)
+val md_theme_dark_secondaryContainer = Color(0xFF7B0094)
+val md_theme_dark_onSecondaryContainer = Color(0xFFF4B3FF)
+val md_theme_dark_tertiary = Color(0xFFFFEA00) // Glowing Gold
+val md_theme_dark_onTertiary = Color(0xFF332F00)
+val md_theme_dark_tertiaryContainer = Color(0xFF4D4700)
+val md_theme_dark_onTertiaryContainer = Color(0xFFFFF599)
+val md_theme_dark_background = Color(0xFF0B0B11) // Deep Dark Navy/Charcoal
 val md_theme_dark_onBackground = Color(0xFFE3E2E6)
-val md_theme_dark_surface = Color(0xFF1E1E1E)
+val md_theme_dark_surface = Color(0xFF13131C) // Slightly lighter than bg
 val md_theme_dark_onSurface = Color(0xFFE3E2E6)
-val md_theme_dark_surfaceVariant = Color(0xFF44474E)
+val md_theme_dark_surfaceVariant = Color(0xFF282836)
 val md_theme_dark_onSurfaceVariant = Color(0xFFC4C6D0)
 val md_theme_dark_outline = Color(0xFF8E9099)
 
@@ -169,7 +172,7 @@ val AppTypography = Typography(
 
 @Composable
 fun ShrinkPdfTheme(
-    useDarkTheme: Boolean = isSystemInDarkTheme(),
+    useDarkTheme: Boolean = true, // Force Dark Theme
     content: @Composable () -> Unit
 ) {
     val colors = if (!useDarkTheme) {
@@ -424,6 +427,46 @@ fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseCo
 }
 
 @Composable
+fun AnimatedMeshBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "mesh")
+    val color1 by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "color1"
+    )
+    val color2 by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
+        targetValue = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "color2"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(color1, Color.Transparent),
+                center = Offset(size.width * 0.2f, size.height * 0.2f),
+                radius = size.width * 0.8f
+            )
+        )
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(color2, Color.Transparent),
+                center = Offset(size.width * 0.8f, size.height * 0.8f),
+                radius = size.width * 0.8f
+            )
+        )
+    }
+}
+
+@Composable
 fun HomeScreen(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
@@ -474,7 +517,10 @@ fun HomeScreen(
         if (cardsOffsetY.value != 0f) cardsOffsetY.snapTo(0f)
     }
 
-    Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedMeshBackground()
+
+        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         val configuration = LocalConfiguration.current
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -517,11 +563,11 @@ fun HomeScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "App Logo",
+                        Image(
+                            painter = painterResource(id = R.drawable.mascot),
+                            contentDescription = "PDFchemy Mascot",
                             modifier = Modifier.fillMaxSize(),
-                            tint = MaterialTheme.colorScheme.primary
+                            contentScale = ContentScale.Fit
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -585,11 +631,11 @@ fun HomeScreen(
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "App Logo",
+                        Image(
+                            painter = painterResource(id = R.drawable.mascot),
+                            contentDescription = "PDFchemy Mascot",
                             modifier = Modifier.fillMaxSize(),
-                            tint = MaterialTheme.colorScheme.primary
+                            contentScale = ContentScale.Fit
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
