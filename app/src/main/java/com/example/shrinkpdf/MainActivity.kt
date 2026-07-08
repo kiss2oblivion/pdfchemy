@@ -57,6 +57,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.TileMode
 
 // --- Color Palette ---
 val md_theme_light_primary = Color(0xFF0072B2)
@@ -371,13 +375,105 @@ sealed class Screen {
     object CheckCategory : Screen()
 }
 
+/**
+ * Animated title with a subtle shimmer highlight that sweeps across the text.
+ * Content is always visible — the shimmer is purely additive.
+ */
+@Composable
+fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseColor: Color) {
+    val shimmerAnim = remember { Animatable(-1f) }
+    
+    LaunchedEffect(Unit) {
+        // Run once initially
+        shimmerAnim.animateTo(
+            targetValue = 2f,
+            animationSpec = tween(3000, easing = LinearEasing)
+        )
+        
+        while (true) {
+            // Random delay between 5 and 10 minutes (in milliseconds)
+            val delayMillis = (300_000L..600_000L).random()
+            delay(delayMillis)
+            
+            shimmerAnim.snapTo(-1f)
+            shimmerAnim.animateTo(
+                targetValue = 2f,
+                animationSpec = tween(3000, easing = LinearEasing)
+            )
+        }
+    }
+
+    val shimmerOffset = shimmerAnim.value
+
+    val highlightColor = baseColor.copy(alpha = 0.5f)
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(baseColor, highlightColor, Color.White, highlightColor, baseColor),
+        start = Offset(shimmerOffset * 800f, 0f),
+        end = Offset(shimmerOffset * 800f + 400f, 0f)
+    )
+
+    Text(
+        text = text,
+        style = style.copy(
+            brush = shimmerBrush,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-0.5).sp
+        )
+    )
+}
+
 @Composable
 fun HomeScreen(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onNavigate: (Screen) -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    // --- Safe entrance animation ---
+    // Content is ALWAYS composed. Animation only affects visual properties (alpha, translation)
+    // via graphicsLayer so the layout tree is never empty.
+    val headerAlpha = remember { Animatable(0f) }
+    val headerOffsetY = remember { Animatable(30f) }
+    val cardsAlpha = remember { Animatable(0f) }
+    val cardsOffsetY = remember { Animatable(30f) }
+
+    // Run the entrance animation
+    LaunchedEffect(Unit) {
+        try {
+            // Header fades in first
+            launch {
+                headerAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
+            }
+            launch {
+                headerOffsetY.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
+            }
+            // Cards follow with a short delay
+            launch {
+                delay(200)
+                cardsAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
+            }
+            launch {
+                delay(200)
+                cardsOffsetY.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
+            }
+        } catch (_: Exception) {
+            // Safety: if animation fails for any reason, snap to fully visible
+            headerAlpha.snapTo(1f)
+            headerOffsetY.snapTo(0f)
+            cardsAlpha.snapTo(1f)
+            cardsOffsetY.snapTo(0f)
+        }
+    }
+
+    // Safety timeout: force everything visible after 2 seconds no matter what
+    LaunchedEffect(Unit) {
+        delay(2000)
+        if (headerAlpha.value < 1f) headerAlpha.snapTo(1f)
+        if (headerOffsetY.value != 0f) headerOffsetY.snapTo(0f)
+        if (cardsAlpha.value < 1f) cardsAlpha.snapTo(1f)
+        if (cardsOffsetY.value != 0f) cardsOffsetY.snapTo(0f)
+    }
+
+    Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         val configuration = LocalConfiguration.current
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -399,16 +495,24 @@ fun HomeScreen(
 
         if (isLandscape) {
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            alpha = headerAlpha.value
+                            translationX = -headerOffsetY.value  // slide from left in landscape
+                        }
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(72.dp)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), shape = CircleShape)
-                            .padding(20.dp),
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -418,23 +522,32 @@ fun HomeScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ShimmerTitle(
                         text = "PDFchemy Tools",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp,
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.headlineMedium,
+                        baseColor = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Fix documents locally.",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.widthIn(max = 500.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 16.dp)
+                        .graphicsLayer {
+                            alpha = cardsAlpha.value
+                            translationX = cardsOffsetY.value  // slide from right in landscape
+                        }
+                ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f))
                         CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f))
@@ -451,7 +564,13 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.graphicsLayer {
+                        alpha = headerAlpha.value
+                        translationY = -headerOffsetY.value  // slide down from above
+                    }
+                ) {
                     Box(
                         modifier = Modifier
                             .size(96.dp)
@@ -467,12 +586,10 @@ fun HomeScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text(
+                    ShimmerTitle(
                         text = "PDFchemy Tools",
                         style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp,
-                        color = MaterialTheme.colorScheme.primary
+                        baseColor = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Fix documents locally.",
@@ -482,7 +599,13 @@ fun HomeScreen(
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.graphicsLayer {
+                        alpha = cardsAlpha.value
+                        translationY = cardsOffsetY.value  // slide up from below
+                    }
+                ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f))
                         CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f))
