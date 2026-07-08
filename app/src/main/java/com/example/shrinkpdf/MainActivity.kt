@@ -561,7 +561,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
-                        CategoryCard("Check", "Inspect before sending.", Icons.AutoMirrored.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }
