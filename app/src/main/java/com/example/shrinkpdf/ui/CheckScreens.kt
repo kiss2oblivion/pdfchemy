@@ -1,0 +1,298 @@
+package com.example.shrinkpdf.ui
+
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.FactCheck
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.shrinkpdf.Screen
+import com.example.shrinkpdf.ToolCard
+import com.example.shrinkpdf.logic.PdfMetadata
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
+    androidx.activity.compose.BackHandler { onBack() }
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = { Text("Check") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                ),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ToolCard(
+                title = "Inspect & Edit Metadata",
+                subtitle = "View document stats and modify metadata fields",
+                icon = Icons.Rounded.Edit,
+                onClick = { onNavigate(Screen.InspectMetadata) }
+            )
+            ToolCard(
+                title = "Remove Metadata",
+                subtitle = "Strip all metadata properties from the PDF",
+                icon = Icons.Rounded.DeleteSweep,
+                onClick = { onNavigate(Screen.StripMetadata) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    androidx.activity.compose.BackHandler { 
+        viewModel.resetMetadata()
+        onBack() 
+    }
+    val context = LocalContext.current
+    var sourceUri by remember { mutableStateOf<Uri?>(null) }
+    
+    val currentMetadata by viewModel.currentMetadata.collectAsState()
+    val analysis by viewModel.pdfAnalysis.collectAsState()
+    val isAnalyzing by viewModel.isAnalyzing.collectAsState()
+
+    var title by remember { mutableStateOf("") }
+    var author by remember { mutableStateOf("") }
+    var subject by remember { mutableStateOf("") }
+    var keywords by remember { mutableStateOf("") }
+    var creator by remember { mutableStateOf("") }
+    var producer by remember { mutableStateOf("") }
+
+    // Update local state when metadata is loaded
+    LaunchedEffect(currentMetadata) {
+        currentMetadata?.let {
+            title = it.title
+            author = it.author
+            subject = it.subject
+            keywords = it.keywords
+            creator = it.creator
+            producer = it.producer
+        }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            sourceUri = uri
+            viewModel.loadMetadata(context, uri)
+        }
+    }
+
+    val createDocLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { destUri ->
+        if (destUri != null && sourceUri != null) {
+            val newMetadata = PdfMetadata(title, author, subject, keywords, creator, producer)
+            viewModel.updateMetadata(context, sourceUri!!, destUri, newMetadata)
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = { Text("Inspect & Edit Metadata") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                navigationIcon = {
+                    IconButton(onClick = { 
+                        viewModel.resetMetadata()
+                        onBack() 
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (sourceUri == null) {
+                Button(
+                    onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Select PDF")
+                }
+            } else if (isAnalyzing) {
+                CircularProgressIndicator()
+            } else {
+                Button(
+                    onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text("Select Different PDF")
+                }
+
+                if (analysis != null) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Document Stats", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Pages: ${analysis!!.pageCount}")
+                            Text("Images: ${analysis!!.imageCount}")
+                            Text("Signatures: ${if (analysis!!.hasSignatures) "Yes" else "No"}")
+                            Text("Type: ${analysis!!.scenario.name}")
+                        }
+                    }
+                }
+
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Metadata Fields", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = author, onValueChange = { author = it }, label = { Text("Author") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = subject, onValueChange = { subject = it }, label = { Text("Subject") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = keywords, onValueChange = { keywords = it }, label = { Text("Keywords") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = creator, onValueChange = { creator = it }, label = { Text("Creator") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = producer, onValueChange = { producer = it }, label = { Text("Producer") }, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+
+                Button(
+                    onClick = { createDocLauncher.launch("metadata_updated.pdf") },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Save Changes to New PDF")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    androidx.activity.compose.BackHandler { onBack() }
+    val context = LocalContext.current
+    var sourceUri by remember { mutableStateOf<Uri?>(null) }
+    var fileName by remember { mutableStateOf("") }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            sourceUri = uri
+            fileName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
+        }
+    }
+
+    val createDocLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { destUri ->
+        if (destUri != null && sourceUri != null) {
+            viewModel.clearMetadata(context, sourceUri!!, destUri)
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = { Text("Remove Metadata") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (sourceUri == null) {
+                Text("Select a PDF to strip all metadata properties. This is useful for privacy before sharing files.", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Select PDF")
+                }
+            } else {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Selected File:", style = MaterialTheme.typography.labelMedium)
+                        Text(fileName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                Button(
+                    onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text("Select Different PDF")
+                }
+                Spacer(Modifier.weight(1f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.clearMetadataOverwrite(context, sourceUri!!) },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Overwrite Original", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                    Button(
+                        onClick = { createDocLauncher.launch("stripped_$fileName") },
+                        modifier = Modifier.weight(1f).height(56.dp)
+                    ) {
+                        Text("Save as New", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+            }
+        }
+    }
+}
