@@ -675,7 +675,7 @@ fun CategoryCard(
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
