@@ -1323,16 +1323,28 @@ fun LeftPanel(
         }
     } else {
         if (selectedFiles.isNotEmpty()) {
+            val targetMb by viewModel.targetMb.collectAsState()
             Card(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Selected Batch Files:",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Selected Batch Files:",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        TextButton(
+                            onClick = { viewModel.clearSelectedFiles() },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("Clear All")
+                        }
+                    }
                     selectedFiles.forEach { file ->
                         val estCompressedSize = if (file.size > 0) {
                             viewModel.estimateCompressedSize(
@@ -1340,35 +1352,68 @@ fun LeftPanel(
                                 quality = currentQuality,
                                 useLossless = useLossless,
                                 useGrayscale = useGrayscale,
-                                scenario = null // Batch estimation uses generic ratio since analysis is per-file
+                                scenario = null
                             )
                         } else 0L
                         
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = file.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1
+                            Icon(
+                                Icons.Rounded.PictureAsPdf, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column(horizontalAlignment = Alignment.End) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (file.isAnalyzing) "Analyzing..." else viewModel.formatSize(file.size),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = file.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
-                                if (!file.isAnalyzing) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "→ ${viewModel.formatSize(estCompressedSize)}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
+                                        text = if (file.isAnalyzing) "Analyzing..." else viewModel.formatSize(file.size),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    if (!file.isAnalyzing) {
+                                        Text(
+                                            text = "  →  ",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        val estimatedText = if (targetMb != null) {
+                                            "Target: $targetMb MB"
+                                        } else {
+                                            "~${viewModel.formatSize(estCompressedSize)}"
+                                        }
+                                        Text(
+                                            text = estimatedText,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
+                            }
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = { viewModel.removeSelectedFile(file.uri) }, 
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Close, 
+                                    contentDescription = "Remove file", 
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }

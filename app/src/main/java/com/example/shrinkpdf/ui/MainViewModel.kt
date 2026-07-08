@@ -296,6 +296,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _selectedFiles.value = emptyList()
     }
 
+    fun removeSelectedFile(uri: Uri) {
+        _selectedFiles.value = _selectedFiles.value.filter { it.uri != uri }
+    }
+
     fun onFilesSelected(context: Context, uris: List<Uri>) {
         _selectedFiles.value = emptyList()
         viewModelScope.launch {
