@@ -301,9 +301,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onFilesSelected(context: Context, uris: List<Uri>) {
-        _selectedFiles.value = emptyList()
         viewModelScope.launch {
-            val list = uris.map { uri ->
+            val existingUris = _selectedFiles.value.map { it.uri }.toSet()
+            val newUris = uris.filter { it !in existingUris }
+            if (newUris.isEmpty()) return@launch
+
+            val newList = newUris.map { uri ->
                 val size = try {
                     context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: -1L
                 } catch (e: Exception) {
@@ -312,23 +315,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val name = com.example.shrinkpdf.utils.FileUtils.getFileName(context, uri) ?: "unknown_file.pdf"
                 SelectedFile(uri, name, size, isAnalyzing = true)
             }
-            _selectedFiles.value = list
+            _selectedFiles.value = _selectedFiles.value + newList
 
             // Analyze them sequentially
-            list.forEachIndexed { index, selectedFile ->
+            newList.forEach { selectedFile ->
                 val analysisResult = PdfCompressor.analyzePdf(context, selectedFile.uri)
                 analysisResult.onSuccess { analysis ->
-                    _selectedFiles.value = _selectedFiles.value.mapIndexed { idx, item ->
-                        if (idx == index) item.copy(analysis = analysis, isAnalyzing = false) else item
+                    _selectedFiles.value = _selectedFiles.value.map { item ->
+                        if (item.uri == selectedFile.uri) item.copy(analysis = analysis, isAnalyzing = false) else item
                     }
-                    if (index == 0) {
+                    if (_pdfAnalysis.value == null && _selectedFiles.value.firstOrNull()?.uri == selectedFile.uri) {
                         _pdfAnalysis.value = analysis
                         _compressionQuality.value = analysis.recommendedQuality
                         applyScenarioDefaults(analysis.scenario)
                     }
                 }.onFailure {
-                    _selectedFiles.value = _selectedFiles.value.mapIndexed { idx, item ->
-                        if (idx == index) item.copy(isAnalyzing = false) else item
+                    _selectedFiles.value = _selectedFiles.value.map { item ->
+                        if (item.uri == selectedFile.uri) item.copy(isAnalyzing = false) else item
                     }
                 }
             }

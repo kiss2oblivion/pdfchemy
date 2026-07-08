@@ -1284,7 +1284,7 @@ fun LeftPanel(
                     text = if (selectedTab == 0) {
                         if (sourceUri == null) "Select PDF File" else "Change File"
                     } else {
-                        if (selectedFiles.isEmpty()) "Select PDF Files" else "Change Files (${selectedFiles.size} selected)"
+                        if (selectedFiles.isEmpty()) "Select PDF Files" else "Add More Files (${selectedFiles.size} selected)"
                     }
                 )
             }
@@ -1324,6 +1324,26 @@ fun LeftPanel(
     } else {
         if (selectedFiles.isNotEmpty()) {
             val targetMb by viewModel.targetMb.collectAsState()
+            var isListExpanded by remember { mutableStateOf(selectedFiles.size < 2) }
+            
+            // Calculate totals
+            val totalOriginalSize = selectedFiles.sumOf { it.size }
+            val totalEstimatedSize = if (targetMb != null) {
+                (targetMb!! * 1024 * 1024).toLong() * selectedFiles.size
+            } else {
+                selectedFiles.sumOf { file ->
+                    if (file.size > 0) {
+                        viewModel.estimateCompressedSize(
+                            originalSize = file.size,
+                            quality = currentQuality,
+                            useLossless = useLossless,
+                            useGrayscale = useGrayscale,
+                            scenario = null
+                        )
+                    } else 0L
+                }
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -1345,75 +1365,118 @@ fun LeftPanel(
                             Text("Clear All")
                         }
                     }
-                    selectedFiles.forEach { file ->
-                        val estCompressedSize = if (file.size > 0) {
-                            viewModel.estimateCompressedSize(
-                                originalSize = file.size,
-                                quality = currentQuality,
-                                useLossless = useLossless,
-                                useGrayscale = useGrayscale,
-                                scenario = null
-                            )
-                        } else 0L
-                        
-                        Row(
+                    
+                    if (selectedFiles.size >= 2) {
+                        Card(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                         ) {
-                            Icon(
-                                Icons.Rounded.PictureAsPdf, 
-                                contentDescription = null, 
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = file.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Total Summary (${selectedFiles.size} files)", style = MaterialTheme.typography.titleSmall)
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = if (file.isAnalyzing) "Analyzing..." else viewModel.formatSize(file.size),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = viewModel.formatSize(totalOriginalSize),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                    if (!file.isAnalyzing) {
+                                    Text("  →  ", style = MaterialTheme.typography.bodySmall)
+                                    val estimatedText = if (targetMb != null) {
+                                        "Target: ${targetMb!! * selectedFiles.size} MB"
+                                    } else {
+                                        "~${viewModel.formatSize(totalEstimatedSize)}"
+                                    }
+                                    Text(
+                                        text = estimatedText,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                        
+                        TextButton(
+                            onClick = { isListExpanded = !isListExpanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (isListExpanded) "Hide Individual Files" else "View Individual Files")
+                        }
+                    }
+                    
+                    AnimatedVisibility(visible = isListExpanded || selectedFiles.size < 2) {
+                        Column {
+                            selectedFiles.forEach { file ->
+                                val estCompressedSize = if (file.size > 0) {
+                                    viewModel.estimateCompressedSize(
+                                        originalSize = file.size,
+                                        quality = currentQuality,
+                                        useLossless = useLossless,
+                                        useGrayscale = useGrayscale,
+                                        scenario = null
+                                    )
+                                } else 0L
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.PictureAsPdf, 
+                                        contentDescription = null, 
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "  →  ",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = file.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                         )
-                                        val estimatedText = if (targetMb != null) {
-                                            "Target: $targetMb MB"
-                                        } else {
-                                            "~${viewModel.formatSize(estCompressedSize)}"
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = if (file.isAnalyzing) "Analyzing..." else viewModel.formatSize(file.size),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (!file.isAnalyzing) {
+                                                Text(
+                                                    text = "  →  ",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                val estimatedText = if (targetMb != null) {
+                                                    "Target: $targetMb MB"
+                                                } else {
+                                                    "~${viewModel.formatSize(estCompressedSize)}"
+                                                }
+                                                Text(
+                                                    text = estimatedText,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
                                         }
-                                        Text(
-                                            text = estimatedText,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { viewModel.removeSelectedFile(file.uri) }, 
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Close, 
+                                            contentDescription = "Remove file", 
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
-                            }
-                            
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = { viewModel.removeSelectedFile(file.uri) }, 
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Close, 
-                                    contentDescription = "Remove file", 
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
                         }
                     }
