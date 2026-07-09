@@ -100,6 +100,35 @@ object PdfManipulator {
         }
     }
 
+    suspend fun rotatePdf(context: Context, sourceUri: Uri, destUri: Uri, degrees: Int, pageRange: String? = null) {
+        withContext(Dispatchers.IO) {
+            var document: PDDocument? = null
+            try {
+                context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+                    document = PDDocument.load(inputStream)
+                    val totalPages = document!!.numberOfPages
+                    val pagesToRotate = parsePageRange(pageRange, totalPages)
+
+                    for (i in 0 until totalPages) {
+                        if (pagesToRotate.contains(i + 1)) {
+                            val page = document!!.getPage(i)
+                            // Rotation in PDF must be a multiple of 90
+                            var newRotation = (page.rotation + degrees) % 360
+                            if (newRotation < 0) newRotation += 360
+                            page.rotation = newRotation
+                        }
+                    }
+
+                    context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
+                        document!!.save(outputStream)
+                    }
+                }
+            } finally {
+                document?.close()
+            }
+        }
+    }
+
     private fun parsePageRange(rangeStr: String?, totalPages: Int): Set<Int> {
         if (rangeStr.isNullOrBlank()) {
             return (1..totalPages).toSet()

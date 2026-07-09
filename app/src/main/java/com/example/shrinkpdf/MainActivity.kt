@@ -47,6 +47,8 @@ import com.example.shrinkpdf.ui.InspectMetadataScreen
 import com.example.shrinkpdf.ui.StripMetadataScreen
 import com.example.shrinkpdf.ui.TextCleanerScreen
 import com.example.shrinkpdf.ui.ImagesToPdfScreen
+import com.example.shrinkpdf.ui.RotatePdfScreen
+import com.example.shrinkpdf.ui.ExtractTextScreen
 import com.example.shrinkpdf.ui.textconverter.TextConverterViewModel
 import com.example.shrinkpdf.ui.textconverter.TextConverterScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -77,6 +79,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
+import com.example.shrinkpdf.billing.AdManager
 
 // --- Color Palette ---
 val md_theme_light_primary = Color(0xFF0072B2)
@@ -214,6 +222,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
+        MobileAds.initialize(this) { }
         // Do not preload ads on launch while debugging the home UI.
         // On some emulator/WebView setups, ad preload can create a blank black surface over Compose.
         setContent {
@@ -278,8 +287,11 @@ fun MainApp(
         viewModel.initBilling(context)
     }
 
+    val isPremium by viewModel.isPremium.collectAsState()
+    
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.weight(1f)) {
             
 
         when (currentScreen) {
@@ -306,6 +318,9 @@ fun MainApp(
             Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
             Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
             Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
+            Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
         }
 
         if (uiState is MainViewModel.UiState.Processing || uiState is MainViewModel.UiState.BatchProcessing) {
@@ -350,12 +365,26 @@ fun MainApp(
         // Dynamic Result Dialog
         when (val state = uiState) {
             is MainViewModel.UiState.Success -> {
+                val isPremium by viewModel.isPremium.collectAsState()
+                val activity = context as? android.app.Activity
                 AlertDialog(
-                    onDismissRequest = { viewModel.resetState() },
+                    onDismissRequest = {
+                        if (activity != null) {
+                            AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
+                        } else {
+                            viewModel.resetState()
+                        }
+                    },
                     title = { Text(state.title) },
                     text = { Text(state.message) },
                     confirmButton = {
-                        TextButton(onClick = { viewModel.resetState() }) {
+                        TextButton(onClick = {
+                            if (activity != null) {
+                                AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
+                            } else {
+                                viewModel.resetState()
+                            }
+                        }) {
                             Text("OK")
                         }
                     },
@@ -414,6 +443,8 @@ fun MainApp(
             }
         }
         }
+            BannerAd(isPremium = isPremium)
+        }
     }
 }
 
@@ -436,6 +467,9 @@ sealed class Screen {
     object StripMetadata : Screen()
     object TextCleaner : Screen()
     object ImagesToPdf : Screen()
+    object RotatePdf : Screen()
+    object ExtractText : Screen()
+    object Premium : Screen()
 }
 
 /**
@@ -595,6 +629,8 @@ fun HomeScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedMeshBackground()
 
+        val isPremium by viewModel.isPremium.collectAsState()
+
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         val configuration = LocalConfiguration.current
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -603,6 +639,12 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.End
         ) {
+            if (!isPremium) {
+                IconButton(onClick = { onNavigate(Screen.Premium) }) {
+                    Icon(Icons.Rounded.WorkspacePremium, contentDescription = "Go Premium", tint = Color(0xFFFFD700))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             IconButton(onClick = { onNavigate(Screen.Settings) }) {
                 Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
             }
@@ -616,12 +658,13 @@ fun HomeScreen(
             }
         }
 
-        if (isLandscape) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+        Box(modifier = Modifier.weight(1f)) {
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
@@ -755,7 +798,8 @@ fun HomeScreen(
                 }
             }
         }
-    }
+        } // End of Box weight(1f)
+        }
     }
 }
 
@@ -1920,75 +1964,7 @@ fun RightPanel(
         }
     }
 
-    val estCompressedSize = if (totalOriginalSize > 0) {
-        when {
-            useLossless -> (totalOriginalSize * 1.05).toLong()
-            else -> {
-                var ratio = when (currentQuality) {
-                    0.25f -> 0.30f
-                    0.50f -> 0.50f
-                    else -> 0.75f
-                }
-                
-                // If it's mostly text, compression won't be as effective, but we still apply a small ratio
-                // so the user gets visual feedback that the algorithm was applied.
-                if (pdfAnalysis?.scenario == com.example.shrinkpdf.logic.PdfScenario.TEXT_VECTOR) {
-                    ratio = when (currentQuality) {
-                        0.25f -> 0.85f
-                        0.50f -> 0.90f
-                        else -> 0.95f
-                    }
-                }
-                
-                val grayscaleDiscount = if (useGrayscale) 0.85f else 1.0f
-                (totalOriginalSize * ratio * grayscaleDiscount).toLong()
-            }
-        }
-    } else 0L
 
-    val estCompressedSizeStr = viewModel.formatSize(estCompressedSize)
-    val estSavingsPercent = if (totalOriginalSize > 0) {
-        val diff = totalOriginalSize - estCompressedSize
-        if (diff > 0) ((diff.toFloat() / totalOriginalSize) * 100).toInt() else 0
-    } else 0
-
-    AnimatedVisibility(
-        visible = true,
-        enter = expandVertically() + fadeIn()
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Estimated size after compression",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    AnimatedContent(targetState = estCompressedSizeStr, label = "size_anim") { targetSize ->
-                        Text(
-                            text = if (totalOriginalSize > 0) "$targetSize (~$estSavingsPercent% smaller)" else "Select files to see projection",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = Icons.Rounded.Analytics,
-                    contentDescription = "Projected Size info",
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-            }
-        }
-    }
 
     Button(
         onClick = { if (selectedTab == 0) onSaveSingle() else onSaveBatch() },
@@ -2250,6 +2226,81 @@ fun RecentFilesSection(viewModel: MainViewModel) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BannerAd(isPremium: Boolean, modifier: Modifier = Modifier) {
+    if (isPremium) return
+    AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test Banner ID
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
+}
+
+@Composable
+fun PremiumUpgradeScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    val isPremium by viewModel.isPremium.collectAsState()
+    val price by viewModel.premiumPrice.collectAsState()
+    val context = LocalContext.current as android.app.Activity
+
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        PremiumTopAppBar(title = "Premium Upgrade", onBack = onBack)
+        
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.WorkspacePremium,
+                contentDescription = "Premium",
+                modifier = Modifier.size(120.dp),
+                tint = Color(0xFFFFD700)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = if (isPremium) "You are a Premium User!" else "Support PDFchemy",
+                style = MaterialTheme.typography.headlineLarge,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (isPremium) {
+                Text(
+                    text = "Thank you for supporting our mission of privacy-first, offline document tools. All ads have been permanently removed.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Unlock the ultimate offline PDF experience.\n\n• No Banner Ads\n• No Interstitial Ads\n• 100% Offline Privacy\n• One-time lifetime purchase",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = { viewModel.purchasePremium(context) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text(
+                        text = if (price.isNotEmpty()) "Unlock Lifetime for $price" else "Loading price...",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }

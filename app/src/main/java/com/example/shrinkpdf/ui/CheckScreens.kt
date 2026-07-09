@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.FactCheck
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -69,6 +70,12 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 subtitle = "Clean, format, and organize text directly",
                 icon = Icons.Rounded.Edit,
                 onClick = { onNavigate(Screen.TextCleaner) }
+            )
+            ToolCard(
+                title = "Extract Text / OCR",
+                subtitle = "Extract text from PDFs or scanned documents",
+                icon = Icons.Rounded.DocumentScanner,
+                onClick = { onNavigate(Screen.ExtractText) }
             )
         }
     }
@@ -299,6 +306,88 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         Text("Save as New", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExtractTextScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
+    var selectedFile by remember { mutableStateOf<androidx.documentfile.provider.DocumentFile?>(null) }
+    
+    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            selectedFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, it)
+        }
+    }
+
+    val saveFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        uri?.let { destUri ->
+            selectedFile?.uri?.let { sourceUri ->
+                viewModel.extractTextFromPdf(context, sourceUri, destUri)
+                onBack()
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Extract Text / OCR") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            if (selectedFile != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { saveFileLauncher.launch("${selectedFile!!.name?.substringBeforeLast(".")}_text.txt") },
+                    icon = { Icon(Icons.Rounded.DocumentScanner, contentDescription = "Extract") },
+                    text = { Text("Extract & Save as .txt") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Select PDF")
+            }
+
+            if (selectedFile != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.FactCheck, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(selectedFile!!.name ?: "Document", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Text(
+                    text = "If the document contains standard text, it will be extracted instantly. If it is a scanned document (images), we will use on-device OCR (Optical Character Recognition) to read the text. This may take a few moments.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

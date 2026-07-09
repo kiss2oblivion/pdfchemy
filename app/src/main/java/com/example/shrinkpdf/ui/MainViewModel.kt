@@ -11,6 +11,7 @@ import com.example.shrinkpdf.logic.PdfScenario
 import com.example.shrinkpdf.logic.PdfManipulator
 import com.example.shrinkpdf.logic.PdfMetadata
 import com.example.shrinkpdf.logic.PdfMetadataManager
+import com.example.shrinkpdf.logic.PdfTextExtractor
 import com.example.shrinkpdf.logic.TextToPdfConverter
 import com.example.shrinkpdf.billing.BillingManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -723,6 +724,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main) {
                     onComplete(extractedCount, errorCount)
                     _uiState.value = UiState.Idle
+                }
+            }
+        }
+    }
+
+    fun rotatePdf(context: Context, sourceUri: Uri, destUri: Uri, degrees: Int, pageRange: String = "") {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                PdfManipulator.rotatePdf(context, sourceUri, destUri, degrees, pageRange)
+                withContext(Dispatchers.Main) {
+                    historyRepository.addHistoryItem(destUri, "Rotated PDF", "Rotate PDF")
+                    refreshHistory()
+                    _uiState.value = UiState.Success("Success", "PDF rotated successfully", listOf(destUri))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: "Rotation failed")
+                }
+            }
+        }
+    }
+
+    fun extractTextFromPdf(context: Context, sourceUri: Uri, destUri: Uri) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val success = PdfTextExtractor.extractText(context, sourceUri, destUri)
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        historyRepository.addHistoryItem(destUri, "Extracted Text", "PDF to Text")
+                        refreshHistory()
+                        _uiState.value = UiState.Success("Success", "Text extracted successfully", listOf(destUri))
+                    } else {
+                        _uiState.value = UiState.Error("Could not extract text")
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: "Extraction failed")
                 }
             }
         }

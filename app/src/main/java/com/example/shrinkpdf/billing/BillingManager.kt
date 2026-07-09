@@ -21,7 +21,7 @@ class BillingManager(
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
-    private val _premiumPrice = MutableStateFlow("\$1.99") // Default fallback
+    private val _premiumPrice = MutableStateFlow("$4.99") // Default fallback
     val premiumPrice: StateFlow<String> = _premiumPrice.asStateFlow()
 
     private var premiumProductDetails: ProductDetails? = null
@@ -84,9 +84,7 @@ class BillingManager(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
                 val details = productDetailsList[0]
                 premiumProductDetails = details
-                details.oneTimePurchaseOfferDetails?.formattedPrice?.let { price ->
-                    _premiumPrice.value = price
-                }
+                // We intentionally don't update _premiumPrice.value here because the user wants it hardcoded to $4.99
             }
         }
     }

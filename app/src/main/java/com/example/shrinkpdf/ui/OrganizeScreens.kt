@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Merge
 import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.RotateRight
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -95,6 +96,12 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 subtitle = "Extract all images embedded in a PDF",
                 icon = Icons.Rounded.Image,
                 onClick = { onNavigate(Screen.ExtractImages) }
+            )
+            ToolCard(
+                title = "Rotate Pages",
+                subtitle = "Rotate specific pages or entire documents",
+                icon = Icons.Rounded.RotateRight,
+                onClick = { onNavigate(Screen.RotatePdf) }
             )
         }
     }
@@ -627,6 +634,117 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     label = { Text("e.g. 1, 3, 5-10") },
                     modifier = Modifier.fillMaxWidth(),
                     supportingText = { Text("Enter comma-separated page numbers or ranges.") }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
+    var selectedFile by remember { mutableStateOf<androidx.documentfile.provider.DocumentFile?>(null) }
+    var pageRange by remember { mutableStateOf("") }
+    var rotationDegrees by remember { mutableIntStateOf(90) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            val docFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, it)
+            selectedFile = docFile
+        }
+    }
+
+    val saveFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        uri?.let { destUri ->
+            selectedFile?.uri?.let { sourceUri ->
+                viewModel.rotatePdf(context, sourceUri, destUri, rotationDegrees, pageRange)
+                onBack()
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Rotate Pages") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            if (selectedFile != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { saveFileLauncher.launch("rotated_${selectedFile!!.name}") },
+                    icon = { Icon(Icons.Rounded.RotateRight, contentDescription = "Save") },
+                    text = { Text("Rotate & Save") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Select PDF")
+            }
+
+            if (selectedFile != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(selectedFile!!.name ?: "Document", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Text("Rotation Angle", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = rotationDegrees == 90,
+                        onClick = { rotationDegrees = 90 },
+                        label = { Text("90° CW") }
+                    )
+                    FilterChip(
+                        selected = rotationDegrees == 180,
+                        onClick = { rotationDegrees = 180 },
+                        label = { Text("180°") }
+                    )
+                    FilterChip(
+                        selected = rotationDegrees == 270,
+                        onClick = { rotationDegrees = 270 },
+                        label = { Text("90° CCW") }
+                    )
+                }
+
+                Text("Pages to Rotate (Optional)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+
+                OutlinedTextField(
+                    value = pageRange,
+                    onValueChange = { pageRange = it },
+                    label = { Text("e.g. 1, 3, 5-10") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Leave blank to rotate all pages.") }
                 )
             }
         }
