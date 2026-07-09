@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.CallSplit
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Merge
@@ -76,6 +77,12 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 subtitle = "Extract pages or separate a PDF into multiple files",
                 icon = Icons.Rounded.CallSplit,
                 onClick = { onNavigate(Screen.SplitPdf) }
+            )
+            ToolCard(
+                title = "Delete Pages",
+                subtitle = "Remove specific pages from a PDF",
+                icon = Icons.Rounded.Delete,
+                onClick = { onNavigate(Screen.DeletePages) }
             )
             ToolCard(
                 title = "Extract Images",
@@ -453,6 +460,96 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         Text("Extracting images...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    androidx.activity.compose.BackHandler { onBack() }
+    val context = LocalContext.current
+    var selectedFile by remember { mutableStateOf<PdfItem?>(null) }
+    var pagesToDelete by remember { mutableStateOf("") }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val name = com.example.shrinkpdf.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
+            selectedFile = PdfItem(uri, name)
+        }
+    }
+
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null && selectedFile != null && pagesToDelete.isNotBlank()) {
+            viewModel.deletePages(context, selectedFile!!.uri, uri, pagesToDelete)
+        }
+    }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = { Text("Delete Pages") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                }
+            )
+        },
+        floatingActionButton = {
+            if (selectedFile != null && pagesToDelete.isNotBlank()) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, selectedFile!!.uri) ?: "Document"
+                        val suggestedName = "${originalName.substringBeforeLast(".")}_deleted.pdf"
+                        createDocumentLauncher.launch(suggestedName)
+                    },
+                    icon = { Icon(Icons.Rounded.Delete, "Delete") },
+                    text = { Text("Save Document") }
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Select PDF")
+            }
+
+            if (selectedFile != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(selectedFile!!.name, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Text("Pages to Delete", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+
+                OutlinedTextField(
+                    value = pagesToDelete,
+                    onValueChange = { pagesToDelete = it },
+                    label = { Text("e.g. 1, 3, 5-10") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Enter comma-separated page numbers or ranges.") }
+                )
             }
         }
     }

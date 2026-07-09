@@ -74,6 +74,32 @@ object PdfManipulator {
         }
     }
 
+    suspend fun deletePages(context: Context, sourceUri: Uri, destUri: Uri, pageRange: String) {
+        withContext(Dispatchers.IO) {
+            var document: PDDocument? = null
+            try {
+                context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+                    document = PDDocument.load(inputStream)
+                    val totalPages = document!!.numberOfPages
+                    val pagesToDelete = parsePageRange(pageRange, totalPages)
+
+                    // Remove backwards to avoid index shifting
+                    for (i in totalPages - 1 downTo 0) {
+                        if (pagesToDelete.contains(i + 1)) {
+                            document!!.removePage(i)
+                        }
+                    }
+
+                    context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
+                        document!!.save(outputStream)
+                    }
+                }
+            } finally {
+                document?.close()
+            }
+        }
+    }
+
     private fun parsePageRange(rangeStr: String?, totalPages: Int): Set<Int> {
         if (rangeStr.isNullOrBlank()) {
             return (1..totalPages).toSet()

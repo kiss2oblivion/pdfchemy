@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,11 +26,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
+import java.io.File
+import androidx.core.content.FileProvider
+
+fun createTempImageUri(context: android.content.Context): Uri {
+    val tempFile = File(context.cacheDir, "scans/scan_${System.currentTimeMillis()}.jpg")
+    tempFile.parentFile?.mkdirs()
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     var selectedImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
     val pickerLauncher = rememberLauncherForActivityResult(
@@ -37,6 +48,14 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     ) { uris ->
         if (uris.isNotEmpty()) {
             selectedImages = selectedImages + uris
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && currentPhotoUri != null) {
+            selectedImages = selectedImages + currentPhotoUri!!
         }
     }
 
@@ -85,19 +104,38 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(
-                onClick = {
-                    pickerLauncher.launch(
-                        androidx.activity.result.PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = "Add Images")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Select Images")
+                Button(
+                    onClick = {
+                        pickerLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = "Gallery")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Gallery")
+                }
+                
+                Button(
+                    onClick = {
+                        val uri = createTempImageUri(context)
+                        currentPhotoUri = uri
+                        cameraLauncher.launch(uri)
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Rounded.PhotoCamera, contentDescription = "Take Photo")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Camera")
+                }
             }
 
             if (selectedImages.isEmpty()) {

@@ -40,6 +40,7 @@ import com.example.shrinkpdf.logic.PdfAnalysis
 import com.example.shrinkpdf.ui.OrganizeCategoryScreen
 import com.example.shrinkpdf.ui.MergePdfScreen
 import com.example.shrinkpdf.ui.SplitPdfScreen
+import com.example.shrinkpdf.ui.DeletePagesScreen
 import com.example.shrinkpdf.ui.ExtractImagesScreen
 import com.example.shrinkpdf.ui.CheckCategoryScreen
 import com.example.shrinkpdf.ui.InspectMetadataScreen
@@ -299,6 +300,7 @@ fun MainApp(
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
@@ -427,6 +429,7 @@ sealed class Screen {
     object OrganizeCategory : Screen()
     object MergePdf : Screen()
     object SplitPdf : Screen()
+    object DeletePages : Screen()
     object ExtractImages : Screen()
     object CheckCategory : Screen()
     object InspectMetadata : Screen()

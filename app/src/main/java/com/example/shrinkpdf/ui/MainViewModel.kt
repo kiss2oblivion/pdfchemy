@@ -657,6 +657,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    
+    fun deletePages(context: Context, sourceUri: Uri, destUri: Uri, pageRange: String) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                PdfManipulator.deletePages(context, sourceUri, destUri, pageRange)
+                historyRepository.addHistoryItem(destUri, com.example.shrinkpdf.utils.FileUtils.getFileName(context, destUri) ?: "Unknown", "Organize")
+                refreshHistory()
+                _uiState.value = UiState.Success("Pages Deleted", "Successfully removed the selected pages.", listOf(destUri))
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Failed to delete pages.")
+            }
+        }
+    }
+
     fun extractImagesFromPdf(pdfUri: Uri, outputDirectory: androidx.documentfile.provider.DocumentFile, context: Context, onComplete: (Int, Int) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = UiState.Processing
