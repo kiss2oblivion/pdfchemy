@@ -903,7 +903,8 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
     BackHandler { onBack() }
     val context = LocalContext.current
     val activity = context as? android.app.Activity
-
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var scannedPdfUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -917,10 +918,10 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         input.copyTo(output)
                     }
                 }
-                Toast.makeText(context, "Scanned PDF saved!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Scanned PDF exported!", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "Failed to save PDF", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to export PDF", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -932,7 +933,44 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             val scanningResult = com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(result.data)
             scanningResult?.pdf?.uri?.let { pdfUri ->
                 scannedPdfUri = pdfUri
-                saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "scanned_document"))
+                coroutineScope.launch {
+                    try {
+                        val scansDir = java.io.File(context.filesDir, "scans")
+                        if (!scansDir.exists()) scansDir.mkdirs()
+                        
+                        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                        val fileName = "Scan_$timeStamp.pdf"
+                        val destFile = java.io.File(scansDir, fileName)
+                        
+                        context.contentResolver.openInputStream(pdfUri)?.use { input ->
+                            java.io.FileOutputStream(destFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        
+                        val internalUri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            destFile
+                        )
+                        
+                        val historyRepo = com.example.shrinkpdf.logic.HistoryRepository(context)
+                        historyRepo.addHistoryItem(internalUri, fileName, "scanned")
+                        
+                        // Show snackbar with Export option
+                        val snackbarResult = snackbarHostState.showSnackbar(
+                            message = "Scan saved to Repository",
+                            actionLabel = "Export",
+                            duration = SnackbarDuration.Short
+                        )
+                        if (snackbarResult == SnackbarResult.ActionPerformed) {
+                            saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "scanned_document"))
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        snackbarHostState.showSnackbar("Failed to process scan")
+                    }
+                }
             }
         }
     }
@@ -952,7 +990,9 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         }
     }
 
-    Scaffold(containerColor = Color.Transparent, 
+    Scaffold(
+        containerColor = Color.Transparent, 
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Create") },

@@ -9,6 +9,10 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,12 +34,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import android.widget.Toast
 import com.example.shrinkpdf.Screen
 import com.example.shrinkpdf.ToolCard
+import android.widget.Toast
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,6 +108,9 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
     var selectedFiles by remember { mutableStateOf(listOf<PdfItem>()) }
+    var showHistorySheet by remember { mutableStateOf(false) }
+    val historyRepo = remember { com.example.shrinkpdf.logic.HistoryRepository(context) }
+    var historyItems by remember { mutableStateOf(historyRepo.getHistory()) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -120,6 +129,59 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     ) { destUri ->
         if (destUri != null) {
             viewModel.mergePdfs(context, selectedFiles.map { it.uri }, destUri)
+        }
+    }
+
+    if (showHistorySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showHistorySheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text("Select from Recent", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                if (historyItems.isEmpty()) {
+                    Text("No recent files found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                        items(items = historyItems) { item ->
+                            val isSelected = selectedFiles.any { it.uri.toString() == item.uriString }
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        val uri = Uri.parse(item.uriString)
+                                        if (isSelected) {
+                                            selectedFiles = selectedFiles.filterNot { it.uri == uri }
+                                        } else {
+                                            selectedFiles = selectedFiles + PdfItem(uri, item.name)
+                                        }
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(item.action, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (isSelected) {
+                                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 
@@ -151,11 +213,27 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Select PDFs")
+                Button(
+                    onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Select PDFs")
+                }
+                FilledTonalButton(
+                    onClick = { 
+                        historyItems = historyRepo.getHistory()
+                        showHistorySheet = true 
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Recent")
+                }
             }
 
             if (selectedFiles.isEmpty()) {
