@@ -1,4 +1,4 @@
-package com.example.shrinkpdf
+package com.example.shrinkpdf.logic
 
 import android.content.Context
 import android.graphics.Bitmap
