@@ -14,6 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
@@ -21,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
@@ -29,12 +35,16 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.shrinkpdf.utils.AppLogger
 import com.example.shrinkpdf.ui.MainViewModel
 import com.example.shrinkpdf.logic.PdfAnalysis
 import com.example.shrinkpdf.ui.OrganizeCategoryScreen
@@ -217,8 +227,9 @@ fun playFeedback(view: android.view.View, isHaptic: Boolean, isSfx: Boolean) {
     }
 }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
@@ -226,11 +237,13 @@ class MainActivity : ComponentActivity() {
         // Do not preload ads on launch while debugging the home UI.
         // On some emulator/WebView setups, ad preload can create a blank black surface over Compose.
         setContent {
+            val windowSizeClass = calculateWindowSizeClass(this)
             var isDarkTheme by remember { mutableStateOf(false) }
             val useDark = isDarkTheme
             
             ShrinkPdfTheme(useDarkTheme = useDark) {
                 MainApp(
+                    windowWidthSizeClass = windowSizeClass.widthSizeClass,
                     isDarkTheme = useDark,
                     onToggleTheme = { isDarkTheme = !isDarkTheme }
                 )
@@ -274,6 +287,7 @@ fun PremiumTopAppBar(
 
 @Composable
 fun MainApp(
+    windowWidthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     viewModel: MainViewModel = viewModel(),
     textConverterViewModel: TextConverterViewModel = viewModel(),
     isDarkTheme: Boolean = false,
@@ -296,6 +310,7 @@ fun MainApp(
 
         when (currentScreen) {
             Screen.Home -> HomeScreen(
+                windowWidthSizeClass = windowWidthSizeClass,
                 isDarkTheme = isDarkTheme,
                 onToggleTheme = onToggleTheme,
                 onNavigate = { screen -> currentScreen = screen },
@@ -357,7 +372,7 @@ fun MainApp(
                             trackColor = Color.White.copy(alpha = 0.3f)
                         )
                     } else {
-                        Text("Compressing PDF...", color = Color.White)
+                        Text(stringResource(R.string.compressing_pdf), color = Color.White)
                     }
                 }
             }
@@ -385,7 +400,7 @@ fun MainApp(
                                 viewModel.resetState()
                             }
                         }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     },
                     dismissButton = {
@@ -393,7 +408,7 @@ fun MainApp(
                             TextButton(onClick = { 
                                 com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
                             }) {
-                                Text("Share")
+                                Text(stringResource(R.string.share))
                             }
                         }
                     }
@@ -406,7 +421,7 @@ fun MainApp(
                     text = { Text(state.message) },
                     confirmButton = {
                         TextButton(onClick = { viewModel.resetState() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     },
                     dismissButton = {
@@ -414,7 +429,7 @@ fun MainApp(
                             TextButton(onClick = { 
                                 com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
                             }) {
-                                Text("Share")
+                                Text(stringResource(R.string.share))
                             }
                         }
                     }
@@ -423,11 +438,11 @@ fun MainApp(
             is MainViewModel.UiState.Error -> {
                 AlertDialog(
                     onDismissRequest = { viewModel.resetState() },
-                    title = { Text("Error") },
+                    title = { Text(stringResource(R.string.error)) },
                     text = { Text(state.message) },
                     confirmButton = {
                         TextButton(onClick = { viewModel.resetState() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 )
@@ -576,6 +591,7 @@ fun AnimatedMeshBackground() {
 
 @Composable
 fun HomeScreen(
+    windowWidthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onNavigate: (Screen) -> Unit,
@@ -632,8 +648,7 @@ fun HomeScreen(
         val isPremium by viewModel.isPremium.collectAsState()
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-        val configuration = LocalConfiguration.current
-        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val isWideScreen = windowWidthSizeClass != WindowWidthSizeClass.Compact
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -659,7 +674,7 @@ fun HomeScreen(
         }
 
         Box(modifier = Modifier.weight(1f)) {
-            if (isLandscape) {
+            if (isWideScreen) {
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -690,13 +705,13 @@ fun HomeScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     ShimmerTitle(
-                        text = "PDFchemy Tools",
+                        text = stringResource(R.string.app_name) + " Tools",
                         style = MaterialTheme.typography.headlineMedium,
                         baseColor = MaterialTheme.colorScheme.primary,
                         isDarkTheme = isDarkTheme
                     )
                     Text(
-                        text = "FIX DOCUMENTS LOCALLY",
+                        text = stringResource(R.string.home_subtitle),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 2.sp
@@ -721,15 +736,15 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
-                        CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
                     }
                     Row(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
-                        CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }
@@ -785,14 +800,21 @@ fun HomeScreen(
                         translationY = cardsOffsetY.value  // slide up from below
                     }
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryCard("Compress", "Make PDFs smaller, safely.", Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f))
-                        CategoryCard("Create", "Turn text into useful files.", Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f))
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryCard("Organize", "Merge, split, rename.", Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f))
-                        CategoryCard("Check", "Inspect before sending.", Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f))
-                    }
+                  Row(
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
+                    CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
+                    CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
+                }
                     Spacer(modifier = Modifier.height(16.dp))
                     RecentFilesSection(viewModel)
                 }
@@ -957,14 +979,15 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
     ) { uri: Uri? ->
         if (uri != null && scannedPdfUri != null) {
             try {
-                context.contentResolver.openInputStream(scannedPdfUri!!)?.use { input ->
+                val uri = scannedPdfUri ?: return@rememberLauncherForActivityResult
+                context.contentResolver.openInputStream(uri)?.use { input ->
                     context.contentResolver.openOutputStream(uri)?.use { output ->
                         input.copyTo(output)
                     }
                 }
                 Toast.makeText(context, "Scanned PDF exported!", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLogger.e("Exception caught in MainActivity", e)
                 Toast.makeText(context, "Failed to export PDF", Toast.LENGTH_SHORT).show()
             }
         }
@@ -1011,7 +1034,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                             saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "scanned_document"))
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        AppLogger.e("Exception caught in MainActivity", e)
                         snackbarHostState.showSnackbar("Failed to process scan")
                     }
                 }
@@ -1039,7 +1062,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Create") },
+                title = { Text(stringResource(R.string.create)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -1048,34 +1071,44 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 300.dp),
+            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            ToolCard(
-                title = "Scan to PDF",
-                subtitle = "Use the native document scanner to create a PDF",
-                icon = Icons.Rounded.DocumentScanner,
-                onClick = { launchScanner() }
-            )
-            ToolCard(
-                title = "Images to PDF",
-                subtitle = "Convert JPG, PNG, and other images to a single PDF",
-                icon = Icons.Rounded.PictureAsPdf,
-                onClick = { onNavigate(Screen.ImagesToPdf) }
-            )
-            ToolCard(
-                title = "Text to PDF",
-                subtitle = "Convert your notes or .txt files to PDF",
-                icon = Icons.Rounded.Description,
-                onClick = { onNavigate(Screen.TextToPdf) }
-            )
-            ToolCard(
-                title = "Text Format Converter",
-                subtitle = "Convert between TXT, MD, CSV, JSON, and more",
-                icon = Icons.Rounded.SyncAlt,
-                onClick = { onNavigate(Screen.TextConverter) }
-            )
+            item {
+                ToolCard(
+                    title = "Scan to PDF",
+                    subtitle = "Use the native document scanner to create a PDF",
+                    icon = Icons.Rounded.DocumentScanner,
+                    onClick = { launchScanner() }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Images to PDF",
+                    subtitle = "Convert JPG, PNG, and other images to a single PDF",
+                    icon = Icons.Rounded.PictureAsPdf,
+                    onClick = { onNavigate(Screen.ImagesToPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Text to PDF",
+                    subtitle = "Convert your notes or .txt files to PDF",
+                    icon = Icons.Rounded.Description,
+                    onClick = { onNavigate(Screen.TextToPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Text Format Converter",
+                    subtitle = "Convert between TXT, MD, CSV, JSON, and more",
+                    icon = Icons.Rounded.SyncAlt,
+                    onClick = { onNavigate(Screen.TextConverter) }
+                )
+            }
         }
     }
 }
@@ -1087,7 +1120,7 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
     Scaffold(containerColor = Color.Transparent, 
         topBar = {
             TopAppBar(
-                title = { Text("Compress") },
+                title = { Text(stringResource(R.string.compress)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -1096,22 +1129,28 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 300.dp),
+            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            ToolCard(
-                title = "Compress PDF",
-                subtitle = "Make PDFs smaller, safely.",
-                icon = Icons.Rounded.Compress,
-                onClick = { onNavigate(Screen.CompressPdf) }
-            )
-            ToolCard(
-                title = "Batch Compression",
-                subtitle = "Select a folder and compress all PDFs inside",
-                icon = Icons.Rounded.LibraryBooks,
-                onClick = { onNavigate(Screen.BatchCompressPdf) } // Routes to same tool where tab exists
-            )
+            item {
+                ToolCard(
+                    title = "Compress PDF",
+                    subtitle = "Make PDFs smaller, safely.",
+                    icon = Icons.Rounded.Compress,
+                    onClick = { onNavigate(Screen.CompressPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Batch Compression",
+                    subtitle = "Select a folder and compress all PDFs inside",
+                    icon = Icons.Rounded.LibraryBooks,
+                    onClick = { onNavigate(Screen.BatchCompressPdf) } // Routes to same tool where tab exists
+                )
+            }
         }
     }
 }
@@ -1136,7 +1175,7 @@ fun PlaceholderCategoryScreen(title: String, onBack: () -> Unit) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.Construction, contentDescription = "Coming Soon", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Coming Soon", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.coming_soon), style = MaterialTheme.typography.headlineMedium)
             }
         }
     }
@@ -1264,8 +1303,9 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
-        if (uri != null && sourceUri != null) {
-            viewModel.compressPdf(context, sourceUri!!, uri)
+        if (uri != null) {
+            val src = sourceUri ?: return@rememberLauncherForActivityResult
+            viewModel.compressPdf(context, src, uri)
         }
     }
 
@@ -1294,12 +1334,12 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { playFeedback(view, isHaptic, isSfx); coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                    text = { Text("Single File") }
+                    text = { Text(stringResource(R.string.compress_single)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { playFeedback(view, isHaptic, isSfx); coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                    text = { Text("Batch Compression") }
+                    text = { Text(stringResource(R.string.compress_batch)) }
                 )
             }
 
@@ -1418,11 +1458,11 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
     if (showOfficialDocWarning) {
         AlertDialog(
             onDismissRequest = { showOfficialDocWarning = false },
-            title = { Text("Quality & Legal Warning") },
-            text = { Text("Compression reduces quality. This may invalidate official documents, medical records, or digital signatures. Always keep your original file.") },
+            title = { Text(stringResource(R.string.warning_quality_title)) },
+            text = { Text(stringResource(R.string.warning_quality_desc)) },
             confirmButton = {
                 TextButton(onClick = { showOfficialDocWarning = false }) {
-                    Text("I Understand")
+                    Text(stringResource(R.string.warning_understand))
                 }
             }
         )
@@ -1512,7 +1552,12 @@ fun LeftPanel(
             // Calculate totals
             val totalOriginalSize = selectedFiles.sumOf { it.size }
             val totalEstimatedSize = if (targetMb != null) {
-                (targetMb!! * 1024 * 1024).toLong() * selectedFiles.size
+                val tm = targetMb
+                if (tm != null) {
+                    (tm * 1024 * 1024).toLong() * selectedFiles.size
+                } else {
+                    0L
+                }
             } else {
                 selectedFiles.sumOf { file ->
                     if (file.size > 0) {
@@ -1545,7 +1590,7 @@ fun LeftPanel(
                             onClick = { viewModel.clearSelectedFiles() },
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("Clear All")
+                            Text(stringResource(R.string.clear_all))
                         }
                     }
                     
@@ -1563,9 +1608,14 @@ fun LeftPanel(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                    Text("  →  ", style = MaterialTheme.typography.bodySmall)
+                                    Text(stringResource(R.string.empty_str), style = MaterialTheme.typography.bodySmall)
                                     val estimatedText = if (targetMb != null) {
-                                        "Target: ${targetMb!! * selectedFiles.size} MB"
+                                    val tm = targetMb
+                                    if (tm != null) {
+                                        "Target: ${tm * selectedFiles.size} MB"
+                                    } else {
+                                        "Target: Unknown"
+                                    }
                                     } else {
                                         "~${viewModel.formatSize(totalEstimatedSize)}"
                                     }
@@ -1771,7 +1821,7 @@ fun RightPanel(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.SettingsSuggest, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Optimization options will appear here once you select a file.", color = MaterialTheme.colorScheme.outline, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                Text(stringResource(R.string.compress_options_empty), color = MaterialTheme.colorScheme.outline, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
             }
         }
         return
@@ -1792,7 +1842,7 @@ fun RightPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Target File Size", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.compress_target_size), style = MaterialTheme.typography.titleMedium)
                 Switch(
                     checked = isTargetSizeEnabled,
                     onCheckedChange = { 
@@ -1811,7 +1861,7 @@ fun RightPanel(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (!isTargetSizeEnabled) {
-                Text("Compression Preset:", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.compress_preset), style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1822,7 +1872,7 @@ fun RightPanel(
                     CompressionPresetButton("Best", 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
                 }
             } else {
-                Text("Select target size (MB):", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.select_target_size_mb), style = MaterialTheme.typography.titleSmall)
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Presets row 1
@@ -1869,7 +1919,7 @@ fun RightPanel(
                                 viewModel.setTargetMb(newValue.toFloatOrNull())
                             }
                         },
-                        label = { Text("Exact MB") },
+                        label = { Text(stringResource(R.string.exact_mb)) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -1885,7 +1935,7 @@ fun RightPanel(
         border = CardDefaults.outlinedCardBorder()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Compression options", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.compression_options), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
             
             Row(
@@ -1897,9 +1947,9 @@ fun RightPanel(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Palette, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Grayscale Conversion", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.grayscale_conversion), style = MaterialTheme.typography.bodyLarge)
                     }
-                    Text("Convert color images to black & white", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
+                    Text(stringResource(R.string.convert_color_images_to_black), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (useGrayscale && pdfAnalysis?.scenario != com.example.shrinkpdf.logic.PdfScenario.SCANNED_IMAGE_HEAVY) {
                         Text(
                             text = "⚠️ Discards all color elements & diagrams.",
@@ -1922,9 +1972,9 @@ fun RightPanel(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.FolderZip, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Lossless ZIP Compression", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.lossless_zip_compression), style = MaterialTheme.typography.bodyLarge)
                     }
-                    Text("Skip JPEG lossy compression (no artifacts)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
+                    Text(stringResource(R.string.skip_jpeg_lossy_compression_no), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (useLossless && pdfAnalysis?.scenario == com.example.shrinkpdf.logic.PdfScenario.SCANNED_IMAGE_HEAVY) {
                         Text(
                             text = "⚠️ Lossless on scans can significantly increase size.",
@@ -1947,9 +1997,9 @@ fun RightPanel(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Tag, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Remove Metadata", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.remove_metadata), style = MaterialTheme.typography.bodyLarge)
                     }
-                    Text("Strip author, creator & editor tags", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
+                    Text(stringResource(R.string.strip_author_creator_editor_ta), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (stripMetadata && pdfAnalysis?.scenario == com.example.shrinkpdf.logic.PdfScenario.SIGNED_OFFICIAL) {
                         Text(
                             text = "⚠️ May invalidate digital signatures on official files.",
@@ -2022,9 +2072,9 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { viewModel.setInputText(it) },
-                    label = { Text("Type or paste text here") },
+                    label = { Text(stringResource(R.string.type_or_paste_text_here)) },
                     modifier = Modifier.fillMaxSize().padding(8.dp),
-                    placeholder = { Text("Enter the content of your PDF...") }
+                    placeholder = { Text(stringResource(R.string.enter_the_content_of_your_pdf)) }
                 )
             }
 
@@ -2039,7 +2089,7 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Import .txt")
+                    Text(stringResource(R.string.import_txt))
                 }
 
                 Button(
@@ -2054,7 +2104,7 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.Save, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save as PDF")
+                    Text(stringResource(R.string.save_as_pdf))
                 }
             }
         }
@@ -2105,6 +2155,27 @@ fun CompressionPresetButton(
 fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val isHapticEnabled by viewModel.isHapticEnabled.collectAsState()
     val isSfxEnabled by viewModel.isSfxEnabled.collectAsState()
+    val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsState()
+    var showClearHistoryDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    if (showClearHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            title = { Text(stringResource(R.string.clear_history)) },
+            text = { Text(stringResource(R.string.are_you_sure_you_want_to_clear)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearHistory()
+                    showClearHistoryDialog = false
+                    Toast.makeText(context, "History cleared", Toast.LENGTH_SHORT).show()
+                }) { Text(stringResource(R.string.clear)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryDialog = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -2123,7 +2194,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     
-                    Text("App Preferences", style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Start))
+                    Text(stringResource(R.string.app_preferences), style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Start))
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -2137,8 +2208,8 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Haptic Feedback", style = MaterialTheme.typography.bodyLarge)
-                                    Text("Vibrate on interactions", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.haptic_feedback), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.vibrate_on_interactions), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Switch(
                                     checked = isHapticEnabled,
@@ -2154,13 +2225,72 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Sound Effects", style = MaterialTheme.typography.bodyLarge)
-                                    Text("Play audio on button clicks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(R.string.sound_effects), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.play_audio_on_button_clicks), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Switch(
                                     checked = isSfxEnabled,
                                     onCheckedChange = { viewModel.setSfxEnabled(it) }
                                 )
+                            }
+                            
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_history), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_history_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = isHistoryEnabled,
+                                    onCheckedChange = { viewModel.setHistoryEnabled(it) },
+                                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                            
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            
+                            // Language Selector
+                            var expanded by remember { mutableStateOf(false) }
+                            val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
+                            val languages = mapOf("en" to "English", "pt" to "Português", "es" to "Español", "fr" to "Français", "de" to "Deutsch", "in" to "Bahasa Indonesia", "ro" to "Română")
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { expanded = true },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_language_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Box {
+                                    Text(languages[currentLocale] ?: "English", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                        languages.forEach { (tag, name) ->
+                                            DropdownMenuItem(
+                                                text = { Text(name) },
+                                                onClick = {
+                                                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(tag))
+                                                    expanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            TextButton(
+                                onClick = { showClearHistoryDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.settings_clear_history), color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -2207,7 +2337,7 @@ fun RecentFilesSection(viewModel: MainViewModel) {
                                         }
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        AppLogger.e("Exception caught in MainActivity", e)
                                     }
                                 }
                                 .padding(8.dp),
@@ -2259,12 +2389,17 @@ fun PremiumUpgradeScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 600.dp)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
                 imageVector = Icons.Rounded.WorkspacePremium,
                 contentDescription = "Premium",
                 modifier = Modifier.size(120.dp),
@@ -2305,4 +2440,5 @@ fun PremiumUpgradeScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             }
         }
     }
+}
 }

@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONException
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +32,7 @@ fun TextCleanerScreen(onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Text Cleaner") },
+                title = { Text(stringResource(R.string.text_cleaner)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -114,7 +116,7 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Paste your text here...") },
+                placeholder = { Text(stringResource(R.string.paste_your_text_here)) },
                 textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
                 shape = MaterialTheme.shapes.medium
             )

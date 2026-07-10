@@ -9,6 +9,7 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.example.shrinkpdf.utils.AppLogger
 
 object AdManager {
     private var interstitialAd: InterstitialAd? = null
@@ -28,12 +29,12 @@ object AdManager {
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
-                    Log.d("AdManager", "Failed to load interstitial ad: ${adError.message}")
+                    AppLogger.d("Failed to load interstitial ad: ${adError.message}")
                     interstitialAd = null
                 }
 
                 override fun onAdLoaded(ad: InterstitialAd) {
-                    Log.d("AdManager", "Interstitial ad loaded successfully.")
+                    AppLogger.d("Interstitial ad loaded successfully.")
                     interstitialAd = ad
                 }
             }
@@ -48,7 +49,7 @@ object AdManager {
 
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastAdShownTime < COOLDOWN_MILLIS) {
-            Log.d("AdManager", "Ad cooldown active. Not showing ad.")
+            AppLogger.d("Ad cooldown active. Not showing ad.")
             onAdDismissed()
             return
         }
@@ -56,7 +57,7 @@ object AdManager {
         if (interstitialAd != null) {
             interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    Log.d("AdManager", "Ad was dismissed.")
+                    AppLogger.d("Ad was dismissed.")
                     interstitialAd = null
                     lastAdShownTime = System.currentTimeMillis()
                     // Pre-load the next ad
@@ -65,19 +66,19 @@ object AdManager {
                 }
 
                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                    Log.d("AdManager", "Ad failed to show: ${adError.message}")
+                    AppLogger.d("Ad failed to show: ${adError.message}")
                     interstitialAd = null
                     onAdDismissed()
                 }
 
                 override fun onAdShowedFullScreenContent() {
-                    Log.d("AdManager", "Ad showed fullscreen content.")
+                    AppLogger.d("Ad showed fullscreen content.")
                     interstitialAd = null
                 }
             }
             interstitialAd?.show(activity)
         } else {
-            Log.d("AdManager", "Ad was not ready. Starting load and skipping show.")
+            AppLogger.d("Ad was not ready. Starting load and skipping show.")
             loadInterstitial(activity)
             onAdDismissed()
         }

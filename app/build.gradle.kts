@@ -40,6 +40,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -72,9 +73,12 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     // Image Loading
     implementation("io.coil-kt:coil-compose:2.6.0")
@@ -96,6 +100,7 @@ dependencies {
 
     // 5. Google Play Billing Library
     implementation("com.android.billingclient:billing-ktx:7.0.0")
+    implementation("androidx.compose.material3:material3-window-size-class")
 
     // Text Conversion Libraries
     implementation("org.jsoup:jsoup:1.17.2")

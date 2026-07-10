@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.History
@@ -43,6 +46,8 @@ import com.example.shrinkpdf.ToolCard
 import android.widget.Toast
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +57,7 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Organize") },
+                title = { Text(stringResource(R.string.organize)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent
@@ -65,44 +70,55 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 300.dp),
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            ToolCard(
-                title = "Merge PDFs",
-                subtitle = "Combine multiple PDFs into a single document",
-                icon = Icons.Rounded.Merge,
-                onClick = { onNavigate(Screen.MergePdf) }
-            )
-            ToolCard(
-                title = "Split PDF",
-                subtitle = "Extract pages or separate a PDF into multiple files",
-                icon = Icons.Rounded.CallSplit,
-                onClick = { onNavigate(Screen.SplitPdf) }
-            )
-            ToolCard(
-                title = "Delete Pages",
-                subtitle = "Remove specific pages from a PDF",
-                icon = Icons.Rounded.Delete,
-                onClick = { onNavigate(Screen.DeletePages) }
-            )
-            ToolCard(
-                title = "Extract Images",
-                subtitle = "Extract all images embedded in a PDF",
-                icon = Icons.Rounded.Image,
-                onClick = { onNavigate(Screen.ExtractImages) }
-            )
-            ToolCard(
-                title = "Rotate Pages",
-                subtitle = "Rotate specific pages or entire documents",
-                icon = Icons.Rounded.RotateRight,
-                onClick = { onNavigate(Screen.RotatePdf) }
-            )
+            item {
+                ToolCard(
+                    title = "Merge PDFs",
+                    subtitle = "Combine multiple PDFs into a single document",
+                    icon = Icons.Rounded.Merge,
+                    onClick = { onNavigate(Screen.MergePdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Split PDF",
+                    subtitle = "Extract pages or separate a PDF into multiple files",
+                    icon = Icons.Rounded.CallSplit,
+                    onClick = { onNavigate(Screen.SplitPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Delete Pages",
+                    subtitle = "Remove specific pages from a PDF",
+                    icon = Icons.Rounded.Delete,
+                    onClick = { onNavigate(Screen.DeletePages) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Extract Images",
+                    subtitle = "Extract all images embedded in a PDF",
+                    icon = Icons.Rounded.Image,
+                    onClick = { onNavigate(Screen.ExtractImages) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = "Rotate Pages",
+                    subtitle = "Rotate specific pages or entire documents",
+                    icon = Icons.Rounded.RotateRight,
+                    onClick = { onNavigate(Screen.RotatePdf) }
+                )
+            }
         }
     }
 }
@@ -145,10 +161,10 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text("Select from Recent", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.select_from_recent), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 if (historyItems.isEmpty()) {
-                    Text("No recent files found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_recent_files_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                         items(items = historyItems) { item ->
@@ -196,7 +212,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Merge PDFs") },
+                title = { Text(stringResource(R.string.merge_pdfs)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -208,7 +224,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = { createDocLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "merged")) },
                     icon = { Icon(Icons.Rounded.Merge, "Merge") },
-                    text = { Text("Merge") }
+                    text = { Text(stringResource(R.string.merge)) }
                 )
             }
         }
@@ -228,7 +244,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Select PDFs")
+                    Text(stringResource(R.string.select_pdfs))
                 }
                 FilledTonalButton(
                     onClick = { 
@@ -239,16 +255,16 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Recent")
+                    Text(stringResource(R.string.recent))
                 }
             }
 
             if (selectedFiles.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Select at least 2 PDFs to merge", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.select_at_least_2_pdfs_to_merg), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
-                Text("Long press and drag to reorder", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
+                Text(stringResource(R.string.long_press_and_drag_to_reorder), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(
                         items = selectedFiles,
@@ -336,9 +352,10 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val directoryPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { treeUri ->
-        if (treeUri != null && selectedFile != null) {
+        if (treeUri != null) {
+            val file = selectedFile ?: return@rememberLauncherForActivityResult
             val range = if (extractMode == 1) customRange else null
-            viewModel.splitPdf(context, selectedFile!!.uri, treeUri, range)
+            viewModel.splitPdf(context, file.uri, treeUri, range)
         }
     }
 
@@ -346,7 +363,7 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Split PDF") },
+                title = { Text(stringResource(R.string.split_pdf)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -358,7 +375,7 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = { directoryPickerLauncher.launch(null) },
                     icon = { Icon(Icons.Rounded.CallSplit, "Split") },
-                    text = { Text("Split into Folder") }
+                    text = { Text(stringResource(R.string.split_into_folder)) }
                 )
             }
         }
@@ -374,37 +391,38 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Select PDF")
+                Text(stringResource(R.string.select_pdf))
             }
 
-            if (selectedFile != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(selectedFile!!.name, fontWeight = FontWeight.Bold)
+                val file = selectedFile
+                if (file != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(file.name, fontWeight = FontWeight.Bold)
+                        }
                     }
-                }
 
-                Text("Extraction Options", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.extraction_options), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = extractMode == 0, onClick = { extractMode = 0 })
-                    Text("Extract all pages as individual files", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.extract_all_pages_as_individua), modifier = Modifier.padding(start = 8.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = extractMode == 1, onClick = { extractMode = 1 })
-                    Text("Extract custom range", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.extract_custom_range), modifier = Modifier.padding(start = 8.dp))
                 }
 
                 if (extractMode == 1) {
                     OutlinedTextField(
                         value = customRange,
                         onValueChange = { customRange = it },
-                        label = { Text("e.g. 1-3, 5, 7-10") },
+                        label = { Text(stringResource(R.string.e_g_1_3_5_7_10)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -426,8 +444,9 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     ) { uri: Uri? ->
         if (uri != null) {
             val documentFile = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, uri)
-            if (documentFile != null && selectedPdfUri != null) {
-                viewModel.extractImagesFromPdf(selectedPdfUri!!, documentFile, context) { extracted, errors ->
+            if (documentFile != null) {
+                val pdfUri = selectedPdfUri ?: return@rememberLauncherForActivityResult
+                viewModel.extractImagesFromPdf(pdfUri, documentFile, context) { extracted, errors ->
                     if (extracted > 0) {
                         Toast.makeText(context, "Extracted $extracted images successfully!", Toast.LENGTH_LONG).show()
                     } else if (errors > 0) {
@@ -453,7 +472,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Extract Images", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.extract_images), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -470,7 +489,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = { directoryPickerLauncher.launch(null) },
                     icon = { Icon(Icons.Rounded.Image, contentDescription = "Extract") },
-                    text = { Text("Extract Images") },
+                    text = { Text(stringResource(R.string.extract_images)) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -507,7 +526,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.UploadFile, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Select PDF")
+                        Text(stringResource(R.string.select_pdf))
                     }
                 } else {
                     Card(
@@ -522,10 +541,10 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(selectedPdfName ?: "Document.pdf", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("Ready to extract all images. Tap the button below and choose an output folder.", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Text(stringResource(R.string.ready_to_extract_all_images_ta), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             Spacer(modifier = Modifier.height(16.dp))
                             OutlinedButton(onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) }) {
-                                Text("Change PDF")
+                                Text(stringResource(R.string.change_pdf))
                             }
                         }
                     }
@@ -542,7 +561,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Spacer(modifier = Modifier.height(16.dp))
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        Text("Extracting images...", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.extracting_images), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -570,8 +589,9 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
-        if (uri != null && selectedFile != null && pagesToDelete.isNotBlank()) {
-            viewModel.deletePages(context, selectedFile!!.uri, uri, pagesToDelete)
+        if (uri != null && pagesToDelete.isNotBlank()) {
+            val file = selectedFile ?: return@rememberLauncherForActivityResult
+            viewModel.deletePages(context, file.uri, uri, pagesToDelete)
         }
     }
 
@@ -579,7 +599,7 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Delete Pages") },
+                title = { Text(stringResource(R.string.delete_pages)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -590,12 +610,13 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             if (selectedFile != null && pagesToDelete.isNotBlank()) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, selectedFile!!.uri) ?: "Document"
+                        val file = selectedFile ?: return@ExtendedFloatingActionButton
+                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, file.uri) ?: "Document"
                         val suggestedName = "${originalName.substringBeforeLast(".")}_deleted.pdf"
                         createDocumentLauncher.launch(suggestedName)
                     },
                     icon = { Icon(Icons.Rounded.Delete, "Delete") },
-                    text = { Text("Save Document") }
+                    text = { Text(stringResource(R.string.save_document)) }
                 )
             }
         }
@@ -611,10 +632,11 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Select PDF")
+                Text(stringResource(R.string.select_pdf))
             }
 
-            if (selectedFile != null) {
+            val file = selectedFile
+            if (file != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -622,18 +644,18 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(selectedFile!!.name, fontWeight = FontWeight.Bold)
+                        Text(file.name, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Text("Pages to Delete", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.pages_to_delete), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
 
                 OutlinedTextField(
                     value = pagesToDelete,
                     onValueChange = { pagesToDelete = it },
-                    label = { Text("e.g. 1, 3, 5-10") },
+                    label = { Text(stringResource(R.string.e_g_1_3_5_10)) },
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Enter comma-separated page numbers or ranges.") }
+                    supportingText = { Text(stringResource(R.string.enter_comma_separated_page_num)) }
                 )
             }
         }
@@ -667,7 +689,7 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Rotate Pages") },
+                title = { Text(stringResource(R.string.rotate_pages)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -678,9 +700,12 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         floatingActionButton = {
             if (selectedFile != null) {
                 ExtendedFloatingActionButton(
-                    onClick = { saveFileLauncher.launch("rotated_${selectedFile!!.name}") },
+                    onClick = { 
+                        val file = selectedFile ?: return@ExtendedFloatingActionButton
+                        saveFileLauncher.launch("rotated_${file.name}") 
+                    },
                     icon = { Icon(Icons.Rounded.RotateRight, contentDescription = "Save") },
-                    text = { Text("Rotate & Save") },
+                    text = { Text(stringResource(R.string.rotate_save)) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -699,10 +724,11 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Select PDF")
+                Text(stringResource(R.string.select_pdf))
             }
 
-            if (selectedFile != null) {
+            val file = selectedFile
+            if (file != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -710,11 +736,11 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(selectedFile!!.name ?: "Document", fontWeight = FontWeight.Bold)
+                        Text(file.name ?: "Document", fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Text("Rotation Angle", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.rotation_angle), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -723,28 +749,28 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     FilterChip(
                         selected = rotationDegrees == 90,
                         onClick = { rotationDegrees = 90 },
-                        label = { Text("90° CW") }
+                        label = { Text(stringResource(R.string.str_90_cw)) }
                     )
                     FilterChip(
                         selected = rotationDegrees == 180,
                         onClick = { rotationDegrees = 180 },
-                        label = { Text("180°") }
+                        label = { Text(stringResource(R.string.str_180)) }
                     )
                     FilterChip(
                         selected = rotationDegrees == 270,
                         onClick = { rotationDegrees = 270 },
-                        label = { Text("90° CCW") }
+                        label = { Text(stringResource(R.string.str_90_ccw)) }
                     )
                 }
 
-                Text("Pages to Rotate (Optional)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.pages_to_rotate_optional), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
 
                 OutlinedTextField(
                     value = pageRange,
                     onValueChange = { pageRange = it },
-                    label = { Text("e.g. 1, 3, 5-10") },
+                    label = { Text(stringResource(R.string.e_g_1_3_5_10)) },
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Leave blank to rotate all pages.") }
+                    supportingText = { Text(stringResource(R.string.leave_blank_to_rotate_all_page)) }
                 )
             }
         }

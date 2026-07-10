@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.shrinkpdf.logic.TextFormatConverter
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +72,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
     Scaffold(containerColor = Color.Transparent, 
         topBar = {
             TopAppBar(
-                title = { Text("Text Format Converter") },
+                title = { Text(stringResource(R.string.text_format_converter)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -166,7 +168,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                         onValueChange = { viewModel.setInputText(it) },
                         label = { Text("Type or paste ${inputFormat.name} here") },
                         modifier = Modifier.fillMaxSize().padding(8.dp),
-                        placeholder = { Text("Enter content...") }
+                        placeholder = { Text(stringResource(R.string.enter_content)) }
                     )
                 }
 
@@ -181,7 +183,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.UploadFile, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Import")
+                        Text(stringResource(R.string.import_btn))
                     }
 
                     Button(

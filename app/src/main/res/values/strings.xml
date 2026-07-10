@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Details -->
+    <string name="app_name">PDFchemy</string>
+    <string name="coming_soon">Coming Soon</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="share">Share</string>
+    <string name="error">Error</string>
+    <string name="clear">Clear</string>
+    <string name="clear_all">Clear All</string>
+    <string name="save">Save</string>
+    <string name="continue_btn">Continue</string>
+
+    <!-- Home Screen -->
+    <string name="home_subtitle">FIX DOCUMENTS LOCALLY</string>
+    <string name="cat_compress">Compress</string>
+    <string name="cat_compress_desc">Make PDFs smaller, safely.</string>
+    <string name="cat_create">Create</string>
+    <string name="cat_create_desc">Turn text into useful files.</string>
+    <string name="cat_organize">Organize</string>
+    <string name="cat_organize_desc">Merge, split, rename.</string>
+    <string name="cat_check">Check</string>
+    <string name="cat_check_desc">Inspect before sending.</string>
+
+    <!-- Main Menu -->
+    <string name="menu_compress">Compress PDF</string>
+    <string name="menu_compress_desc">Shrink file size</string>
+    <string name="menu_merge">Merge PDF</string>
+    <string name="menu_merge_desc">Combine multiple files</string>
+    <string name="menu_split">Split PDF</string>
+    <string name="menu_split_desc">Extract pages</string>
+    <string name="menu_scan">Scan to PDF</string>
+    <string name="menu_scan_desc">Camera to document</string>
+    <string name="menu_ocr">Extract Text</string>
+    <string name="menu_ocr_desc">Pull text from PDF</string>
+    <string name="menu_metadata">Check Metadata</string>
+    <string name="menu_metadata_desc">View hidden properties</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_preferences">App Preferences</string>
+    <string name="settings_haptic">Haptic Feedback</string>
+    <string name="settings_haptic_desc">Vibrate on interactions</string>
+    <string name="settings_sfx">Sound Effects</string>
+    <string name="settings_sfx_desc">Play audio on button clicks</string>
+    <string name="settings_history">Remember Recent Files</string>
+    <string name="settings_history_desc">Keep a local history of recently used files. Files are never uploaded.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_desc">Change app display language</string>
+    <string name="settings_clear_history">Clear Recent History</string>
+    <string name="settings_clear_history_confirm">Are you sure you want to clear your recent files history?</string>
+    <string name="settings_history_cleared">History cleared</string>
+
+    <!-- Compression -->
+    <string name="compress_title">Compress PDF</string>
+    <string name="compress_single">Single File</string>
+    <string name="compress_batch">Batch Compression</string>
+    <string name="compress_select_file">Select PDF File</string>
+    <string name="compress_compressing">Compressing PDF...</string>
+    <string name="compress_target_size">Target File Size</string>
+    <string name="compress_preset">Compression Preset:</string>
+    <string name="compress_exact_mb">Exact MB</string>
+    <string name="compress_options">Compression options</string>
+    <string name="compress_grayscale">Grayscale Conversion</string>
+    <string name="compress_grayscale_desc">Convert color images to black &amp; white</string>
+    <string name="compress_lossless">Lossless ZIP Compression</string>
+    <string name="compress_lossless_desc">Skip JPEG lossy compression</string>
+    <string name="compress_strip_meta">Remove Metadata</string>
+    <string name="compress_strip_meta_desc">Strip author, creator &amp; editor tags</string>
+    
+    <string name="warning_quality_title">Quality &amp; Legal Warning</string>
+    <string name="warning_quality_desc">Compression reduces quality. This may invalidate official documents, medical records, or digital signatures. Always keep your original file.</string>
+    <string name="warning_understand">I Understand</string>
+
+    <string name="compress_options_empty">Optimization options will appear here once you select a file.</string>
+
+
+    <!-- Auto-Extracted Strings -->
+    <string name="check">Check</string>
+    <string name="inspect_edit_metadata">Inspect &amp; Edit Metadata</string>
+    <string name="select_pdf">Select PDF</string>
+    <string name="select_different_pdf">Select Different PDF</string>
+    <string name="document_stats">Document Stats</string>
+    <string name="metadata_fields">Metadata Fields</string>
+    <string name="title">Title</string>
+    <string name="author">Author</string>
+    <string name="subject">Subject</string>
+    <string name="keywords">Keywords</string>
+    <string name="creator">Creator</string>
+    <string name="producer">Producer</string>
+    <string name="save_changes_to_new_pdf">Save Changes to New PDF</string>
+    <string name="remove_metadata">Remove Metadata</string>
+    <string name="select_a_pdf_to_strip_all_meta">Select a PDF to strip all metadata properties. This is useful for privacy before sharing files.</string>
+    <string name="selected_file">Selected File:</string>
+    <string name="overwrite_original">Overwrite Original</string>
+    <string name="save_as_new">Save as New</string>
+    <string name="extract_text_ocr">Extract Text / OCR</string>
+    <string name="extract_save_as_txt">Extract &amp; Save as .txt</string>
+    <string name="images_to_pdf">Images to PDF</string>
+    <string name="convert_to_pdf">Convert to PDF</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="no_images_selected">No images selected.</string>
+    <string name="organize">Organize</string>
+    <string name="select_from_recent">Select from Recent</string>
+    <string name="no_recent_files_found">No recent files found.</string>
+    <string name="merge_pdfs">Merge PDFs</string>
+    <string name="merge">Merge</string>
+    <string name="select_pdfs">Select PDFs</string>
+    <string name="recent">Recent</string>
+    <string name="select_at_least_2_pdfs_to_merg">Select at least 2 PDFs to merge</string>
+    <string name="long_press_and_drag_to_reorder">Long press and drag to reorder</string>
+    <string name="split_pdf">Split PDF</string>
+    <string name="split_into_folder">Split into Folder</string>
+    <string name="extraction_options">Extraction Options</string>
+    <string name="extract_all_pages_as_individua">Extract all pages as individual files</string>
+    <string name="extract_custom_range">Extract custom range</string>
+    <string name="e_g_1_3_5_7_10">e.g. 1-3, 5, 7-10</string>
+    <string name="extract_images">Extract Images</string>
+    <string name="ready_to_extract_all_images_ta">Ready to extract all images. Tap the button below and choose an output folder.</string>
+    <string name="change_pdf">Change PDF</string>
+    <string name="extracting_images">Extracting images...</string>
+    <string name="delete_pages">Delete Pages</string>
+    <string name="save_document">Save Document</string>
+    <string name="pages_to_delete">Pages to Delete</string>
+    <string name="e_g_1_3_5_10">e.g. 1, 3, 5-10</string>
+    <string name="enter_comma_separated_page_num">Enter comma-separated page numbers or ranges.</string>
+    <string name="rotate_pages">Rotate Pages</string>
+    <string name="rotate_save">Rotate &amp; Save</string>
+    <string name="rotation_angle">Rotation Angle</string>
+    <string name="str_90_cw">90° CW</string>
+    <string name="str_180">180°</string>
+    <string name="str_90_ccw">90° CCW</string>
+    <string name="pages_to_rotate_optional">Pages to Rotate (Optional)</string>
+    <string name="leave_blank_to_rotate_all_page">Leave blank to rotate all pages.</string>
+    <string name="text_cleaner">Text Cleaner</string>
+    <string name="paste_your_text_here">Paste your text here...</string>
+    <string name="text_format_converter">Text Format Converter</string>
+    <string name="enter_content">Enter content...</string>
+    <string name="import_btn">Import</string>
+    <string name="compressing_pdf">Compressing PDF...</string>
+    <string name="create">Create</string>
+    <string name="compress">Compress</string>
+    <string name="empty_str">  →  </string>
+    <string name="select_target_size_mb">Select target size (MB):</string>
+    <string name="exact_mb">Exact MB</string>
+    <string name="compression_options">Compression options</string>
+    <string name="grayscale_conversion">Grayscale Conversion</string>
+    <string name="convert_color_images_to_black">Convert color images to black &amp; white</string>
+    <string name="lossless_zip_compression">Lossless ZIP Compression</string>
+    <string name="skip_jpeg_lossy_compression_no">Skip JPEG lossy compression (no artifacts)</string>
+    <string name="strip_author_creator_editor_ta">Strip author, creator &amp; editor tags</string>
+    <string name="type_or_paste_text_here">Type or paste text here</string>
+    <string name="enter_the_content_of_your_pdf">Enter the content of your PDF...</string>
+    <string name="import_txt">Import .txt</string>
+    <string name="save_as_pdf">Save as PDF</string>
+    <string name="clear_history">Clear History</string>
+    <string name="are_you_sure_you_want_to_clear">Are you sure you want to clear your recent files history?</string>
+    <string name="app_preferences">App Preferences</string>
+    <string name="haptic_feedback">Haptic Feedback</string>
+    <string name="vibrate_on_interactions">Vibrate on interactions</string>
+    <string name="sound_effects">Sound Effects</string>
+    <string name="play_audio_on_button_clicks">Play audio on button clicks</string>
+</resources>

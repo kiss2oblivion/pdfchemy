@@ -70,7 +70,8 @@ object PdfCompressor {
                 bestTempFile = tempFile
                 bestReport = report
             } else {
-                val bestSize = bestTempFile!!.length()
+                val bTempFile = bestTempFile ?: return@withContext Result.failure(Exception("Compression failed to produce a valid file."))
+                val bestSize = bTempFile.length()
                 if (size <= targetBytes && bestSize <= targetBytes && size > bestSize) {
                     bestTempFile?.delete()
                     bestTempFile = tempFile
@@ -90,15 +91,22 @@ object PdfCompressor {
         }
 
         try {
-            bestTempFile?.inputStream()?.use { input ->
+            val bTempFile = bestTempFile ?: return@withContext Result.failure(Exception("Failed to create temporary compressed file"))
+            val bReport = bestReport ?: return@withContext Result.failure(Exception("Compression report missing"))
+            
+            val success = bTempFile.inputStream().use { input ->
                 context.contentResolver.openOutputStream(destUri)?.use { output ->
                     input.copyTo(output)
-                }
+                    true
+                } ?: false
             }
-            val finalSize = bestTempFile?.length() ?: Long.MAX_VALUE
-            bestTempFile?.delete()
+
+            if (!success) throw Exception("Failed to write to destination")
+
+            val finalSize = bTempFile.length()
+            bTempFile.delete()
             
-            return@withContext Result.success(bestReport!!.copy(targetMissed = finalSize > targetBytes))
+            return@withContext Result.success(bReport.copy(targetMissed = finalSize > targetBytes))
         } catch (e: Exception) {
             bestTempFile?.delete()
             return@withContext Result.failure(e)

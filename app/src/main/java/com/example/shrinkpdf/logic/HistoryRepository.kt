@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
+import com.example.shrinkpdf.utils.AppLogger
 
 data class HistoryItem(
     val uriString: String,
@@ -16,6 +17,8 @@ data class HistoryItem(
 class HistoryRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("pdfchemy_history", Context.MODE_PRIVATE)
     private val KEY_HISTORY = "recent_files"
+
+    private val settingsPrefs: SharedPreferences = context.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE)
 
     fun getHistory(): List<HistoryItem> {
         val jsonString = prefs.getString(KEY_HISTORY, "[]") ?: "[]"
@@ -34,14 +37,18 @@ class HistoryRepository(context: Context) {
                 )
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.e("Failed to parse history", e)
         }
         return list.sortedByDescending { it.timestamp }
     }
 
     fun addHistoryItem(uri: Uri, name: String, action: String) {
+        val isHistoryEnabled = settingsPrefs.getBoolean("history_enabled", true)
+        if (!isHistoryEnabled) return
+
         val currentList = getHistory().toMutableList()
         val uriStr = uri.toString()
+
         
         // Remove existing item if it has the same URI
         currentList.removeAll { it.uriString == uriStr }

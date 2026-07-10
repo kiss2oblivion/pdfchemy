@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 class TextConverterViewModel : ViewModel() {
 

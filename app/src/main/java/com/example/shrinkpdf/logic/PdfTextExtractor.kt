@@ -13,6 +13,8 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.InputStream
+import com.example.shrinkpdf.utils.AppLogger
 import java.io.OutputStreamWriter
 
 object PdfTextExtractor {
@@ -49,7 +51,7 @@ object PdfTextExtractor {
                 stripper.getText(document)
             } ?: ""
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.e("Error during PDF text extraction", e)
             ""
         } finally {
             document?.close()
@@ -92,7 +94,7 @@ object PdfTextExtractor {
                         val result = recognizer.process(image).await()
                         stringBuilder.append(result.text).append("\n\n")
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        AppLogger.e("Error during PDF text extraction", e)
                     }
 
                     page.close()
@@ -100,7 +102,7 @@ object PdfTextExtractor {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            AppLogger.e("Error during PDF text extraction", e)
         } finally {
             pdfRenderer?.close()
             fileDescriptor?.close()

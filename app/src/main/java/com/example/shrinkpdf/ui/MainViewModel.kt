@@ -22,12 +22,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import com.example.shrinkpdf.utils.AppLogger
 import android.graphics.BitmapFactory
 import android.graphics.Bitmap
 import kotlinx.coroutines.withContext
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.cos.COSName
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -57,6 +60,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setSfxEnabled(enabled: Boolean) {
         _isSfxEnabled.value = enabled
         prefs.edit().putBoolean("sfx", enabled).apply()
+    }
+
+    private val _isHistoryEnabled = MutableStateFlow(prefs.getBoolean("history_enabled", true))
+    val isHistoryEnabled: StateFlow<Boolean> = _isHistoryEnabled.asStateFlow()
+
+    fun setHistoryEnabled(enabled: Boolean) {
+        _isHistoryEnabled.value = enabled
+        prefs.edit().putBoolean("history_enabled", enabled).apply()
+        if (!enabled) {
+            clearHistory()
+        }
+    }
+
+    fun clearHistory() {
+        historyRepository.clearHistory()
+        refreshHistory()
     }
 
     private val _warning = MutableStateFlow<String?>(null)
@@ -359,7 +378,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _uiState.value = UiState.Success("PDF Created", "Your images have been converted successfully.")
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLogger.e("Exception in MainViewModel", e)
                 _uiState.value = UiState.Error(e.message ?: "Failed to create PDF from images.")
             }
         }
@@ -703,7 +722,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                             }
                                         }
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        AppLogger.e("Exception in MainViewModel", e)
                                         errorCount++
                                     }
                                 }
@@ -720,7 +739,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = UiState.Idle
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLogger.e("Exception in MainViewModel", e)
                 withContext(Dispatchers.Main) {
                     onComplete(extractedCount, errorCount)
                     _uiState.value = UiState.Idle
@@ -740,7 +759,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = UiState.Success("Success", "PDF rotated successfully", listOf(destUri))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLogger.e("Exception in MainViewModel", e)
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.Error(e.message ?: "Rotation failed")
                 }
@@ -763,7 +782,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                AppLogger.e("Exception in MainViewModel", e)
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.Error(e.message ?: "Extraction failed")
                 }

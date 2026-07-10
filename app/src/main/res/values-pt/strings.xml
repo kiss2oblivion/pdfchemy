@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDFchemy</string>
+    <string name="coming_soon">Em Breve</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancelar</string>
+    <string name="share">Compartilhar</string>
+    <string name="error">Erro</string>
+    <string name="clear">Limpar</string>
+    <string name="clear_all">Limpar Tudo</string>
+    <string name="save">Salvar</string>
+    <string name="continue_btn">Continuar</string>
+
+    <string name="home_subtitle">ARRUME DOCUMENTOS OFFLINE</string>
+    <string name="cat_compress">Comprimir</string>
+    <string name="cat_compress_desc">Reduza PDFs com segurança.</string>
+    <string name="cat_create">Criar</string>
+    <string name="cat_create_desc">Transforme texto em PDFs.</string>
+    <string name="cat_organize">Organizar</string>
+    <string name="cat_organize_desc">Juntar, dividir, renomear.</string>
+    <string name="cat_check">Checar</string>
+    <string name="cat_check_desc">Inspecione antes de enviar.</string>
+
+    <string name="menu_compress">Comprimir PDF</string>
+    <string name="menu_compress_desc">Reduzir o tamanho</string>
+    <string name="menu_merge">Juntar PDF</string>
+    <string name="menu_merge_desc">Combinar vários arquivos</string>
+    <string name="menu_split">Dividir PDF</string>
+    <string name="menu_split_desc">Extrair páginas</string>
+    <string name="menu_scan">Escanear para PDF</string>
+    <string name="menu_scan_desc">Câmera para documento</string>
+    <string name="menu_ocr">Extrair Texto</string>
+    <string name="menu_ocr_desc">Puxar texto do PDF</string>
+    <string name="menu_metadata">Checar Metadados</string>
+    <string name="menu_metadata_desc">Ver propriedades ocultas</string>
+
+    <string name="settings_title">Configurações</string>
+    <string name="settings_preferences">Preferências do App</string>
+    <string name="settings_haptic">Vibração</string>
+    <string name="settings_haptic_desc">Vibrar em interações</string>
+    <string name="settings_sfx">Efeitos Sonoros</string>
+    <string name="settings_sfx_desc">Áudio ao clicar</string>
+    <string name="settings_history">Lembrar Arquivos Recentes</string>
+    <string name="settings_history_desc">Mantém histórico local. Arquivos nunca são enviados.</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_desc">Mudar idioma do aplicativo</string>
+    <string name="settings_clear_history">Limpar Histórico Recente</string>
+    <string name="settings_clear_history_confirm">Tem certeza que deseja limpar o histórico?</string>
+    <string name="settings_history_cleared">Histórico limpo</string>
+</resources>

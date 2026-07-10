@@ -28,6 +28,8 @@ import coil.compose.AsyncImage
 
 import java.io.File
 import androidx.core.content.FileProvider
+import androidx.compose.ui.res.stringResource
+import com.example.shrinkpdf.R
 
 fun createTempImageUri(context: android.content.Context): Uri {
     val tempFile = File(context.cacheDir, "scans/scan_${System.currentTimeMillis()}.jpg")
@@ -54,8 +56,9 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success && currentPhotoUri != null) {
-            selectedImages = selectedImages + currentPhotoUri!!
+        val photoUri = currentPhotoUri
+        if (success && photoUri != null) {
+            selectedImages = selectedImages + photoUri
         }
     }
 
@@ -73,7 +76,7 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Images to PDF") },
+                title = { Text(stringResource(R.string.images_to_pdf)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent
@@ -90,7 +93,7 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = { createPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "images")) },
                     icon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = "Convert") },
-                    text = { Text("Convert to PDF") },
+                    text = { Text(stringResource(R.string.convert_to_pdf)) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -120,7 +123,7 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = "Gallery")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Gallery")
+                    Text(stringResource(R.string.gallery))
                 }
                 
                 Button(
@@ -134,13 +137,13 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.PhotoCamera, contentDescription = "Take Photo")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Camera")
+                    Text(stringResource(R.string.camera))
                 }
             }
 
             if (selectedImages.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No images selected.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_images_selected), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(

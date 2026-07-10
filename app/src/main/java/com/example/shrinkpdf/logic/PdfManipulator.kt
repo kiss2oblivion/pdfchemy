@@ -80,18 +80,19 @@ object PdfManipulator {
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                     document = PDDocument.load(inputStream)
-                    val totalPages = document!!.numberOfPages
+                    val doc = document ?: return@use
+                    val totalPages = doc.numberOfPages
                     val pagesToDelete = parsePageRange(pageRange, totalPages)
 
                     // Remove backwards to avoid index shifting
                     for (i in totalPages - 1 downTo 0) {
                         if (pagesToDelete.contains(i + 1)) {
-                            document!!.removePage(i)
+                            doc.removePage(i)
                         }
                     }
 
                     context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
-                        document!!.save(outputStream)
+                        doc.save(outputStream)
                     }
                 }
             } finally {
@@ -106,12 +107,13 @@ object PdfManipulator {
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                     document = PDDocument.load(inputStream)
-                    val totalPages = document!!.numberOfPages
+                    val doc = document ?: return@withContext
+                    val totalPages = doc.numberOfPages
                     val pagesToRotate = parsePageRange(pageRange, totalPages)
 
                     for (i in 0 until totalPages) {
                         if (pagesToRotate.contains(i + 1)) {
-                            val page = document!!.getPage(i)
+                            val page = doc.getPage(i)
                             // Rotation in PDF must be a multiple of 90
                             var newRotation = (page.rotation + degrees) % 360
                             if (newRotation < 0) newRotation += 360
@@ -120,7 +122,7 @@ object PdfManipulator {
                     }
 
                     context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
-                        document!!.save(outputStream)
+                        doc.save(outputStream)
                     }
                 }
             } finally {
