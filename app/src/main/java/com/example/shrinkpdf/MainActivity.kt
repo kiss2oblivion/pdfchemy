@@ -2207,7 +2207,8 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
                             val languages = mapOf(
                                 "en" to "English",
-                                "pt" to "Português (Brasil)",
+                                "pt" to "Português (Portugal)",
+                                "pt-BR" to "Português (Brasil)",
                                 "it" to "Italiano",
                                 "es" to "Español",
                                 "fr" to "Français",

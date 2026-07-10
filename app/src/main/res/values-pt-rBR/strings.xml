@@ -9,7 +9,7 @@
     <string name="error">Erro</string>
     <string name="clear">Limpar</string>
     <string name="clear_all">Limpar Tudo</string>
-    <string name="save">Guardar</string>
+    <string name="save">Salvar</string>
     <string name="continue_btn">Continuar</string>
 
     <!-- Home Screen -->
@@ -17,7 +17,7 @@
     <string name="cat_compress">Comprimir</string>
     <string name="cat_compress_desc">Diminua PDFs de forma segura.</string>
     <string name="cat_create">Criar</string>
-    <string name="cat_create_desc">Transforme texto em ficheiros úteis.</string>
+    <string name="cat_create_desc">Transforme texto em arquivos úteis.</string>
     <string name="cat_organize">Organizar</string>
     <string name="cat_organize_desc">Juntar, dividir, renomear.</string>
     <string name="cat_check">Verificar</string>
@@ -25,38 +25,38 @@
 
     <!-- Main Menu -->
     <string name="menu_compress">Comprimir PDF</string>
-    <string name="menu_compress_desc">Reduzir tamanho do ficheiro</string>
+    <string name="menu_compress_desc">Reduzir tamanho do arquivo</string>
     <string name="menu_merge">Juntar PDF</string>
-    <string name="menu_merge_desc">Combinar vários ficheiros</string>
+    <string name="menu_merge_desc">Combinar vários arquivos</string>
     <string name="menu_split">Dividir PDF</string>
     <string name="menu_split_desc">Extrair páginas</string>
-    <string name="menu_scan">Digitalizar para PDF</string>
+    <string name="menu_scan">Escanear para PDF</string>
     <string name="menu_scan_desc">Câmera para documento</string>
     <string name="menu_ocr">Extrair Texto</string>
-    <string name="menu_ocr_desc">Extrair texto do PDF</string>
+    <string name="menu_ocr_desc">Puxar texto do PDF</string>
     <string name="menu_metadata">Verificar Metadados</string>
     <string name="menu_metadata_desc">Ver propriedades ocultas</string>
 
     <!-- Settings -->
     <string name="settings_title">Configurações</string>
-    <string name="settings_preferences">Preferências da Aplica��o</string>
+    <string name="settings_preferences">Preferências do App</string>
     <string name="settings_haptic">Feedback Tátil</string>
     <string name="settings_haptic_desc">Vibrar ao interagir</string>
     <string name="settings_sfx">Efeitos Sonoros</string>
     <string name="settings_sfx_desc">Tocar som ao clicar</string>
-    <string name="settings_history">Lembrar ficheiros Recentes</string>
-    <string name="settings_history_desc">Mantém um histórico local de ficheiros recentes. ficheiros nunca são enviados à internet.</string>
+    <string name="settings_history">Lembrar Arquivos Recentes</string>
+    <string name="settings_history_desc">Mantém um histórico local de arquivos recentes. Arquivos nunca são enviados à internet.</string>
     <string name="settings_language">Idioma</string>
-    <string name="settings_language_desc">Mudar idioma do Aplica��o</string>
+    <string name="settings_language_desc">Mudar idioma do aplicativo</string>
     <string name="settings_clear_history">Limpar Histórico Recente</string>
-    <string name="settings_clear_history_confirm">Tem certeza de que deseja limpar seu histórico de ficheiros recentes?</string>
+    <string name="settings_clear_history_confirm">Tem certeza de que deseja limpar seu histórico de arquivos recentes?</string>
     <string name="settings_history_cleared">Histórico limpo</string>
 
     <!-- Compression -->
     <string name="compress_title">Comprimir PDF</string>
-    <string name="compress_single">ficheiro Único</string>
+    <string name="compress_single">Arquivo Único</string>
     <string name="compress_batch">Compressão em Lote</string>
-    <string name="compress_select_file">Selecionar ficheiro PDF</string>
+    <string name="compress_select_file">Selecionar Arquivo PDF</string>
     <string name="compress_compressing">Comprimindo PDF...</string>
     <string name="compress_target_size">Tamanho Desejado</string>
     <string name="compress_preset">Predefinição de Compressão:</string>
@@ -70,10 +70,10 @@
     <string name="compress_strip_meta_desc">Remover tags de autor, criador e editor</string>
     
     <string name="warning_quality_title">Aviso de Qualidade e Legal</string>
-    <string name="warning_quality_desc">A compressão reduz a qualidade. Isso pode invalidar documentos oficiais, registros médicos ou assinaturas digitais. Sempre guarde seu ficheiro original.</string>
+    <string name="warning_quality_desc">A compressão reduz a qualidade. Isso pode invalidar documentos oficiais, registros médicos ou assinaturas digitais. Sempre guarde seu arquivo original.</string>
     <string name="warning_understand">Eu Entendo</string>
 
-    <string name="compress_options_empty">As opções de otimização aparecerão aqui quando você selecionar um ficheiro.</string>
+    <string name="compress_options_empty">As opções de otimização aparecerão aqui quando você selecionar um arquivo.</string>
 
     <!-- Auto-Extracted Strings -->
     <string name="check">Verificar</string>
@@ -88,14 +88,14 @@
     <string name="keywords">Palavras-chave</string>
     <string name="creator">Criador</string>
     <string name="producer">Produtor</string>
-    <string name="save_changes_to_new_pdf">Guardar Alterações em Novo PDF</string>
+    <string name="save_changes_to_new_pdf">Salvar Alterações em Novo PDF</string>
     <string name="remove_metadata">Remover Metadados</string>
     <string name="select_a_pdf_to_strip_all_meta">Selecione um PDF para remover todas as propriedades. Útil para privacidade antes de compartilhar.</string>
-    <string name="selected_file">ficheiro Selecionado:</string>
+    <string name="selected_file">Arquivo Selecionado:</string>
     <string name="overwrite_original">Substituir Original</string>
-    <string name="save_as_new">Guardar como Novo</string>
+    <string name="save_as_new">Salvar como Novo</string>
     <string name="extract_text_ocr">Extrair Texto / OCR</string>
-    <string name="extract_save_as_txt">Extrair e Guardar como .txt</string>
+    <string name="extract_save_as_txt">Extrair e Salvar como .txt</string>
     <string name="images_to_pdf">Imagens para PDF</string>
     <string name="convert_to_pdf">Converter em PDF</string>
     <string name="gallery">Galeria</string>
@@ -103,7 +103,7 @@
     <string name="no_images_selected">Nenhuma imagem selecionada.</string>
     <string name="organize">Organizar</string>
     <string name="select_from_recent">Selecionar dos Recentes</string>
-    <string name="no_recent_files_found">Nenhum ficheiro recente encontrado.</string>
+    <string name="no_recent_files_found">Nenhum arquivo recente encontrado.</string>
     <string name="merge_pdfs">Juntar PDFs</string>
     <string name="merge">Juntar</string>
     <string name="select_pdfs">Selecionar PDFs</string>
@@ -120,13 +120,13 @@
     <string name="ready_to_extract_all_images_ta">Pronto para extrair as imagens. Toque no botão abaixo e escolha a pasta de destino.</string>
     <string name="change_pdf">Mudar PDF</string>
     <string name="extracting_images">Extraindo imagens...</string>
-    <string name="delete_pages">Eliminar Páginas</string>
-    <string name="save_document">Guardar Documento</string>
-    <string name="pages_to_delete">Páginas para Eliminar</string>
+    <string name="delete_pages">Excluir Páginas</string>
+    <string name="save_document">Salvar Documento</string>
+    <string name="pages_to_delete">Páginas para Excluir</string>
     <string name="e_g_1_3_5_10">ex: 1, 3, 5-10</string>
     <string name="enter_comma_separated_page_num">Insira os números das páginas separados por vírgula.</string>
     <string name="rotate_pages">Rotacionar Páginas</string>
-    <string name="rotate_save">Rotacionar e Guardar</string>
+    <string name="rotate_save">Rotacionar e Salvar</string>
     <string name="rotation_angle">Ângulo de Rotação</string>
     <string name="str_90_cw">90° Horário</string>
     <string name="str_180">180°</string>
@@ -153,10 +153,10 @@
     <string name="type_or_paste_text_here">Digite ou cole o texto aqui</string>
     <string name="enter_the_content_of_your_pdf">Insira o conteúdo do seu PDF...</string>
     <string name="import_txt">Importar .txt</string>
-    <string name="save_as_pdf">Guardar como PDF</string>
+    <string name="save_as_pdf">Salvar como PDF</string>
     <string name="clear_history">Limpar Histórico</string>
     <string name="are_you_sure_you_want_to_clear">Tem certeza de que deseja limpar seu histórico recente?</string>
-    <string name="app_preferences">Preferências da Aplica��o</string>
+    <string name="app_preferences">Preferências do App</string>
     <string name="haptic_feedback">Feedback Tátil</string>
     <string name="vibrate_on_interactions">Vibrar ao interagir</string>
     <string name="sound_effects">Efeitos Sonoros</string>
