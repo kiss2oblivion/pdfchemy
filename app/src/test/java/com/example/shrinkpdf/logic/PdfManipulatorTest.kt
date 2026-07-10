@@ -105,4 +105,28 @@ class PdfManipulatorTest {
         files.forEach { it.delete() }
         outputDir.delete()
     }
+
+    @Test
+    fun rotatePdf_rotatesPagesCorrectly() = kotlinx.coroutines.test.runTest {
+        // Arrange
+        val sourceUri = Uri.fromFile(tempPdfFile)
+        val destFile = File(context.cacheDir, "rotated.pdf")
+        val destUri = Uri.fromFile(destFile)
+        val pageRange = "1, 3" // Rotate pages 1 and 3
+
+        // Act
+        PdfManipulator.rotatePdf(context, sourceUri, destUri, 90, pageRange)
+
+        // Assert
+        val resultDoc = PDDocument.load(destFile)
+        assertEquals(5, resultDoc.numberOfPages)
+        // Pages are 0-indexed, so page 0 is page 1, and page 2 is page 3
+        assertEquals(90, resultDoc.getPage(0).rotation)
+        assertEquals(0, resultDoc.getPage(1).rotation)
+        assertEquals(90, resultDoc.getPage(2).rotation)
+        assertEquals(0, resultDoc.getPage(3).rotation)
+        
+        resultDoc.close()
+        destFile.delete()
+    }
 }
