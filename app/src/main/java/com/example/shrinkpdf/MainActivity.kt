@@ -2202,6 +2202,47 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            // Language Selector
+                            var expanded by remember { mutableStateOf(false) }
+                            val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
+                            val languages = mapOf(
+                                "en" to "English",
+                                "pt" to "Português (Brasil)",
+                                "it" to "Italiano",
+                                "es" to "Español",
+                                "fr" to "Français",
+                                "de" to "Deutsch",
+                                "in" to "Bahasa Indonesia",
+                                "ro" to "Română"
+                            )
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { expanded = true },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_language_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Box {
+                                    Text(languages[currentLocale] ?: "English", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                        languages.forEach { (tag, name) ->
+                                            DropdownMenuItem(
+                                                text = { Text(name) },
+                                                onClick = {
+                                                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(tag))
+                                                    expanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -2252,38 +2293,6 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 )
                             }
                             
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            
-                            // Language Selector
-                            var expanded by remember { mutableStateOf(false) }
-                            val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
-                            val languages = mapOf("en" to "English", "pt" to "Português", "es" to "Español", "fr" to "Français", "de" to "Deutsch", "in" to "Bahasa Indonesia", "ro" to "Română")
-                            
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { expanded = true },
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.bodyLarge)
-                                    Text(stringResource(R.string.settings_language_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Box {
-                                    Text(languages[currentLocale] ?: "English", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                        languages.forEach { (tag, name) ->
-                                            DropdownMenuItem(
-                                                text = { Text(name) },
-                                                onClick = {
-                                                    androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.forLanguageTags(tag))
-                                                    expanded = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                             TextButton(
