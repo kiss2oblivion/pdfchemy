@@ -246,7 +246,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             
             result.onSuccess { report ->
                 if (report.hasSignatures) {
-                    _warning.value = "Warning: Compressing may invalidate the digital signature."
+                    _warning.value = context.getString(R.string.msg_compress_warning_signature)
                 }
 
                 val compressedSize = try {
@@ -262,50 +262,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val reductionPercent = ((originalSize - compressedSize).toFloat() / originalSize * 100).toInt()
                         val saved = formatSize(originalSize - compressedSize)
                         if (compressedSize > originalSize) {
-                            append("The output is slightly larger than the original. This PDF may already be highly optimized.\n\n")
+                            append(context.getString(R.string.msg_compress_slightly_larger))
                         } else {
-                            append("Reduced by $reductionPercent% ($saved saved!)\n\n")
+                            append(context.getString(R.string.msg_compress_reduced, reductionPercent, saved))
                         }
                         
                         val verdict = when {
-                            compressedSize > originalSize -> "No compression benefit"
-                            reductionPercent >= 50 -> "Excellent compression"
-                            reductionPercent >= 20 -> "Good compression"
-                            reductionPercent >= 5 -> "Minor compression"
-                            else -> "Minimal compression gain"
+                            compressedSize > originalSize -> context.getString(R.string.msg_compress_verdict_no_benefit)
+                            reductionPercent >= 50 -> context.getString(R.string.msg_compress_verdict_excellent)
+                            reductionPercent >= 20 -> context.getString(R.string.msg_compress_verdict_good)
+                            reductionPercent >= 5 -> context.getString(R.string.msg_compress_verdict_minor)
+                            else -> context.getString(R.string.msg_compress_verdict_minimal)
                         }
-                        append("Verdict: $verdict\n\n")
-                        append("Original Size: ${formatSize(originalSize)}\n")
-                        append("Compressed Size: ${formatSize(compressedSize)}\n\n")
-                        append("Settings Used:\n")
+                        append(context.getString(R.string.msg_compress_verdict_format, verdict))
+                        append(context.getString(R.string.msg_compress_original_size, formatSize(originalSize)))
+                        append(context.getString(R.string.msg_compress_compressed_size, formatSize(compressedSize)))
+                        append(context.getString(R.string.msg_compress_settings_used))
                         if (_targetMb.value != null) {
-                            append("- Target Size: ${_targetMb.value} MB\n")
-                            append("- Auto-Optimized: Yes\n")
+                            append(context.getString(R.string.msg_compress_target_size, _targetMb.value.toString()))
+                            append(context.getString(R.string.msg_compress_auto_optimized))
                         } else {
-                            append("- Quality Preset: ${(compressionQuality.value * 100).toInt()}%\n")
+                            append(context.getString(R.string.msg_compress_quality_preset, (compressionQuality.value * 100).toInt()))
                         }
-                        append("- Grayscale: ${if (useGrayscale.value) "Enabled" else "Disabled"}\n")
-                        append("- Lossless ZIP: ${if (useLossless.value) "Enabled" else "Disabled"}\n")
-                        append("- Metadata Removed: ${if (stripMetadata.value) "Yes" else "No"}")
+                        append(context.getString(R.string.msg_compress_grayscale, if (useGrayscale.value) context.getString(R.string.msg_compress_enabled) else context.getString(R.string.msg_compress_disabled)))
+                        append(context.getString(R.string.msg_compress_lossless_zip, if (useLossless.value) context.getString(R.string.msg_compress_enabled) else context.getString(R.string.msg_compress_disabled)))
+                        append(context.getString(R.string.msg_compress_metadata_removed, if (stripMetadata.value) context.getString(R.string.value_yes) else context.getString(R.string.value_no)))
                     } else {
-                        append("Compression finished successfully.\n\n")
+                        append(context.getString(R.string.msg_compress_success))
                     }
                 }.toString()
 
                 if (report.targetMissed) {
                     _uiState.value = UiState.Warning(
-                        "Target Size Unreachable",
-                        "The best possible compression was applied, but the file could not be compressed under ${_targetMb.value} MB without destroying the content.\n\n" + reductionDetails,
+                        context.getString(R.string.title_target_size_unreachable),
+                        context.getString(R.string.msg_compress_limit_reached, _targetMb.value.toString()) + reductionDetails,
                         listOf(destUri)
                     )
                 } else {
-                    _uiState.value = UiState.Success("Compression Result", reductionDetails, listOf(destUri))
+                    _uiState.value = UiState.Success(context.getString(R.string.title_compress_result), reductionDetails, listOf(destUri))
                 }
-                historyRepository.addHistoryItem(destUri, "Compressed PDF", "Compress")
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.label_compressed_pdf), context.getString(R.string.action_compress))
                 refreshHistory()
                 
             }.onFailure { error ->
-                _uiState.value = UiState.Error(error.message ?: "An unknown error occurred.")
+                _uiState.value = UiState.Error(error.message ?: context.getString(R.string.msg_error_unknown))
             }
         }
     }
@@ -439,13 +439,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val files = _selectedFiles.value
             if (files.isEmpty()) {
-                _uiState.value = UiState.Error("No files selected for batch compression.")
+                _uiState.value = UiState.Error(context.getString(R.string.msg_no_files_batch))
                 return@launch
             }
 
             val directory = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, destTreeUri)
             if (directory == null || !directory.exists()) {
-                _uiState.value = UiState.Error("Selected folder is invalid or does not exist.")
+                _uiState.value = UiState.Error(context.getString(R.string.msg_invalid_folder))
                 return@launch
             }
 
@@ -487,27 +487,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             if (successCount == total) {
-                historyRepository.addHistoryItem(destTreeUri, "Batch Compression Folder", "Compress Batch")
+                historyRepository.addHistoryItem(destTreeUri, context.getString(R.string.label_batch_compress_folder), context.getString(R.string.action_compress_batch))
                 refreshHistory()
                 val totalSavedBytes = sizeSavedMap.values.sum()
                 val totalSavedStr = formatSize(totalSavedBytes)
                 _uiState.value = UiState.Success(
-                    "Batch Compression Finished",
-                    "Successfully compressed all $total files!\nTotal space saved: $totalSavedStr",
+                    context.getString(R.string.title_batch_compress_result),
+                    context.getString(R.string.msg_batch_compress_success_all, total, totalSavedStr),
                     outputUris
                 )
             } else if (successCount > 0) {
-                historyRepository.addHistoryItem(destTreeUri, "Batch Compression Folder", "Compress Batch")
+                historyRepository.addHistoryItem(destTreeUri, context.getString(R.string.label_batch_compress_folder), context.getString(R.string.action_compress_batch))
                 refreshHistory()
                 val totalSavedBytes = sizeSavedMap.values.sum()
                 val totalSavedStr = formatSize(totalSavedBytes)
                 _uiState.value = UiState.Success(
-                    "Batch Compression Finished",
-                    "Successfully compressed $successCount of $total files.\nTotal space saved: $totalSavedStr",
+                    context.getString(R.string.title_batch_compress_result),
+                    context.getString(R.string.msg_batch_compress_success_partial, successCount, total, totalSavedStr),
                     outputUris
                 )
             } else {
-                _uiState.value = UiState.Error("Failed to compress any files in the batch.")
+                _uiState.value = UiState.Error(context.getString(R.string.msg_batch_compress_fail))
             }
         }
     }
@@ -662,7 +662,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val directory = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, destTreeUri)
                 if (directory == null || !directory.exists()) {
-                    _uiState.value = UiState.Error("Selected folder is invalid or does not exist.")
+                    _uiState.value = UiState.Error(context.getString(R.string.msg_invalid_folder))
                     return@launch
                 }
                 

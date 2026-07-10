@@ -1323,7 +1323,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(containerColor = Color.Transparent, 
-        topBar = { PremiumTopAppBar("Compress PDF", onBack) }
+        topBar = { PremiumTopAppBar(stringResource(R.string.title_compress_pdf), onBack) }
     ) { padding ->
         Column(
             modifier = Modifier
