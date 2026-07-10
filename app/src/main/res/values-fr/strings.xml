@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">PDFchemy</string>
     <string name="coming_soon">Bientôt disponible</string>
@@ -44,7 +44,6 @@
     <string name="settings_clear_history">Effacer l\'Historique</string>
     <string name="settings_clear_history_confirm">Êtes-vous sûr de vouloir effacer l\'historique récent ?</string>
     <string name="settings_history_cleared">Historique effacé</string>
-
     <string name="compress_title">Compresser le PDF</string>
     <string name="compress_single">Fichier Unique</string>
     <string name="compress_batch">Compression par Lot</string>
@@ -64,7 +63,6 @@
     <string name="warning_quality_desc">La compression réduit la qualité. Gardez toujours votre fichier original.</string>
     <string name="warning_understand">Je Comprends</string>
     <string name="compress_options_empty">Les options apparaîtront après avoir sélectionné un fichier.</string>
-
     <string name="check">Vérifier</string>
     <string name="inspect_edit_metadata">Inspecter et Éditer les Métadonnées</string>
     <string name="select_pdf">Sélectionner un PDF</string>
@@ -250,4 +248,34 @@
     <string name="msg_batch_compress_success_all">Compression réussie de tous les %1$d fichiers !\nEspace total économisé : %2$s</string>
     <string name="msg_batch_compress_success_partial">Compression réussie de %1$d sur %2$d fichiers.\nEspace total économisé : %3$s</string>
     <string name="msg_batch_compress_fail">Échec de la compression des fichiers du lot.</string>
+    <string name="desc_share_output">Partager la sortie</string>
+    <string name="desc_go_premium">Passez à la version premium</string>
+    <string name="desc_settings">Paramètres</string>
+    <string name="desc_toggle_theme">Basculer le thème</string>
+    <string name="desc_app_logo">Logo de l\'application</string>
+    <string name="scan_prefix">Balayage_</string>
+    <string name="default_scanned_doc_name">document_scanné</string>
+    <string name="desc_back">Dos</string>
+    <string name="desc_coming_soon">À venir</string>
+    <string name="label_selected_pdf">PDF sélectionné</string>
+    <string name="compressed_prefix">comprimé</string>
+    <string name="tab_single_pdf_optimization">Optimisation PDF unique</string>
+    <string name="tab_batch_pdf_optimization">Optimisation PDF par lots</string>
+    <string name="btn_change_file">Changer de fichier</string>
+    <string name="btn_select_pdf_files">Sélectionnez les fichiers PDF</string>
+    <string name="btn_add_more_files">Ajouter plus de fichiers (%1$d sélectionné)</string>
+    <string name="label_original_size_analyzing">Taille originale : %1$s (Analyse...)</string>
+    <string name="label_original_size_to_compressed">Taille d\'origine : %1$s → %2$s</string>
+    <string name="label_target_mb_batch">Cible : %1$,1f Mo</string>
+    <string name="label_target_unknown">Cible : Inconnu</string>
+    <string name="label_analyzing">Analyser...</string>
+    <string name="label_target_mb">Cible : %1$s Mo</string>
+    <string name="desc_remove_file">Supprimer le fichier</string>
+    <string name="preset_custom">Coutume</string>
+    <string name="preset_smallest">Le plus petit</string>
+    <string name="preset_balanced">Équilibré</string>
+    <string name="preset_best">Meilleur</string>
+    <string name="btn_optimize_and_save">Optimiser et enregistrer le PDF</string>
+    <string name="btn_select_folder_and_compress">Sélectionnez le dossier de sortie et compressez</string>
+    <string name="desc_compress_icon">Icône Compresser</string>
 </resources>

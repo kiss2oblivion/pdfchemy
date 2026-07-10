@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <!-- App Details -->
     <string name="app_name">PDFchemy</string>
     <string name="coming_soon">Em breve</string>
     <string name="ok">OK</string>
@@ -11,8 +10,6 @@
     <string name="clear_all">Limpar Tudo</string>
     <string name="save">Guardar</string>
     <string name="continue_btn">Continuar</string>
-
-    <!-- Home Screen -->
     <string name="home_subtitle">CORRIJA DOCUMENTOS LOCALMENTE</string>
     <string name="cat_compress">Comprimir</string>
     <string name="cat_compress_desc">Diminua PDFs de forma segura.</string>
@@ -22,8 +19,6 @@
     <string name="cat_organize_desc">Juntar, dividir, renomear.</string>
     <string name="cat_check">Verificar</string>
     <string name="cat_check_desc">Inspecione antes de enviar.</string>
-
-    <!-- Main Menu -->
     <string name="menu_compress">Comprimir PDF</string>
     <string name="menu_compress_desc">Reduzir tamanho do ficheiro</string>
     <string name="menu_merge">Juntar PDF</string>
@@ -36,8 +31,6 @@
     <string name="menu_ocr_desc">Extrair texto do PDF</string>
     <string name="menu_metadata">Verificar Metadados</string>
     <string name="menu_metadata_desc">Ver propriedades ocultas</string>
-
-    <!-- Settings -->
     <string name="settings_title">ConfiguraÃ§Ãµes</string>
     <string name="settings_preferences">PreferÃªncias da Aplicação</string>
     <string name="settings_haptic">Feedback TÃ¡til</string>
@@ -51,8 +44,6 @@
     <string name="settings_clear_history">Limpar HistÃ³rico Recente</string>
     <string name="settings_clear_history_confirm">Tem certeza de que deseja limpar seu histÃ³rico de ficheiros recentes?</string>
     <string name="settings_history_cleared">HistÃ³rico limpo</string>
-
-    <!-- Compression -->
     <string name="compress_title">Comprimir PDF</string>
     <string name="compress_single">ficheiro Ãšnico</string>
     <string name="compress_batch">CompressÃ£o em Lote</string>
@@ -68,14 +59,10 @@
     <string name="compress_lossless_desc">Pular compressÃ£o JPEG</string>
     <string name="compress_strip_meta">Remover Metadados</string>
     <string name="compress_strip_meta_desc">Remover tags de autor, criador e editor</string>
-    
     <string name="warning_quality_title">Aviso de Qualidade e Legal</string>
     <string name="warning_quality_desc">A compressÃ£o reduz a qualidade. Isso pode invalidar documentos oficiais, registros mÃ©dicos ou assinaturas digitais. Sempre guarde seu ficheiro original.</string>
     <string name="warning_understand">Eu Entendo</string>
-
     <string name="compress_options_empty">As opÃ§Ãµes de otimizaÃ§Ã£o aparecerÃ£o aqui quando vocÃª selecionar um ficheiro.</string>
-
-    <!-- Auto-Extracted Strings -->
     <string name="check">Verificar</string>
     <string name="inspect_edit_metadata">Inspecionar e Editar Metadados</string>
     <string name="select_pdf">Selecionar PDF</string>
@@ -262,4 +249,34 @@
     <string name="msg_batch_compress_success_all">Todos os %1$d ficheiros comprimidos com sucesso!\nEspaço total poupado: %2$s</string>
     <string name="msg_batch_compress_success_partial">Comprimidos com sucesso %1$d de %2$d ficheiros.\nEspaço total poupado: %3$s</string>
     <string name="msg_batch_compress_fail">Falha ao comprimir quaisquer ficheiros no lote.</string>
+    <string name="desc_share_output">Compartilhar saída</string>
+    <string name="desc_go_premium">Torne-se Premium</string>
+    <string name="desc_settings">Configurações</string>
+    <string name="desc_toggle_theme">Alternar tema</string>
+    <string name="desc_app_logo">Logotipo do aplicativo</string>
+    <string name="scan_prefix">Digitalizar_</string>
+    <string name="default_scanned_doc_name">documento_digitalizado</string>
+    <string name="desc_back">Voltar</string>
+    <string name="desc_coming_soon">Em breve</string>
+    <string name="label_selected_pdf">PDF selecionado</string>
+    <string name="compressed_prefix">comprimido</string>
+    <string name="tab_single_pdf_optimization">Otimização de PDF Único</string>
+    <string name="tab_batch_pdf_optimization">Otimização de PDF em lote</string>
+    <string name="btn_change_file">Alterar arquivo</string>
+    <string name="btn_select_pdf_files">Selecione arquivos PDF</string>
+    <string name="btn_add_more_files">Adicionar mais arquivos (%1$d selecionado)</string>
+    <string name="label_original_size_analyzing">Tamanho original: %1$s (Analisando...)</string>
+    <string name="label_original_size_to_compressed">Tamanho original: %1$s → %2$s</string>
+    <string name="label_target_mb_batch">Alvo: %1$.1f MB</string>
+    <string name="label_target_unknown">Alvo: Desconhecido</string>
+    <string name="label_analyzing">Analisando...</string>
+    <string name="label_target_mb">Alvo: %1$s MB</string>
+    <string name="desc_remove_file">Remover arquivo</string>
+    <string name="preset_custom">Personalizado</string>
+    <string name="preset_smallest">Menor</string>
+    <string name="preset_balanced">Equilibrado</string>
+    <string name="preset_best">Melhor</string>
+    <string name="btn_optimize_and_save">Otimize e salve PDF</string>
+    <string name="btn_select_folder_and_compress">Selecione a pasta de saída e compactar</string>
+    <string name="desc_compress_icon">Compactar ícone</string>
 </resources>

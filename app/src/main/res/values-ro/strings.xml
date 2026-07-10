@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">PDFchemy</string>
     <string name="coming_soon">În curând</string>
@@ -249,4 +249,34 @@
     <string name="msg_batch_compress_success_all">Au fost comprimate cu succes toate cele %1$d fișiere!\nSpațiu total economisit: %2$s</string>
     <string name="msg_batch_compress_success_partial">Au fost comprimate cu succes %1$d din %2$d fișiere.\nSpațiu total economisit: %3$s</string>
     <string name="msg_batch_compress_fail">Nu s-a putut comprima niciun fișier din lot.</string>
+    <string name="desc_share_output">Partajați rezultatul</string>
+    <string name="desc_go_premium">Treci Premium</string>
+    <string name="desc_settings">Setări</string>
+    <string name="desc_toggle_theme">Comutați tema</string>
+    <string name="desc_app_logo">Logo-ul aplicației</string>
+    <string name="scan_prefix">scanează_</string>
+    <string name="default_scanned_doc_name">document_scanat</string>
+    <string name="desc_back">Spate</string>
+    <string name="desc_coming_soon">În curând</string>
+    <string name="label_selected_pdf">PDF selectat</string>
+    <string name="compressed_prefix">comprimat</string>
+    <string name="tab_single_pdf_optimization">Optimizare unică PDF</string>
+    <string name="tab_batch_pdf_optimization">Optimizare lot PDF</string>
+    <string name="btn_change_file">Schimbați fișierul</string>
+    <string name="btn_select_pdf_files">Selectați Fișiere PDF</string>
+    <string name="btn_add_more_files">Adăugați mai multe fișiere (%1$d selectat)</string>
+    <string name="label_original_size_analyzing">Dimensiune originală: %1$s (se analizează...)</string>
+    <string name="label_original_size_to_compressed">Dimensiune originală: %1$s → %2$s</string>
+    <string name="label_target_mb_batch">Țintă: %1$,1f MB</string>
+    <string name="label_target_unknown">Țintă: necunoscută</string>
+    <string name="label_analyzing">Se analizează...</string>
+    <string name="label_target_mb">Țintă: %1$s MB</string>
+    <string name="desc_remove_file">Eliminați fișierul</string>
+    <string name="preset_custom">Personalizat</string>
+    <string name="preset_smallest">Cel mai mic</string>
+    <string name="preset_balanced">Echilibrat</string>
+    <string name="preset_best">Cel mai bun</string>
+    <string name="btn_optimize_and_save">Optimizați și salvați PDF</string>
+    <string name="btn_select_folder_and_compress">Selectați Folder de ieșire și comprimare</string>
+    <string name="desc_compress_icon">Pictograma de comprimare</string>
 </resources>
