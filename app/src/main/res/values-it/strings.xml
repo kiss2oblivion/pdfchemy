@@ -227,7 +227,7 @@
     <string name="value_no">No</string>
     <string name="title_compress_pdf">Comprimi PDF</string>
     <string name="msg_compress_warning_signature">Avviso: La compressione può invalidare la firma digitale.</string>
-    <string name="msg_compress_slightly_larger">L\\'output è leggermente più grande dell\\'originale. Questo PDF potrebbe essere già altamente ottimizzato.\n\n</string>
+    <string name="msg_compress_slightly_larger">L\'output è leggermente più grande dell\'originale. Questo PDF potrebbe essere già altamente ottimizzato.\n\n</string>
     <string name="msg_compress_reduced">Ridotto del %1$d%% (%2$s risparmiato!)\n\n</string>
     <string name="msg_compress_verdict_no_benefit">Nessun vantaggio di compressione</string>
     <string name="msg_compress_verdict_excellent">Eccellente compressione</string>

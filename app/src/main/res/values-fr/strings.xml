@@ -216,7 +216,7 @@
     <string name="value_no">Non</string>
     <string name="title_compress_pdf">Compresser PDF</string>
     <string name="msg_compress_warning_signature">Avertissement : La compression peut invalider la signature numérique.</string>
-    <string name="msg_compress_slightly_larger">La sortie est légèrement plus grande que l\\'original. Ce PDF est peut-être déjà hautement optimisé.\n\n</string>
+    <string name="msg_compress_slightly_larger">La sortie est légèrement plus grande que l\'original. Ce PDF est peut-être déjà hautement optimisé.\n\n</string>
     <string name="msg_compress_reduced">Réduit de %1$d%% (%2$s économisé !)\n\n</string>
     <string name="msg_compress_verdict_no_benefit">Aucun avantage de compression</string>
     <string name="msg_compress_verdict_excellent">Excellente compression</string>
@@ -224,7 +224,7 @@
     <string name="msg_compress_verdict_minor">Compression mineure</string>
     <string name="msg_compress_verdict_minimal">Gain de compression minimal</string>
     <string name="msg_compress_verdict_format">Verdict : %1$s\n\n</string>
-    <string name="msg_compress_original_size">Taille d\\'origine : %1$s\n</string>
+    <string name="msg_compress_original_size">Taille d\'origine : %1$s\n</string>
     <string name="msg_compress_compressed_size">Taille compressée : %1$s\n\n</string>
     <string name="msg_compress_settings_used">Paramètres utilisés :\n</string>
     <string name="msg_compress_target_size">- Taille cible : %1$s Mo\n</string>
@@ -236,14 +236,14 @@
     <string name="msg_compress_enabled">Activé</string>
     <string name="msg_compress_disabled">Désactivé</string>
     <string name="msg_compress_success">Compression terminée avec succès.\n\n</string>
-    <string name="msg_compress_limit_reached">La meilleure compression possible a été appliquée, mais le fichier n\\'a pas pu être compressé sous %1$s Mo sans détruire le contenu.\n\n</string>
+    <string name="msg_compress_limit_reached">La meilleure compression possible a été appliquée, mais le fichier n\'a pas pu être compressé sous %1$s Mo sans détruire le contenu.\n\n</string>
     <string name="title_compress_result">Résultat de la compression</string>
     <string name="title_target_size_unreachable">Taille cible inaccessible</string>
     <string name="label_compressed_pdf">PDF compressé</string>
     <string name="action_compress">Compresser</string>
-    <string name="msg_error_unknown">Une erreur inconnue s\\'est produite.</string>
+    <string name="msg_error_unknown">Une erreur inconnue s\'est produite.</string>
     <string name="msg_no_files_batch">Aucun fichier sélectionné pour la compression par lots.</string>
-    <string name="msg_invalid_folder">Le dossier sélectionné n\\'est pas valide ou n\\'existe pas.</string>
+    <string name="msg_invalid_folder">Le dossier sélectionné n\'est pas valide ou n\'existe pas.</string>
     <string name="label_batch_compress_folder">Dossier de compression par lots</string>
     <string name="action_compress_batch">Compresser le lot</string>
     <string name="title_batch_compress_result">Compression par lots terminée</string>
