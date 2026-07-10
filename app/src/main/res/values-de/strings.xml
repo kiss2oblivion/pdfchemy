@@ -161,4 +161,31 @@
     <string name="vibrate_on_interactions">Vibrieren bei Interaktionen</string>
     <string name="sound_effects">Soundeffekte</string>
     <string name="play_audio_on_button_clicks">Audio bei Klicks abspielen</string>
+    <string name="msg_failed_export">PDF-Export fehlgeschlagen</string>
+    <string name="msg_scan_saved">Scan im Repository gespeichert</string>
+    <string name="action_export">Exportieren</string>
+    <string name="msg_failed_scan">Scan-Verarbeitung fehlgeschlagen</string>
+    <string name="subtitle_images_to_pdf">JPG, PNG und andere Bilder in eine PDF konvertieren</string>
+    <string name="subtitle_text_to_pdf">Notizen oder .txt-Dateien in PDF konvertieren</string>
+    <string name="subtitle_format_converter">Konvertieren zwischen TXT, MD, CSV, JSON und mehr</string>
+    <string name="subtitle_batch_compress">Ordner auswählen und alle PDFs komprimieren</string>
+    <string name="title_tools">PDFchemy Werkzeuge</string>
+    <string name="file_name_label">Dateiname: %1$s</string>
+    <string name="selected_batch_files">Ausgewählte Batch-Dateien:</string>
+    <string name="analyzing_doc">Dokumentenstruktur analysieren...</string>
+    <string name="smart_recommendation">Intelligente Empfehlung</string>
+    <string name="detected_type">Erkannter Typ: %1$s</string>
+    <string name="doc_stats_pages_images">Seiten: %1$d | Bilder: %2$d</string>
+    <string name="warn_grayscale">⚠️ Verwirft alle Farbelemente &amp; Diagramme.</string>
+    <string name="warn_lossless">⚠️ Verlustfrei bei Scans kann die Größe stark erhöhen.</string>
+    <string name="warn_signatures">⚠️ Kann digitale Signaturen auf offiziellen Dateien ungültig machen.</string>
+    <string name="recent_activity">Letzte Aktivität</string>
+    <string name="premium_title">Premium-Upgrade</string>
+    <string name="premium_thanks">Danke für die Unterstützung unserer Offline-Werkzeuge!</string>
+    <string name="premium_features">Das ultimative PDF-Erlebnis freischalten.
+
+✓ Keine Banner-Werbung
+✓ Keine Interstitials
+✓ Unbegrenzte Batch-Aktionen</string>
+    <string name="batch_compressing">Komprimiere %1$d von %2$d Dateien...</string>
 </resources>

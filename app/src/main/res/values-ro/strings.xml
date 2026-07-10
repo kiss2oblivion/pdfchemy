@@ -148,4 +148,31 @@
     <string name="vibrate_on_interactions">Vibrează la interacțiuni</string>
     <string name="sound_effects">Efecte Sonore</string>
     <string name="play_audio_on_button_clicks">Redă sunet la apăsarea butoanelor</string>
+    <string name="msg_failed_export">Eroare la exportul PDF</string>
+    <string name="msg_scan_saved">Scanare salvată</string>
+    <string name="action_export">Exportă</string>
+    <string name="msg_failed_scan">Eroare la procesarea scanării</string>
+    <string name="subtitle_images_to_pdf">Convertește imagini într-un singur PDF</string>
+    <string name="subtitle_text_to_pdf">Convertește notițe sau fișiere .txt în PDF</string>
+    <string name="subtitle_format_converter">Conversie între TXT, MD, CSV, JSON și altele</string>
+    <string name="subtitle_batch_compress">Selectează un dosar și comprimă toate PDF-urile</string>
+    <string name="title_tools">Unelte PDFchemy</string>
+    <string name="file_name_label">Nume Fișier: %1$s</string>
+    <string name="selected_batch_files">Fișiere Selectate:</string>
+    <string name="analyzing_doc">Se analizează structura...</string>
+    <string name="smart_recommendation">Recomandare Inteligentă</string>
+    <string name="detected_type">Tip Detectat: %1$s</string>
+    <string name="doc_stats_pages_images">Pagini: %1$d | Imagini: %2$d</string>
+    <string name="warn_grayscale">⚠️ Elimină elementele color și diagramele.</string>
+    <string name="warn_lossless">⚠️ Comprimarea fără pierderi la scanări poate crește dimensiunea.</string>
+    <string name="warn_signatures">⚠️ Poate invalida semnăturile digitale.</string>
+    <string name="recent_activity">Activitate Recentă</string>
+    <string name="premium_title">Upgrade Premium</string>
+    <string name="premium_thanks">Mulțumim pentru susținerea uneltelor noastre offline!</string>
+    <string name="premium_features">Deblochează experiența PDF supremă.
+
+✓ Fără Reclame
+✓ Fără Interstițiale
+✓ Acțiuni Nelimitate</string>
+    <string name="batch_compressing">Se comprimă %1$d din %2$d fișiere...</string>
 </resources>

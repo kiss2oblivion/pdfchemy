@@ -162,4 +162,31 @@
     <string name="vibrate_on_interactions">Vibrate on interactions</string>
     <string name="sound_effects">Sound Effects</string>
     <string name="play_audio_on_button_clicks">Play audio on button clicks</string>
+    <string name="msg_failed_export">Failed to export PDF</string>
+    <string name="msg_scan_saved">Scan saved to Repository</string>
+    <string name="action_export">Export</string>
+    <string name="msg_failed_scan">Failed to process scan</string>
+    <string name="subtitle_images_to_pdf">Convert JPG, PNG, and other images to a single PDF</string>
+    <string name="subtitle_text_to_pdf">Convert your notes or .txt files to PDF</string>
+    <string name="subtitle_format_converter">Convert between TXT, MD, CSV, JSON, and more</string>
+    <string name="subtitle_batch_compress">Select a folder and compress all PDFs inside</string>
+    <string name="title_tools">PDFchemy Tools</string>
+    <string name="file_name_label">File Name: %1$s</string>
+    <string name="selected_batch_files">Selected Batch Files:</string>
+    <string name="analyzing_doc">Analyzing document structure...</string>
+    <string name="smart_recommendation">Smart Recommendation</string>
+    <string name="detected_type">Detected Type: %1$s</string>
+    <string name="doc_stats_pages_images">Pages: %1$d | Images: %2$d</string>
+    <string name="warn_grayscale">⚠️ Discards all color elements &amp; diagrams.</string>
+    <string name="warn_lossless">⚠️ Lossless on scans can significantly increase size.</string>
+    <string name="warn_signatures">⚠️ May invalidate digital signatures on official files.</string>
+    <string name="recent_activity">Recent Activity</string>
+    <string name="premium_title">Premium Upgrade</string>
+    <string name="premium_thanks">Thank you for supporting our mission of privacy-first, offline document tools!</string>
+    <string name="premium_features">Unlock the ultimate offline PDF experience.
+
+✓ No Banner Ads
+✓ No Interstitials
+✓ Unlimited Batch Actions</string>
+    <string name="batch_compressing">Compressing %1$d of %2$d files...</string>
 </resources>

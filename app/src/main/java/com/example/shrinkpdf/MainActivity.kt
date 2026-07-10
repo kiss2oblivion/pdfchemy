@@ -354,7 +354,7 @@ fun MainApp(
                     if (uiState is MainViewModel.UiState.BatchProcessing) {
                         val state = uiState as MainViewModel.UiState.BatchProcessing
                         Text(
-                            text = "Compressing ${state.current} of ${state.total} files...",
+                            text = stringResource(R.string.batch_compressing, state.current, state.total),
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -777,13 +777,13 @@ fun HomeScreen(
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                     ShimmerTitle(
-                        text = "PDFchemy Tools",
+                        text = stringResource(R.string.title_tools),
                         style = MaterialTheme.typography.headlineLarge,
                         baseColor = MaterialTheme.colorScheme.primary,
                         isDarkTheme = isDarkTheme
                     )
                     Text(
-                        text = "FIX DOCUMENTS LOCALLY",
+                        text = stringResource(R.string.home_subtitle),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 2.sp
@@ -988,7 +988,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 Toast.makeText(context, "Scanned PDF exported!", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 AppLogger.e("Exception caught in MainActivity", e)
-                Toast.makeText(context, "Failed to export PDF", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.msg_failed_export), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1026,8 +1026,8 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         
                         // Show snackbar with Export option
                         val snackbarResult = snackbarHostState.showSnackbar(
-                            message = "Scan saved to Repository",
-                            actionLabel = "Export",
+                            message = stringResource(R.string.msg_scan_saved),
+                            actionLabel = stringResource(R.string.action_export),
                             duration = SnackbarDuration.Short
                         )
                         if (snackbarResult == SnackbarResult.ActionPerformed) {
@@ -1035,7 +1035,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         }
                     } catch (e: Exception) {
                         AppLogger.e("Exception caught in MainActivity", e)
-                        snackbarHostState.showSnackbar("Failed to process scan")
+                        snackbarHostState.showSnackbar(context.getString(R.string.msg_failed_scan))
                     }
                 }
             }
@@ -1079,32 +1079,32 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         ) {
             item {
                 ToolCard(
-                    title = "Scan to PDF",
-                    subtitle = "Use the native document scanner to create a PDF",
+                    title = stringResource(R.string.menu_scan),
+                    subtitle = stringResource(R.string.menu_scan_desc),
                     icon = Icons.Rounded.DocumentScanner,
                     onClick = { launchScanner() }
                 )
             }
             item {
                 ToolCard(
-                    title = "Images to PDF",
-                    subtitle = "Convert JPG, PNG, and other images to a single PDF",
+                    title = stringResource(R.string.images_to_pdf),
+                    subtitle = stringResource(R.string.subtitle_images_to_pdf),
                     icon = Icons.Rounded.PictureAsPdf,
                     onClick = { onNavigate(Screen.ImagesToPdf) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Text to PDF",
-                    subtitle = "Convert your notes or .txt files to PDF",
+                    title = stringResource(R.string.text_format_converter),
+                    subtitle = stringResource(R.string.subtitle_text_to_pdf),
                     icon = Icons.Rounded.Description,
                     onClick = { onNavigate(Screen.TextToPdf) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Text Format Converter",
-                    subtitle = "Convert between TXT, MD, CSV, JSON, and more",
+                    title = stringResource(R.string.text_format_converter),
+                    subtitle = stringResource(R.string.subtitle_format_converter),
                     icon = Icons.Rounded.SyncAlt,
                     onClick = { onNavigate(Screen.TextConverter) }
                 )
@@ -1137,16 +1137,16 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         ) {
             item {
                 ToolCard(
-                    title = "Compress PDF",
-                    subtitle = "Make PDFs smaller, safely.",
+                    title = stringResource(R.string.compress_title),
+                    subtitle = stringResource(R.string.cat_compress_desc),
                     icon = Icons.Rounded.Compress,
                     onClick = { onNavigate(Screen.CompressPdf) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Batch Compression",
-                    subtitle = "Select a folder and compress all PDFs inside",
+                    title = stringResource(R.string.compress_batch),
+                    subtitle = stringResource(R.string.subtitle_batch_compress),
                     icon = Icons.Rounded.LibraryBooks,
                     onClick = { onNavigate(Screen.BatchCompressPdf) } // Routes to same tool where tab exists
                 )
@@ -1531,7 +1531,7 @@ fun LeftPanel(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "File Name: $sourceName", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.file_name_label, sourceName), style = MaterialTheme.typography.bodyLarge)
                     if (originalSize > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -1583,7 +1583,7 @@ fun LeftPanel(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Selected Batch Files:",
+                            text = stringResource(R.string.selected_batch_files),
                             style = MaterialTheme.typography.titleMedium
                         )
                         TextButton(
@@ -1745,7 +1745,7 @@ fun LeftPanel(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Analyzing document structure...",
+                    text = stringResource(R.string.analyzing_doc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -1768,19 +1768,19 @@ fun LeftPanel(
                         Icon(Icons.Rounded.TipsAndUpdates, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Smart Recommendation",
+                            text = stringResource(R.string.smart_recommendation),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Detected Type: ${analysis.scenario.displayName}",
+                        text = stringResource(R.string.detected_type, analysis.scenario.displayName),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        text = "Pages: ${analysis.pageCount} | Images: ${analysis.imageCount}",
+                        text = stringResource(R.string.doc_stats_pages_images, analysis.pageCount, analysis.imageCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                     )
@@ -1952,7 +1952,7 @@ fun RightPanel(
                     Text(stringResource(R.string.convert_color_images_to_black), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (useGrayscale && pdfAnalysis?.scenario != com.example.shrinkpdf.logic.PdfScenario.SCANNED_IMAGE_HEAVY) {
                         Text(
-                            text = "⚠️ Discards all color elements & diagrams.",
+                            text = stringResource(R.string.warn_grayscale),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 2.dp, start = 28.dp)
@@ -1977,7 +1977,7 @@ fun RightPanel(
                     Text(stringResource(R.string.skip_jpeg_lossy_compression_no), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (useLossless && pdfAnalysis?.scenario == com.example.shrinkpdf.logic.PdfScenario.SCANNED_IMAGE_HEAVY) {
                         Text(
-                            text = "⚠️ Lossless on scans can significantly increase size.",
+                            text = stringResource(R.string.warn_lossless),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 2.dp, start = 28.dp)
@@ -2002,7 +2002,7 @@ fun RightPanel(
                     Text(stringResource(R.string.strip_author_creator_editor_ta), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(start = 28.dp))
                     if (stripMetadata && pdfAnalysis?.scenario == com.example.shrinkpdf.logic.PdfScenario.SIGNED_OFFICIAL) {
                         Text(
-                            text = "⚠️ May invalidate digital signatures on official files.",
+                            text = stringResource(R.string.warn_signatures),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 2.dp, start = 28.dp)
@@ -2324,7 +2324,7 @@ fun RecentFilesSection(viewModel: MainViewModel) {
     if (history.isNotEmpty()) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Recent Activity",
+                text = stringResource(R.string.recent_activity),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -2394,7 +2394,7 @@ fun PremiumUpgradeScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val context = LocalContext.current as android.app.Activity
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        PremiumTopAppBar(title = "Premium Upgrade", onBack = onBack)
+        PremiumTopAppBar(title = stringResource(R.string.premium_title), onBack = onBack)
         
         Column(
             modifier = Modifier

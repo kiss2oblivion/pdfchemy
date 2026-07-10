@@ -148,4 +148,30 @@
     <string name="vibrate_on_interactions">Getar saat berinteraksi</string>
     <string name="sound_effects">Efek Suara</string>
     <string name="play_audio_on_button_clicks">Putar audio saat diklik</string>
+    <string name="msg_failed_export">Gagal mengekspor PDF</string>
+    <string name="msg_scan_saved">Pindaian disimpan</string>
+    <string name="action_export">Ekspor</string>
+    <string name="msg_failed_scan">Gagal memproses pindaian</string>
+    <string name="subtitle_images_to_pdf">Ubah gambar menjadi satu PDF</string>
+    <string name="subtitle_text_to_pdf">Ubah catatan atau file .txt ke PDF</string>
+    <string name="subtitle_format_converter">Konversi antara TXT, MD, CSV, JSON, dll.</string>
+    <string name="subtitle_batch_compress">Pilih folder dan kompres semua PDF di dalamnya</string>
+    <string name="title_tools">Alat PDFchemy</string>
+    <string name="file_name_label">Nama File: %1$s</string>
+    <string name="selected_batch_files">File Batch Terpilih:</string>
+    <string name="analyzing_doc">Menganalisis dokumen...</string>
+    <string name="smart_recommendation">Rekomendasi Cerdas</string>
+    <string name="detected_type">Tipe Terdeteksi: %1$s</string>
+    <string name="doc_stats_pages_images">Halaman: %1$d | Gambar: %2$d</string>
+    <string name="warn_grayscale">⚠️ Membuang elemen warna &amp; diagram.</string>
+    <string name="warn_lossless">⚠️ Kompresi tanpa hilang pada pindaian dapat meningkatkan ukuran.</string>
+    <string name="warn_signatures">⚠️ Mungkin membatalkan tanda tangan digital.</string>
+    <string name="recent_activity">Aktivitas Terbaru</string>
+    <string name="premium_title">Peningkatan Premium</string>
+    <string name="premium_thanks">Terima kasih telah mendukung alat offline kami!</string>
+    <string name="premium_features">Buka pengalaman PDF terbaik.
+
+✓ Tanpa Iklan
+✓ Aksi Batch Tak Terbatas</string>
+    <string name="batch_compressing">Mengompresi %1$d dari %2$d file...</string>
 </resources>

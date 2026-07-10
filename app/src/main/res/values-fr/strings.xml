@@ -150,4 +150,30 @@
     <string name="vibrate_on_interactions">Vibrer lors des interactions</string>
     <string name="sound_effects">Effets Sonores</string>
     <string name="play_audio_on_button_clicks">Jouer un son lors des clics</string>
+    <string name="msg_failed_export">Échec de l\'exportation du PDF</string>
+    <string name="msg_scan_saved">Numérisation enregistrée</string>
+    <string name="action_export">Exporter</string>
+    <string name="msg_failed_scan">Échec du traitement</string>
+    <string name="subtitle_images_to_pdf">Convertir des images en un seul PDF</string>
+    <string name="subtitle_text_to_pdf">Convertissez vos notes en PDF</string>
+    <string name="subtitle_format_converter">Convertir entre TXT, MD, CSV, JSON et plus</string>
+    <string name="subtitle_batch_compress">Sélectionnez un dossier pour compresser tous les PDF</string>
+    <string name="title_tools">Outils PDFchemy</string>
+    <string name="file_name_label">Nom du fichier : %1$s</string>
+    <string name="selected_batch_files">Fichiers sélectionnés :</string>
+    <string name="analyzing_doc">Analyse du document...</string>
+    <string name="smart_recommendation">Recommandation intelligente</string>
+    <string name="detected_type">Type détecté : %1$s</string>
+    <string name="doc_stats_pages_images">Pages : %1$d | Images : %2$d</string>
+    <string name="warn_grayscale">⚠️ Supprime les éléments en couleur et diagrammes.</string>
+    <string name="warn_lossless">⚠️ La compression sans perte peut augmenter la taille des scans.</string>
+    <string name="warn_signatures">⚠️ Peut invalider les signatures numériques.</string>
+    <string name="recent_activity">Activité récente</string>
+    <string name="premium_title">Mise à niveau Premium</string>
+    <string name="premium_thanks">Merci de soutenir nos outils de documents hors ligne !</string>
+    <string name="premium_features">Débloquez l\'expérience PDF ultime.
+
+✓ Pas de publicités
+✓ Actions illimitées</string>
+    <string name="batch_compressing">Compression de %1$d sur %2$d fichiers...</string>
 </resources>

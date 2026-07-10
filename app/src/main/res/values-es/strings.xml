@@ -150,4 +150,31 @@
     <string name="vibrate_on_interactions">Vibrar en interacciones</string>
     <string name="sound_effects">Efectos de Sonido</string>
     <string name="play_audio_on_button_clicks">Audio al tocar botones</string>
+    <string name="msg_failed_export">Error al exportar PDF</string>
+    <string name="msg_scan_saved">Escaneo guardado en el repositorio</string>
+    <string name="action_export">Exportar</string>
+    <string name="msg_failed_scan">Error al procesar el escaneo</string>
+    <string name="subtitle_images_to_pdf">Convierte imágenes a un solo PDF</string>
+    <string name="subtitle_text_to_pdf">Convierte notas o archivos .txt a PDF</string>
+    <string name="subtitle_format_converter">Convierte entre TXT, MD, CSV, JSON y más</string>
+    <string name="subtitle_batch_compress">Selecciona una carpeta y comprime todos sus PDFs</string>
+    <string name="title_tools">Herramientas de PDFchemy</string>
+    <string name="file_name_label">Nombre de Archivo: %1$s</string>
+    <string name="selected_batch_files">Archivos Seleccionados:</string>
+    <string name="analyzing_doc">Analizando estructura...</string>
+    <string name="smart_recommendation">Recomendación Inteligente</string>
+    <string name="detected_type">Tipo detectado: %1$s</string>
+    <string name="doc_stats_pages_images">Páginas: %1$d | Imágenes: %2$d</string>
+    <string name="warn_grayscale">⚠️ Descarta elementos de color y diagramas.</string>
+    <string name="warn_lossless">⚠️ Sin pérdida en escaneos puede aumentar el tamaño.</string>
+    <string name="warn_signatures">⚠️ Puede invalidar firmas digitales.</string>
+    <string name="recent_activity">Actividad Reciente</string>
+    <string name="premium_title">Actualización Premium</string>
+    <string name="premium_thanks">¡Gracias por apoyar nuestras herramientas fuera de línea!</string>
+    <string name="premium_features">Desbloquea la experiencia PDF definitiva.
+
+✓ Sin Anuncios
+✓ Sin Intersticiales
+✓ Acciones por Lotes Ilimitadas</string>
+    <string name="batch_compressing">Comprimiendo %1$d de %2$d archivos...</string>
 </resources>

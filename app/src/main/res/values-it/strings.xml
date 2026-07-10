@@ -161,4 +161,30 @@
     <string name="vibrate_on_interactions">Vibra durante le interazioni</string>
     <string name="sound_effects">Effetti Sonori</string>
     <string name="play_audio_on_button_clicks">Riproduci audio ai clic</string>
+    <string name="msg_failed_export">Impossibile esportare il PDF</string>
+    <string name="msg_scan_saved">Scansione salvata</string>
+    <string name="action_export">Esporta</string>
+    <string name="msg_failed_scan">Impossibile elaborare</string>
+    <string name="subtitle_images_to_pdf">Converti immagini in un singolo PDF</string>
+    <string name="subtitle_text_to_pdf">Converti appunti o file .txt in PDF</string>
+    <string name="subtitle_format_converter">Converti tra TXT, MD, CSV, JSON e altri</string>
+    <string name="subtitle_batch_compress">Seleziona una cartella e comprimi tutti i PDF</string>
+    <string name="title_tools">Strumenti PDFchemy</string>
+    <string name="file_name_label">Nome file: %1$s</string>
+    <string name="selected_batch_files">File selezionati:</string>
+    <string name="analyzing_doc">Analisi della struttura...</string>
+    <string name="smart_recommendation">Raccomandazione intelligente</string>
+    <string name="detected_type">Tipo rilevato: %1$s</string>
+    <string name="doc_stats_pages_images">Pagine: %1$d | Immagini: %2$d</string>
+    <string name="warn_grayscale">⚠️ Scarta tutti gli elementi a colori e i diagrammi.</string>
+    <string name="warn_lossless">⚠️ Senza perdita su scansioni può aumentare notevolmente le dimensioni.</string>
+    <string name="warn_signatures">⚠️ Potrebbe invalidare le firme digitali sui file ufficiali.</string>
+    <string name="recent_activity">Attività recente</string>
+    <string name="premium_title">Aggiornamento Premium</string>
+    <string name="premium_thanks">Grazie per supportare i nostri strumenti offline!</string>
+    <string name="premium_features">Sblocca l\'esperienza PDF definitiva.
+
+✓ Nessuna pubblicità
+✓ Azioni in blocco illimitate</string>
+    <string name="batch_compressing">Compressione di %1$d su %2$d file...</string>
 </resources>
