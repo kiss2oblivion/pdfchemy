@@ -188,4 +188,24 @@
 ✓ Keine Interstitials
 ✓ Unbegrenzte Batch-Aktionen</string>
     <string name="batch_compressing">Komprimiere %1$d von %2$d Dateien...</string>
+    <string name="msg_enter_text">Bitte geben Sie Text ein.</string>
+    <string name="menu_delete_pages">Seiten löschen</string>
+    <string name="menu_delete_pages_desc">Bestimmte Seiten aus PDF entfernen</string>
+    <string name="menu_extract_images">Bilder extrahieren</string>
+    <string name="menu_extract_images_desc">Alle eingebetteten Bilder extrahieren</string>
+    <string name="menu_rotate_pages">Seiten drehen</string>
+    <string name="menu_rotate_pages_desc">Bestimmte Seiten oder ganzes Dokument drehen</string>
+    <string name="msg_extracted_images">%1$d Bilder erfolgreich extrahiert!</string>
+    <string name="msg_failed_extract_images">Fehler beim Extrahieren (%1$d Fehler).</string>
+    <string name="msg_no_images_found">Keine Bilder in dieser PDF gefunden.</string>
+    <string name="menu_inspect_metadata">Metadaten prüfen &amp; bearbeiten</string>
+    <string name="menu_inspect_metadata_desc">Dokumentstatistiken anzeigen und Metadaten ändern</string>
+    <string name="menu_remove_metadata">Metadaten entfernen</string>
+    <string name="menu_remove_metadata_desc">Alle Metadateneigenschaften aus der PDF entfernen</string>
+    <string name="menu_text_cleaner">Text-Reiniger</string>
+    <string name="menu_text_cleaner_desc">Text direkt bereinigen, formatieren und organisieren</string>
+    <string name="msg_scanned_pdf_exported">Gescannte PDF exportiert!</string>
+    <string name="msg_scanner_not_available">Scanner nicht verfügbar.</string>
+    <string name="msg_history_cleared">Verlauf gelöscht</string>
+    <string name="label_type_or_paste">Tippen oder fügen Sie %1$s hier ein</string>
 </resources>

@@ -175,4 +175,24 @@
 ✓ Fără Interstițiale
 ✓ Acțiuni Nelimitate</string>
     <string name="batch_compressing">Se comprimă %1$d din %2$d fișiere...</string>
+    <string name="msg_enter_text">Te rugăm să introduci text.</string>
+    <string name="menu_delete_pages">Șterge Pagini</string>
+    <string name="menu_delete_pages_desc">Elimină pagini specifice dintr-un PDF</string>
+    <string name="menu_extract_images">Extrage Imagini</string>
+    <string name="menu_extract_images_desc">Extrage toate imaginile din PDF</string>
+    <string name="menu_rotate_pages">Rotește Pagini</string>
+    <string name="menu_rotate_pages_desc">Rotește pagini specifice sau documente întregi</string>
+    <string name="msg_extracted_images">S-au extras %1$d imagini!</string>
+    <string name="msg_failed_extract_images">Eroare la extragere (%1$d erori).</string>
+    <string name="msg_no_images_found">Nicio imagine găsită în acest PDF.</string>
+    <string name="menu_inspect_metadata">Inspectează și editează metadate</string>
+    <string name="menu_inspect_metadata_desc">Vezi statistici și modifică metadatele</string>
+    <string name="menu_remove_metadata">Elimină Metadate</string>
+    <string name="menu_remove_metadata_desc">Elimină toate metadatele din PDF</string>
+    <string name="menu_text_cleaner">Curățător Text</string>
+    <string name="menu_text_cleaner_desc">Curăță, formatează și organizează text</string>
+    <string name="msg_scanned_pdf_exported">PDF scanat exportat!</string>
+    <string name="msg_scanner_not_available">Scanner indisponibil.</string>
+    <string name="msg_history_cleared">Istoric șters</string>
+    <string name="label_type_or_paste">Tastează sau lipește %1$s aici</string>
 </resources>

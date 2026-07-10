@@ -174,4 +174,24 @@
 ✓ Tanpa Iklan
 ✓ Aksi Batch Tak Terbatas</string>
     <string name="batch_compressing">Mengompresi %1$d dari %2$d file...</string>
+    <string name="msg_enter_text">Silakan masukkan teks.</string>
+    <string name="menu_delete_pages">Hapus Halaman</string>
+    <string name="menu_delete_pages_desc">Hapus halaman tertentu dari PDF</string>
+    <string name="menu_extract_images">Ekstrak Gambar</string>
+    <string name="menu_extract_images_desc">Ekstrak semua gambar dalam PDF</string>
+    <string name="menu_rotate_pages">Putar Halaman</string>
+    <string name="menu_rotate_pages_desc">Putar halaman tertentu atau seluruh dokumen</string>
+    <string name="msg_extracted_images">Berhasil mengekstrak %1$d gambar!</string>
+    <string name="msg_failed_extract_images">Gagal mengekstrak gambar (%1$d kesalahan).</string>
+    <string name="msg_no_images_found">Tidak ada gambar ditemukan di PDF ini.</string>
+    <string name="menu_inspect_metadata">Periksa &amp; Edit Metadata</string>
+    <string name="menu_inspect_metadata_desc">Lihat statistik dokumen dan ubah metadata</string>
+    <string name="menu_remove_metadata">Hapus Metadata</string>
+    <string name="menu_remove_metadata_desc">Hapus semua properti metadata dari PDF</string>
+    <string name="menu_text_cleaner">Pembersih Teks</string>
+    <string name="menu_text_cleaner_desc">Bersihkan, format, dan atur teks</string>
+    <string name="msg_scanned_pdf_exported">PDF yang dipindai berhasil diekspor!</string>
+    <string name="msg_scanner_not_available">Pemindai tidak tersedia.</string>
+    <string name="msg_history_cleared">Riwayat dibersihkan</string>
+    <string name="label_type_or_paste">Ketik atau tempel %1$s di sini</string>
 </resources>

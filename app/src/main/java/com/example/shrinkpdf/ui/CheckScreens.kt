@@ -61,32 +61,32 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         ) {
             item {
                 ToolCard(
-                    title = "Inspect & Edit Metadata",
-                    subtitle = "View document stats and modify metadata fields",
+                    title = stringResource(R.string.menu_inspect_metadata),
+                    subtitle = stringResource(R.string.menu_inspect_metadata_desc),
                     icon = Icons.Rounded.Edit,
                     onClick = { onNavigate(Screen.InspectMetadata) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Remove Metadata",
-                    subtitle = "Strip all metadata properties from the PDF",
+                    title = stringResource(R.string.menu_remove_metadata),
+                    subtitle = stringResource(R.string.menu_remove_metadata_desc),
                     icon = Icons.Rounded.DeleteSweep,
                     onClick = { onNavigate(Screen.StripMetadata) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Text Cleaner",
-                    subtitle = "Clean, format, and organize text directly",
+                    title = stringResource(R.string.menu_text_cleaner),
+                    subtitle = stringResource(R.string.menu_text_cleaner_desc),
                     icon = Icons.Rounded.Edit,
                     onClick = { onNavigate(Screen.TextCleaner) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Extract Text / OCR",
-                    subtitle = "Extract text from PDFs or scanned documents",
+                    title = stringResource(R.string.menu_extract),
+                    subtitle = stringResource(R.string.menu_extract_desc),
                     icon = Icons.Rounded.DocumentScanner,
                     onClick = { onNavigate(Screen.ExtractText) }
                 )

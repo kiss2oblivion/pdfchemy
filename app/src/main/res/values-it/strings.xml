@@ -187,4 +187,24 @@
 ✓ Nessuna pubblicità
 ✓ Azioni in blocco illimitate</string>
     <string name="batch_compressing">Compressione di %1$d su %2$d file...</string>
+    <string name="msg_enter_text">Inserisci del testo.</string>
+    <string name="menu_delete_pages">Elimina pagine</string>
+    <string name="menu_delete_pages_desc">Rimuovi pagine specifiche da un PDF</string>
+    <string name="menu_extract_images">Estrai immagini</string>
+    <string name="menu_extract_images_desc">Estrai tutte le immagini incorporate</string>
+    <string name="menu_rotate_pages">Ruota pagine</string>
+    <string name="menu_rotate_pages_desc">Ruota pagine specifiche o l\'intero documento</string>
+    <string name="msg_extracted_images">%1$d immagini estratte con successo!</string>
+    <string name="msg_failed_extract_images">Impossibile estrarre immagini (%1$d errori).</string>
+    <string name="msg_no_images_found">Nessuna immagine trovata nel PDF.</string>
+    <string name="menu_inspect_metadata">Ispeziona e modifica metadati</string>
+    <string name="menu_inspect_metadata_desc">Visualizza statistiche e modifica metadati</string>
+    <string name="menu_remove_metadata">Rimuovi metadati</string>
+    <string name="menu_remove_metadata_desc">Rimuovi tutte le proprietà dei metadati</string>
+    <string name="menu_text_cleaner">Pulitore di testo</string>
+    <string name="menu_text_cleaner_desc">Pulisci, formatta e organizza il testo</string>
+    <string name="msg_scanned_pdf_exported">PDF scansionato esportato!</string>
+    <string name="msg_scanner_not_available">Scanner non disponibile.</string>
+    <string name="msg_history_cleared">Cronologia cancellata</string>
+    <string name="label_type_or_paste">Digita o incolla %1$s qui</string>
 </resources>

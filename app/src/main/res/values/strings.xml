@@ -189,4 +189,24 @@
 ✓ No Interstitials
 ✓ Unlimited Batch Actions</string>
     <string name="batch_compressing">Compressing %1$d of %2$d files...</string>
+    <string name="msg_enter_text">Please enter some text.</string>
+    <string name="menu_delete_pages">Delete Pages</string>
+    <string name="menu_delete_pages_desc">Remove specific pages from a PDF</string>
+    <string name="menu_extract_images">Extract Images</string>
+    <string name="menu_extract_images_desc">Extract all images embedded in a PDF</string>
+    <string name="menu_rotate_pages">Rotate Pages</string>
+    <string name="menu_rotate_pages_desc">Rotate specific pages or entire documents</string>
+    <string name="msg_extracted_images">Extracted %1$d images successfully!</string>
+    <string name="msg_failed_extract_images">Failed to extract images (%1$d errors).</string>
+    <string name="msg_no_images_found">No images found in this PDF.</string>
+    <string name="menu_inspect_metadata">Inspect &amp; Edit Metadata</string>
+    <string name="menu_inspect_metadata_desc">View document stats and modify metadata fields</string>
+    <string name="menu_remove_metadata">Remove Metadata</string>
+    <string name="menu_remove_metadata_desc">Strip all metadata properties from the PDF</string>
+    <string name="menu_text_cleaner">Text Cleaner</string>
+    <string name="menu_text_cleaner_desc">Clean, format, and organize text directly</string>
+    <string name="msg_scanned_pdf_exported">Scanned PDF exported!</string>
+    <string name="msg_scanner_not_available">Scanner not available.</string>
+    <string name="msg_history_cleared">History cleared</string>
+    <string name="label_type_or_paste">Type or paste %1$s here</string>
 </resources>

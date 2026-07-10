@@ -81,40 +81,40 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         ) {
             item {
                 ToolCard(
-                    title = "Merge PDFs",
-                    subtitle = "Combine multiple PDFs into a single document",
+                    title = stringResource(R.string.menu_merge),
+                    subtitle = stringResource(R.string.menu_merge_desc),
                     icon = Icons.Rounded.Merge,
                     onClick = { onNavigate(Screen.MergePdf) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Split PDF",
-                    subtitle = "Extract pages or separate a PDF into multiple files",
+                    title = stringResource(R.string.menu_split),
+                    subtitle = stringResource(R.string.menu_split_desc),
                     icon = Icons.Rounded.CallSplit,
                     onClick = { onNavigate(Screen.SplitPdf) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Delete Pages",
-                    subtitle = "Remove specific pages from a PDF",
+                    title = stringResource(R.string.menu_delete_pages),
+                    subtitle = stringResource(R.string.menu_delete_pages_desc),
                     icon = Icons.Rounded.Delete,
                     onClick = { onNavigate(Screen.DeletePages) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Extract Images",
-                    subtitle = "Extract all images embedded in a PDF",
+                    title = stringResource(R.string.menu_extract_images),
+                    subtitle = stringResource(R.string.menu_extract_images_desc),
                     icon = Icons.Rounded.Image,
                     onClick = { onNavigate(Screen.ExtractImages) }
                 )
             }
             item {
                 ToolCard(
-                    title = "Rotate Pages",
-                    subtitle = "Rotate specific pages or entire documents",
+                    title = stringResource(R.string.menu_rotate_pages),
+                    subtitle = stringResource(R.string.menu_rotate_pages_desc),
                     icon = Icons.Rounded.RotateRight,
                     onClick = { onNavigate(Screen.RotatePdf) }
                 )
@@ -448,11 +448,11 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 val pdfUri = selectedPdfUri ?: return@rememberLauncherForActivityResult
                 viewModel.extractImagesFromPdf(pdfUri, documentFile, context) { extracted, errors ->
                     if (extracted > 0) {
-                        Toast.makeText(context, "Extracted $extracted images successfully!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, context.getString(R.string.msg_extracted_images, extracted), Toast.LENGTH_LONG).show()
                     } else if (errors > 0) {
-                        Toast.makeText(context, "Failed to extract images ($errors errors).", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.msg_failed_extract_images, errors), Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "No images found in this PDF.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.msg_no_images_found), Toast.LENGTH_SHORT).show()
                     }
                     onBack()
                 }

@@ -985,7 +985,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         input.copyTo(output)
                     }
                 }
-                Toast.makeText(context, "Scanned PDF exported!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.msg_scanned_pdf_exported), Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 AppLogger.e("Exception caught in MainActivity", e)
                 Toast.makeText(context, context.getString(R.string.msg_failed_export), Toast.LENGTH_SHORT).show()
@@ -1026,8 +1026,8 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         
                         // Show snackbar with Export option
                         val snackbarResult = snackbarHostState.showSnackbar(
-                            message = stringResource(R.string.msg_scan_saved),
-                            actionLabel = stringResource(R.string.action_export),
+                            message = context.getString(R.string.msg_scan_saved),
+                            actionLabel = context.getString(R.string.action_export),
                             duration = SnackbarDuration.Short
                         )
                         if (snackbarResult == SnackbarResult.ActionPerformed) {
@@ -1053,7 +1053,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
         scanner.getStartScanIntent(activity).addOnSuccessListener { intentSender ->
             scannerLauncherReal.launch(androidx.activity.result.IntentSenderRequest.Builder(intentSender).build())
         }.addOnFailureListener {
-            Toast.makeText(context, "Scanner not available.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.msg_scanner_not_available), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1531,7 +1531,7 @@ fun LeftPanel(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = stringResource(R.string.file_name_label, sourceName), style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.file_name_label, sourceName ?: ""), style = MaterialTheme.typography.bodyLarge)
                     if (originalSize > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -2095,7 +2095,7 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Button(
                     onClick = { 
                         if (inputText.isBlank()) {
-                            Toast.makeText(context, "Please enter some text.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.msg_enter_text), Toast.LENGTH_SHORT).show()
                         } else {
                             savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "converted_text"))
                         }
@@ -2168,7 +2168,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 TextButton(onClick = {
                     viewModel.clearHistory()
                     showClearHistoryDialog = false
-                    Toast.makeText(context, "History cleared", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.msg_history_cleared), Toast.LENGTH_SHORT).show()
                 }) { Text(stringResource(R.string.clear)) }
             },
             dismissButton = {

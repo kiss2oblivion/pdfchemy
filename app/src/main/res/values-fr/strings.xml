@@ -176,4 +176,24 @@
 ✓ Pas de publicités
 ✓ Actions illimitées</string>
     <string name="batch_compressing">Compression de %1$d sur %2$d fichiers...</string>
+    <string name="msg_enter_text">Veuillez entrer du texte.</string>
+    <string name="menu_delete_pages">Supprimer des pages</string>
+    <string name="menu_delete_pages_desc">Supprimer des pages spécifiques</string>
+    <string name="menu_extract_images">Extraire des images</string>
+    <string name="menu_extract_images_desc">Extraire toutes les images intégrées</string>
+    <string name="menu_rotate_pages">Faire pivoter les pages</string>
+    <string name="menu_rotate_pages_desc">Faire pivoter des pages spécifiques</string>
+    <string name="msg_extracted_images">%1$d images extraites avec succès !</string>
+    <string name="msg_failed_extract_images">Échec de l\'extraction (%1$d erreurs).</string>
+    <string name="msg_no_images_found">Aucune image trouvée.</string>
+    <string name="menu_inspect_metadata">Inspecter et éditer les métadonnées</string>
+    <string name="menu_inspect_metadata_desc">Afficher les stats et modifier les métadonnées</string>
+    <string name="menu_remove_metadata">Supprimer les métadonnées</string>
+    <string name="menu_remove_metadata_desc">Supprimer toutes les propriétés de métadonnées</string>
+    <string name="menu_text_cleaner">Nettoyeur de texte</string>
+    <string name="menu_text_cleaner_desc">Nettoyer, formater et organiser le texte</string>
+    <string name="msg_scanned_pdf_exported">PDF numérisé exporté !</string>
+    <string name="msg_scanner_not_available">Scanner non disponible.</string>
+    <string name="msg_history_cleared">Historique effacé</string>
+    <string name="label_type_or_paste">Tapez ou collez %1$s ici</string>
 </resources>

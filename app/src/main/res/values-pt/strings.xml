@@ -188,4 +188,24 @@
 ✓ Sem Intersticiais
 ✓ Ações em Lote Ilimitadas</string>
     <string name="batch_compressing">A comprimir %1$d de %2$d ficheiros...</string>
+    <string name="msg_enter_text">Por favor, introduza algum texto.</string>
+    <string name="menu_delete_pages">Eliminar Páginas</string>
+    <string name="menu_delete_pages_desc">Remover páginas específicas de um PDF</string>
+    <string name="menu_extract_images">Extrair Imagens</string>
+    <string name="menu_extract_images_desc">Extrair todas as imagens incorporadas num PDF</string>
+    <string name="menu_rotate_pages">Rodar Páginas</string>
+    <string name="menu_rotate_pages_desc">Rodar páginas específicas ou documentos inteiros</string>
+    <string name="msg_extracted_images">Extraídas %1$d imagens com sucesso!</string>
+    <string name="msg_failed_extract_images">Falha ao extrair imagens (%1$d erros).</string>
+    <string name="msg_no_images_found">Nenhuma imagem encontrada neste PDF.</string>
+    <string name="menu_inspect_metadata">Inspecionar e Editar Metadados</string>
+    <string name="menu_inspect_metadata_desc">Ver estatísticas do documento e modificar metadados</string>
+    <string name="menu_remove_metadata">Remover Metadados</string>
+    <string name="menu_remove_metadata_desc">Remover todas as propriedades de metadados do PDF</string>
+    <string name="menu_text_cleaner">Limpador de Texto</string>
+    <string name="menu_text_cleaner_desc">Limpar, formatar e organizar texto</string>
+    <string name="msg_scanned_pdf_exported">PDF digitalizado exportado!</string>
+    <string name="msg_scanner_not_available">Scanner não disponível.</string>
+    <string name="msg_history_cleared">Histórico limpo</string>
+    <string name="label_type_or_paste">Digite ou cole %1$s aqui</string>
 </resources>

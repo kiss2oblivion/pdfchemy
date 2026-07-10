@@ -166,7 +166,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { viewModel.setInputText(it) },
-                        label = { Text("Type or paste ${inputFormat.name} here") },
+                        label = { Text(stringResource(R.string.label_type_or_paste, inputFormat.name)) },
                         modifier = Modifier.fillMaxSize().padding(8.dp),
                         placeholder = { Text(stringResource(R.string.enter_content)) }
                     )
@@ -189,7 +189,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                     Button(
                         onClick = { 
                             if (inputText.isBlank()) {
-                                Toast.makeText(context, "Please enter some text.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.msg_enter_text), Toast.LENGTH_SHORT).show()
                             } else {
                                 val filename = com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "converted_text", "Document", outputFormat.name.lowercase())
                                 saveFileLauncher.launch(filename)
