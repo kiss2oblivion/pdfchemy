@@ -277,7 +277,7 @@ fun PremiumTopAppBar(
             navigationIcon = {
                 if (onBack != null) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }
@@ -406,7 +406,7 @@ fun MainApp(
                     dismissButton = {
                         if (state.outputUris.isNotEmpty()) {
                             TextButton(onClick = { 
-                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
+                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, context.getString(R.string.desc_share_output))
                             }) {
                                 Text(stringResource(R.string.share))
                             }
@@ -427,7 +427,7 @@ fun MainApp(
                     dismissButton = {
                         if (state.outputUris.isNotEmpty()) {
                             TextButton(onClick = { 
-                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, "Share Output")
+                                com.example.shrinkpdf.logic.ShareUtil.shareFiles(context, state.outputUris, context.getString(R.string.desc_share_output))
                             }) {
                                 Text(stringResource(R.string.share))
                             }
@@ -656,18 +656,18 @@ fun HomeScreen(
         ) {
             if (!isPremium) {
                 IconButton(onClick = { onNavigate(Screen.Premium) }) {
-                    Icon(Icons.Rounded.WorkspacePremium, contentDescription = "Go Premium", tint = Color(0xFFFFD700))
+                    Icon(Icons.Rounded.WorkspacePremium, contentDescription = stringResource(R.string.desc_go_premium), tint = Color(0xFFFFD700))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
             IconButton(onClick = { onNavigate(Screen.Settings) }) {
-                Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.desc_settings), tint = MaterialTheme.colorScheme.primary)
             }
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onToggleTheme) {
                 Icon(
                     imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                    contentDescription = "Toggle Theme",
+                    contentDescription = stringResource(R.string.desc_toggle_theme),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -698,7 +698,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "App Logo",
+                            contentDescription = stringResource(R.string.desc_app_logo),
                             modifier = Modifier.fillMaxSize(),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -770,7 +770,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "App Logo",
+                            contentDescription = stringResource(R.string.desc_app_logo),
                             modifier = Modifier.fillMaxSize(),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -1006,7 +1006,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         if (!scansDir.exists()) scansDir.mkdirs()
                         
                         val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
-                        val fileName = "Scan_$timeStamp.pdf"
+                        val fileName = "${context.getString(R.string.scan_prefix)}$timeStamp.pdf"
                         val destFile = java.io.File(scansDir, fileName)
                         
                         context.contentResolver.openInputStream(pdfUri)?.use { input ->
@@ -1022,7 +1022,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                         )
                         
                         val historyRepo = com.example.shrinkpdf.logic.HistoryRepository(context)
-                        historyRepo.addHistoryItem(internalUri, fileName, "scanned")
+                        historyRepo.addHistoryItem(internalUri, fileName, context.getString(R.string.menu_scan))
                         
                         // Show snackbar with Export option
                         val snackbarResult = snackbarHostState.showSnackbar(
@@ -1031,7 +1031,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                             duration = SnackbarDuration.Short
                         )
                         if (snackbarResult == SnackbarResult.ActionPerformed) {
-                            saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "scanned_document"))
+                            saveScannedPdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, context.getString(R.string.default_scanned_doc_name)))
                         }
                     } catch (e: Exception) {
                         AppLogger.e("Exception caught in MainActivity", e)
@@ -1065,7 +1065,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.create)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -1123,7 +1123,7 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.compress)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -1165,7 +1165,7 @@ fun PlaceholderCategoryScreen(title: String, onBack: () -> Unit) {
                 title = { Text(title) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -1173,7 +1173,7 @@ fun PlaceholderCategoryScreen(title: String, onBack: () -> Unit) {
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Rounded.Construction, contentDescription = "Coming Soon", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.Construction, contentDescription = stringResource(R.string.desc_coming_soon), modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(stringResource(R.string.coming_soon), style = MaterialTheme.typography.headlineMedium)
             }
@@ -1287,7 +1287,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
     ) { uri ->
         if (uri != null) {
             sourceUri = uri
-            sourceName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, uri) ?: "Selected PDF"
+            sourceName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, uri) ?: context.getString(R.string.label_selected_pdf)
             viewModel.onFileSelected(context, uri)
         }
     }
@@ -1394,7 +1394,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                                 stripMetadata = stripMetadata,
                                 pdfAnalysis = pdfAnalysis,
                                 viewModel = viewModel,
-                                    onSaveSingle = { savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "compressed")) },
+                                    onSaveSingle = { savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, context.getString(R.string.compressed_prefix))) },
                                 onSaveBatch = { selectDirectoryLauncher.launch(null) }
                             )
                         }
@@ -1440,7 +1440,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                             viewModel = viewModel,
                             onSaveSingle = { 
                                 com.example.shrinkpdf.ads.AdManager.showAd(context as android.app.Activity, isPremium) {
-                                    savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, "compressed")) 
+                                    savePdfLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(sourceUri, context.getString(R.string.compressed_prefix))) 
                                 }
                             },
                             onSaveBatch = { 
@@ -1494,7 +1494,7 @@ fun LeftPanel(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (selectedTab == 0) "Single PDF Optimization" else "Batch PDF Optimization",
+                text = if (selectedTab == 0) stringResource(R.string.tab_single_pdf_optimization) else stringResource(R.string.tab_batch_pdf_optimization),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -1505,9 +1505,9 @@ fun LeftPanel(
             ) {
                 Text(
                     text = if (selectedTab == 0) {
-                        if (sourceUri == null) "Select PDF File" else "Change File"
+                        if (sourceUri == null) stringResource(R.string.compress_select_file) else stringResource(R.string.btn_change_file)
                     } else {
-                        if (selectedFiles.isEmpty()) "Select PDF Files" else "Add More Files (${selectedFiles.size} selected)"
+                        if (selectedFiles.isEmpty()) stringResource(R.string.btn_select_pdf_files) else stringResource(R.string.btn_add_more_files, selectedFiles.size)
                     }
                 )
             }
@@ -1535,7 +1535,7 @@ fun LeftPanel(
                     if (originalSize > 0) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isAnalyzing) "Original Size: ${viewModel.formatSize(originalSize)} (Analyzing...)" else "Original Size: ${viewModel.formatSize(originalSize)}  →  ${viewModel.formatSize(estCompressedSize)}",
+                            text = if (isAnalyzing) stringResource(R.string.label_original_size_analyzing, viewModel.formatSize(originalSize)) else stringResource(R.string.label_original_size_to_compressed, viewModel.formatSize(originalSize), viewModel.formatSize(estCompressedSize)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = if (!isAnalyzing) FontWeight.Bold else FontWeight.Normal
@@ -1612,9 +1612,9 @@ fun LeftPanel(
                                     val estimatedText = if (targetMb != null) {
                                     val tm = targetMb
                                     if (tm != null) {
-                                        "Target: ${tm * selectedFiles.size} MB"
+                                        stringResource(R.string.label_target_mb_batch, (tm * selectedFiles.size).toFloat())
                                     } else {
-                                        "Target: Unknown"
+                                        stringResource(R.string.label_target_unknown)
                                     }
                                     } else {
                                         "~${viewModel.formatSize(totalEstimatedSize)}"
@@ -1683,7 +1683,7 @@ fun LeftPanel(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = if (file.isAnalyzing) "Analyzing..." else viewModel.formatSize(file.size),
+                                                text = if (file.isAnalyzing) stringResource(R.string.label_analyzing) else viewModel.formatSize(file.size),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1694,7 +1694,7 @@ fun LeftPanel(
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 val estimatedText = if (targetMb != null) {
-                                                    "Target: $targetMb MB"
+                                                    stringResource(R.string.label_target_mb, targetMb.toString())
                                                 } else {
                                                     "~${viewModel.formatSize(estCompressedSize)}"
                                                 }
@@ -1715,7 +1715,7 @@ fun LeftPanel(
                                     ) {
                                         Icon(
                                             Icons.Rounded.Close, 
-                                            contentDescription = "Remove file", 
+                                            contentDescription = stringResource(R.string.desc_remove_file), 
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -1829,7 +1829,8 @@ fun RightPanel(
 
     val targetMb by viewModel.targetMb.collectAsState()
     var isTargetSizeEnabled by remember { mutableStateOf(targetMb != null) }
-    var selectedTargetPreset by remember { mutableStateOf<String?>(if (targetMb != null) "Custom" else null) }
+    val customPresetStr = stringResource(R.string.preset_custom)
+    var selectedTargetPreset by remember { mutableStateOf<String?>(if (targetMb != null) customPresetStr else null) }
     var customTargetValue by remember { mutableStateOf(targetMb?.toString() ?: "") }
 
     Card(
@@ -1850,7 +1851,7 @@ fun RightPanel(
                         if (!it) {
                             viewModel.setTargetMb(null)
                         } else {
-                            if (selectedTargetPreset != "Custom" && selectedTargetPreset != null) {
+                            if (selectedTargetPreset != customPresetStr && selectedTargetPreset != null) {
                                 viewModel.setTargetMb(selectedTargetPreset?.removeSuffix(" MB")?.toFloatOrNull())
                             }
                         }
@@ -1867,9 +1868,9 @@ fun RightPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    CompressionPresetButton("Smallest", 0.25f, currentQuality, recQuality == 0.25f) { viewModel.setQuality(0.25f) }
-                    CompressionPresetButton("Balanced", 0.50f, currentQuality, recQuality == 0.50f) { viewModel.setQuality(0.50f) }
-                    CompressionPresetButton("Best", 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
+                    CompressionPresetButton(stringResource(R.string.preset_smallest), 0.25f, currentQuality, recQuality == 0.25f) { viewModel.setQuality(0.25f) }
+                    CompressionPresetButton(stringResource(R.string.preset_balanced), 0.50f, currentQuality, recQuality == 0.50f) { viewModel.setQuality(0.50f) }
+                    CompressionPresetButton(stringResource(R.string.preset_best), 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
                 }
             } else {
                 Text(stringResource(R.string.select_target_size_mb), style = MaterialTheme.typography.titleSmall)
@@ -1903,13 +1904,13 @@ fun RightPanel(
                         selectedTargetPreset = "20 MB"
                         viewModel.setTargetMb(20f)
                     }
-                    TargetPresetChip("Custom", selectedTargetPreset == "Custom", Modifier.weight(1f)) { 
-                        selectedTargetPreset = "Custom"
+                    TargetPresetChip(stringResource(R.string.preset_custom), selectedTargetPreset == customPresetStr, Modifier.weight(1f)) { 
+                        selectedTargetPreset = customPresetStr
                         viewModel.setTargetMb(customTargetValue.toFloatOrNull())
                     }
                 }
                 
-                if (selectedTargetPreset == "Custom") {
+                if (selectedTargetPreset == customPresetStr) {
                     Spacer(modifier = Modifier.height(12.dp))
                     androidx.compose.material3.OutlinedTextField(
                         value = customTargetValue,
@@ -2023,11 +2024,11 @@ fun RightPanel(
     ) {
         Icon(
             imageVector = Icons.Default.Check,
-            contentDescription = "Compress Icon"
+            contentDescription = stringResource(R.string.desc_compress_icon)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = if (selectedTab == 0) "Optimize & Save PDF" else "Select Output Folder & Compress",
+            text = if (selectedTab == 0) stringResource(R.string.btn_optimize_and_save) else stringResource(R.string.btn_select_folder_and_compress),
             style = MaterialTheme.typography.titleMedium
         )
     }
