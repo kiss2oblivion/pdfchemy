@@ -39,7 +39,7 @@
 
     <!-- Settings -->
     <string name="settings_title">Impostazioni</string>
-    <string name="settings_preferences">Preferenze dell'App</string>
+    <string name="settings_preferences">Preferenze dell\'App</string>
     <string name="settings_haptic">Feedback Tattile</string>
     <string name="settings_haptic_desc">Vibra durante le interazioni</string>
     <string name="settings_sfx">Effetti Sonori</string>
@@ -47,7 +47,7 @@
     <string name="settings_history">Ricorda File Recenti</string>
     <string name="settings_history_desc">Mantieni una cronologia locale dei file recenti. I file non vengono mai caricati.</string>
     <string name="settings_language">Lingua</string>
-    <string name="settings_language_desc">Cambia lingua dell'app</string>
+    <string name="settings_language_desc">Cambia lingua dell\'app</string>
     <string name="settings_clear_history">Cancella Cronologia</string>
     <string name="settings_clear_history_confirm">Sei sicuro di voler cancellare la cronologia dei file recenti?</string>
     <string name="settings_history_cleared">Cronologia cancellata</string>
@@ -156,7 +156,7 @@
     <string name="save_as_pdf">Salva come PDF</string>
     <string name="clear_history">Cancella Cronologia</string>
     <string name="are_you_sure_you_want_to_clear">Sei sicuro di voler cancellare la cronologia dei file recenti?</string>
-    <string name="app_preferences">Preferenze dell'App</string>
+    <string name="app_preferences">Preferenze dell\'App</string>
     <string name="haptic_feedback">Feedback Tattile</string>
     <string name="vibrate_on_interactions">Vibra durante le interazioni</string>
     <string name="sound_effects">Effetti Sonori</string>
