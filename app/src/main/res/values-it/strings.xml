@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Details -->
+    <string name="app_name">PDFchemy</string>
+    <string name="coming_soon">Prossimamente</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Annulla</string>
+    <string name="share">Condividi</string>
+    <string name="error">Errore</string>
+    <string name="clear">Pulisci</string>
+    <string name="clear_all">Cancella tutto</string>
+    <string name="save">Salva</string>
+    <string name="continue_btn">Continua</string>
+
+    <!-- Home Screen -->
+    <string name="home_subtitle">SISTEMA I TUOI DOCUMENTI</string>
+    <string name="cat_compress">Comprimi</string>
+    <string name="cat_compress_desc">Riduci le dimensioni, in modo sicuro.</string>
+    <string name="cat_create">Crea</string>
+    <string name="cat_create_desc">Trasforma il testo in file utili.</string>
+    <string name="cat_organize">Organizza</string>
+    <string name="cat_organize_desc">Unisci, dividi, rinomina.</string>
+    <string name="cat_check">Controlla</string>
+    <string name="cat_check_desc">Ispeziona prima di inviare.</string>
+
+    <!-- Main Menu -->
+    <string name="menu_compress">Comprimi PDF</string>
+    <string name="menu_compress_desc">Riduci le dimensioni del file</string>
+    <string name="menu_merge">Unisci PDF</string>
+    <string name="menu_merge_desc">Combina più file</string>
+    <string name="menu_split">Dividi PDF</string>
+    <string name="menu_split_desc">Estrai le pagine</string>
+    <string name="menu_scan">Scansiona in PDF</string>
+    <string name="menu_scan_desc">Dalla fotocamera al documento</string>
+    <string name="menu_ocr">Estrai Testo</string>
+    <string name="menu_ocr_desc">Ricava testo dal PDF</string>
+    <string name="menu_metadata">Controlla Metadati</string>
+    <string name="menu_metadata_desc">Visualizza proprietà nascoste</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_preferences">Preferenze dell'App</string>
+    <string name="settings_haptic">Feedback Tattile</string>
+    <string name="settings_haptic_desc">Vibra durante le interazioni</string>
+    <string name="settings_sfx">Effetti Sonori</string>
+    <string name="settings_sfx_desc">Riproduci audio ai clic dei pulsanti</string>
+    <string name="settings_history">Ricorda File Recenti</string>
+    <string name="settings_history_desc">Mantieni una cronologia locale dei file recenti. I file non vengono mai caricati.</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_language_desc">Cambia lingua dell'app</string>
+    <string name="settings_clear_history">Cancella Cronologia</string>
+    <string name="settings_clear_history_confirm">Sei sicuro di voler cancellare la cronologia dei file recenti?</string>
+    <string name="settings_history_cleared">Cronologia cancellata</string>
+
+    <!-- Compression -->
+    <string name="compress_title">Comprimi PDF</string>
+    <string name="compress_single">Singolo File</string>
+    <string name="compress_batch">Compressione Multipla</string>
+    <string name="compress_select_file">Seleziona File PDF</string>
+    <string name="compress_compressing">Compressione PDF in corso...</string>
+    <string name="compress_target_size">Dimensione Obiettivo</string>
+    <string name="compress_preset">Preimpostazione di Compressione:</string>
+    <string name="compress_exact_mb">MB Esatti</string>
+    <string name="compress_options">Opzioni di Compressione</string>
+    <string name="compress_grayscale">Conversione in Scala di Grigi</string>
+    <string name="compress_grayscale_desc">Converti immagini a colori in bianco e nero</string>
+    <string name="compress_lossless">Compressione ZIP Senza Perdita</string>
+    <string name="compress_lossless_desc">Salta la compressione JPEG</string>
+    <string name="compress_strip_meta">Rimuovi Metadati</string>
+    <string name="compress_strip_meta_desc">Rimuovi autore, creatore ed editor</string>
+    
+    <string name="warning_quality_title">Avviso sulla Qualità e Legale</string>
+    <string name="warning_quality_desc">La compressione riduce la qualità. Questo potrebbe invalidare documenti ufficiali, cartelle cliniche o firme digitali. Conserva sempre il file originale.</string>
+    <string name="warning_understand">Ho Capito</string>
+
+    <string name="compress_options_empty">Le opzioni di ottimizzazione appariranno qui una volta selezionato un file.</string>
+
+    <!-- Auto-Extracted Strings -->
+    <string name="check">Controlla</string>
+    <string name="inspect_edit_metadata">Ispeziona &amp; Modifica Metadati</string>
+    <string name="select_pdf">Seleziona PDF</string>
+    <string name="select_different_pdf">Seleziona un PDF Diverso</string>
+    <string name="document_stats">Statistiche Documento</string>
+    <string name="metadata_fields">Campi Metadati</string>
+    <string name="title">Titolo</string>
+    <string name="author">Autore</string>
+    <string name="subject">Oggetto</string>
+    <string name="keywords">Parole Chiave</string>
+    <string name="creator">Creatore</string>
+    <string name="producer">Produttore</string>
+    <string name="save_changes_to_new_pdf">Salva Modifiche in un Nuovo PDF</string>
+    <string name="remove_metadata">Rimuovi Metadati</string>
+    <string name="select_a_pdf_to_strip_all_meta">Seleziona un PDF per rimuovere tutti i metadati. Utile per la privacy prima di condividere i file.</string>
+    <string name="selected_file">File Selezionato:</string>
+    <string name="overwrite_original">Sovrascrivi Originale</string>
+    <string name="save_as_new">Salva come Nuovo</string>
+    <string name="extract_text_ocr">Estrai Testo / OCR</string>
+    <string name="extract_save_as_txt">Estrai &amp; Salva come .txt</string>
+    <string name="images_to_pdf">Immagini in PDF</string>
+    <string name="convert_to_pdf">Converti in PDF</string>
+    <string name="gallery">Galleria</string>
+    <string name="camera">Fotocamera</string>
+    <string name="no_images_selected">Nessuna immagine selezionata.</string>
+    <string name="organize">Organizza</string>
+    <string name="select_from_recent">Seleziona dai Recenti</string>
+    <string name="no_recent_files_found">Nessun file recente trovato.</string>
+    <string name="merge_pdfs">Unisci PDF</string>
+    <string name="merge">Unisci</string>
+    <string name="select_pdfs">Seleziona PDF</string>
+    <string name="recent">Recenti</string>
+    <string name="select_at_least_2_pdfs_to_merg">Seleziona almeno 2 PDF da unire</string>
+    <string name="long_press_and_drag_to_reorder">Tieni premuto e trascina per riordinare</string>
+    <string name="split_pdf">Dividi PDF</string>
+    <string name="split_into_folder">Dividi in Cartella</string>
+    <string name="extraction_options">Opzioni di Estrazione</string>
+    <string name="extract_all_pages_as_individua">Estrai tutte le pagine come file singoli</string>
+    <string name="extract_custom_range">Estrai intervallo personalizzato</string>
+    <string name="e_g_1_3_5_7_10">es. 1-3, 5, 7-10</string>
+    <string name="extract_images">Estrai Immagini</string>
+    <string name="ready_to_extract_all_images_ta">Pronto per estrarre tutte le immagini. Tocca il pulsante in basso e scegli una cartella di output.</string>
+    <string name="change_pdf">Cambia PDF</string>
+    <string name="extracting_images">Estrazione immagini in corso...</string>
+    <string name="delete_pages">Elimina Pagine</string>
+    <string name="save_document">Salva Documento</string>
+    <string name="pages_to_delete">Pagine da Eliminare</string>
+    <string name="e_g_1_3_5_10">es. 1, 3, 5-10</string>
+    <string name="enter_comma_separated_page_num">Inserisci numeri o intervalli di pagine separati da virgole.</string>
+    <string name="rotate_pages">Ruota Pagine</string>
+    <string name="rotate_save">Ruota &amp; Salva</string>
+    <string name="rotation_angle">Angolo di Rotazione</string>
+    <string name="str_90_cw">90° in senso orario</string>
+    <string name="str_180">180°</string>
+    <string name="str_90_ccw">90° in senso antiorario</string>
+    <string name="pages_to_rotate_optional">Pagine da Ruotare (Opzionale)</string>
+    <string name="leave_blank_to_rotate_all_page">Lascia vuoto per ruotare tutte le pagine.</string>
+    <string name="text_cleaner">Pulizia Testo</string>
+    <string name="paste_your_text_here">Incolla qui il tuo testo...</string>
+    <string name="text_format_converter">Convertitore di Formato Testo</string>
+    <string name="enter_content">Inserisci contenuto...</string>
+    <string name="import_btn">Importa</string>
+    <string name="compressing_pdf">Compressione PDF in corso...</string>
+    <string name="create">Crea</string>
+    <string name="compress">Comprimi</string>
+    <string name="empty_str">  →  </string>
+    <string name="select_target_size_mb">Seleziona dimensione (MB):</string>
+    <string name="exact_mb">MB Esatti</string>
+    <string name="compression_options">Opzioni di compressione</string>
+    <string name="grayscale_conversion">Conversione in scala di grigi</string>
+    <string name="convert_color_images_to_black">Converti immagini a colori in bianco e nero</string>
+    <string name="lossless_zip_compression">Compressione ZIP senza perdita</string>
+    <string name="skip_jpeg_lossy_compression_no">Salta compressione JPEG (nessun artefatto)</string>
+    <string name="strip_author_creator_editor_ta">Rimuovi autore, creatore ed editor</string>
+    <string name="type_or_paste_text_here">Scrivi o incolla testo qui</string>
+    <string name="enter_the_content_of_your_pdf">Inserisci il contenuto del tuo PDF...</string>
+    <string name="import_txt">Importa .txt</string>
+    <string name="save_as_pdf">Salva come PDF</string>
+    <string name="clear_history">Cancella Cronologia</string>
+    <string name="are_you_sure_you_want_to_clear">Sei sicuro di voler cancellare la cronologia dei file recenti?</string>
+    <string name="app_preferences">Preferenze dell'App</string>
+    <string name="haptic_feedback">Feedback Tattile</string>
+    <string name="vibrate_on_interactions">Vibra durante le interazioni</string>
+    <string name="sound_effects">Effetti Sonori</string>
+    <string name="play_audio_on_button_clicks">Riproduci audio ai clic</string>
+</resources>
