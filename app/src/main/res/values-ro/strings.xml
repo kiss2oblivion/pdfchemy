@@ -195,4 +195,22 @@
     <string name="msg_scanner_not_available">Scanner indisponibil.</string>
     <string name="msg_history_cleared">Istoric șters</string>
     <string name="label_type_or_paste">Tastează sau lipește %1$s aici</string>
+    <string name="menu_extract">Extrage Text / OCR</string>
+    <string name="menu_extract_desc">Extrage text din PDF-uri sau documente scanate</string>
+    <string name="label_words">Cuvinte: %1$d</string>
+    <string name="label_chars">Caractere: %1$d</string>
+    <string name="label_from_format">De la: %1$s</string>
+    <string name="label_to_format">Către: %1$s</string>
+    <string name="action_save_as">Salvează ca %1$s</string>
+    <string name="default_doc_name_pdf">Document.pdf</string>
+    <string name="default_doc_name">Document</string>
+    <string name="label_pages_count">Pagini: %1$d</string>
+    <string name="label_images_count">Imagini: %1$d</string>
+    <string name="label_signatures">Semnături: %1$s</string>
+    <string name="label_type">Tip: %1$s</string>
+    <string name="label_total_summary">Rezumat Total (%1$d fișiere)</string>
+    <string name="action_hide_files">Ascunde Fișierele</string>
+    <string name="action_view_files">Vezi Fișierele</string>
+    <string name="value_yes">Da</string>
+    <string name="value_no">Nu</string>
 </resources>

@@ -539,7 +539,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         ) {
                             Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(selectedPdfName ?: "Document.pdf", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(selectedPdfName ?: stringResource(R.string.default_doc_name_pdf), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(stringResource(R.string.ready_to_extract_all_images_ta), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             Spacer(modifier = Modifier.height(16.dp))
@@ -736,7 +736,7 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(file.name ?: "Document", fontWeight = FontWeight.Bold)
+                        Text(file.name ?: stringResource(R.string.default_doc_name), fontWeight = FontWeight.Bold)
                     }
                 }
 

@@ -194,4 +194,22 @@
     <string name="msg_scanner_not_available">Pemindai tidak tersedia.</string>
     <string name="msg_history_cleared">Riwayat dibersihkan</string>
     <string name="label_type_or_paste">Ketik atau tempel %1$s di sini</string>
+    <string name="menu_extract">Ekstrak Teks / OCR</string>
+    <string name="menu_extract_desc">Ekstrak teks dari PDF atau dokumen yang dipindai</string>
+    <string name="label_words">Kata: %1$d</string>
+    <string name="label_chars">Karakter: %1$d</string>
+    <string name="label_from_format">Dari: %1$s</string>
+    <string name="label_to_format">Ke: %1$s</string>
+    <string name="action_save_as">Simpan sebagai %1$s</string>
+    <string name="default_doc_name_pdf">Dokumen.pdf</string>
+    <string name="default_doc_name">Dokumen</string>
+    <string name="label_pages_count">Halaman: %1$d</string>
+    <string name="label_images_count">Gambar: %1$d</string>
+    <string name="label_signatures">Tanda tangan: %1$s</string>
+    <string name="label_type">Tipe: %1$s</string>
+    <string name="label_total_summary">Ringkasan Total (%1$d file)</string>
+    <string name="action_hide_files">Sembunyikan File Individu</string>
+    <string name="action_view_files">Lihat File Individu</string>
+    <string name="value_yes">Ya</string>
+    <string name="value_no">Tidak</string>
 </resources>

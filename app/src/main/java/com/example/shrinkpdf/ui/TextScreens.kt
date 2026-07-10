@@ -51,8 +51,8 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Words: $wordCount", style = MaterialTheme.typography.labelLarge)
-                    Text("Characters: $charCount", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.label_words, wordCount), style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.label_chars, charCount), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

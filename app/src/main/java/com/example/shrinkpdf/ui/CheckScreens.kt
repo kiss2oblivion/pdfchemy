@@ -197,10 +197,10 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             Text(stringResource(R.string.document_stats), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             val a = analysis
                             if (a != null) {
-                                Text("Pages: ${a.pageCount}")
-                                Text("Images: ${a.imageCount}")
-                                Text("Signatures: ${if (a.hasSignatures) "Yes" else "No"}")
-                                Text("Type: ${a.scenario.name}")
+                                Text(stringResource(R.string.label_pages_count, a.pageCount))
+                                Text(stringResource(R.string.label_images_count, a.imageCount))
+                                Text(stringResource(R.string.label_signatures, if (a.hasSignatures) stringResource(R.string.value_yes) else stringResource(R.string.value_no)))
+                                Text(stringResource(R.string.label_type, a.scenario.name))
                             }
                         }
                     }
@@ -400,7 +400,7 @@ fun ExtractTextScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.FactCheck, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(file.name ?: "Document", fontWeight = FontWeight.Bold)
+                        Text(file.name ?: stringResource(R.string.default_doc_name), fontWeight = FontWeight.Bold)
                     }
                 }
 

@@ -207,4 +207,22 @@
     <string name="msg_scanner_not_available">Scanner non disponibile.</string>
     <string name="msg_history_cleared">Cronologia cancellata</string>
     <string name="label_type_or_paste">Digita o incolla %1$s qui</string>
+    <string name="menu_extract">Estrai testo / OCR</string>
+    <string name="menu_extract_desc">Estrai testo da PDF o documenti scansionati</string>
+    <string name="label_words">Parole: %1$d</string>
+    <string name="label_chars">Caratteri: %1$d</string>
+    <string name="label_from_format">Da: %1$s</string>
+    <string name="label_to_format">A: %1$s</string>
+    <string name="action_save_as">Salva come %1$s</string>
+    <string name="default_doc_name_pdf">Documento.pdf</string>
+    <string name="default_doc_name">Documento</string>
+    <string name="label_pages_count">Pagine: %1$d</string>
+    <string name="label_images_count">Immagini: %1$d</string>
+    <string name="label_signatures">Firme: %1$s</string>
+    <string name="label_type">Tipo: %1$s</string>
+    <string name="label_total_summary">Riepilogo totale (%1$d file)</string>
+    <string name="action_hide_files">Nascondi file individuali</string>
+    <string name="action_view_files">Visualizza file individuali</string>
+    <string name="value_yes">Sì</string>
+    <string name="value_no">No</string>
 </resources>

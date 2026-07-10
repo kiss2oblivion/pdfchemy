@@ -1600,7 +1600,7 @@ fun LeftPanel(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Total Summary (${selectedFiles.size} files)", style = MaterialTheme.typography.titleSmall)
+                                Text(stringResource(R.string.label_total_summary, selectedFiles.size), style = MaterialTheme.typography.titleSmall)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -1644,7 +1644,7 @@ fun LeftPanel(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (isListExpanded) "Hide Individual Files" else "View Individual Files")
+                            Text(if (isListExpanded) stringResource(R.string.action_hide_files) else stringResource(R.string.action_view_files))
                         }
                     }
                     

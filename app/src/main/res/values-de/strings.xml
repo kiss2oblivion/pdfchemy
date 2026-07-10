@@ -208,4 +208,22 @@
     <string name="msg_scanner_not_available">Scanner nicht verfügbar.</string>
     <string name="msg_history_cleared">Verlauf gelöscht</string>
     <string name="label_type_or_paste">Tippen oder fügen Sie %1$s hier ein</string>
+    <string name="menu_extract">Text extrahieren / OCR</string>
+    <string name="menu_extract_desc">Text aus PDFs oder Scans extrahieren</string>
+    <string name="label_words">Wörter: %1$d</string>
+    <string name="label_chars">Zeichen: %1$d</string>
+    <string name="label_from_format">Von: %1$s</string>
+    <string name="label_to_format">Zu: %1$s</string>
+    <string name="action_save_as">Speichern als %1$s</string>
+    <string name="default_doc_name_pdf">Dokument.pdf</string>
+    <string name="default_doc_name">Dokument</string>
+    <string name="label_pages_count">Seiten: %1$d</string>
+    <string name="label_images_count">Bilder: %1$d</string>
+    <string name="label_signatures">Signaturen: %1$s</string>
+    <string name="label_type">Typ: %1$s</string>
+    <string name="label_total_summary">Gesamtzusammenfassung (%1$d Dateien)</string>
+    <string name="action_hide_files">Einzelne Dateien ausblenden</string>
+    <string name="action_view_files">Einzelne Dateien anzeigen</string>
+    <string name="value_yes">Ja</string>
+    <string name="value_no">Nein</string>
 </resources>

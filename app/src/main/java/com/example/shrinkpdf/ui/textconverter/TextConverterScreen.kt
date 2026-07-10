@@ -101,7 +101,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("From: ${inputFormat.name}")
+                                Text(stringResource(R.string.label_from_format, inputFormat.name))
                                 Icon(Icons.Rounded.ArrowDropDown, contentDescription = null)
                             }
                         }
@@ -138,7 +138,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("To: ${outputFormat.name}")
+                                Text(stringResource(R.string.label_to_format, outputFormat.name))
                                 Icon(Icons.Rounded.ArrowDropDown, contentDescription = null)
                             }
                         }
@@ -199,7 +199,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.Save, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save as ${outputFormat.name}")
+                        Text(stringResource(R.string.action_save_as, outputFormat.name))
                     }
                 }
             }

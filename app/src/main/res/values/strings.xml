@@ -209,4 +209,22 @@
     <string name="msg_scanner_not_available">Scanner not available.</string>
     <string name="msg_history_cleared">History cleared</string>
     <string name="label_type_or_paste">Type or paste %1$s here</string>
+    <string name="menu_extract">Extract Text / OCR</string>
+    <string name="menu_extract_desc">Extract text from PDFs or scanned documents</string>
+    <string name="label_words">Words: %1$d</string>
+    <string name="label_chars">Characters: %1$d</string>
+    <string name="label_from_format">From: %1$s</string>
+    <string name="label_to_format">To: %1$s</string>
+    <string name="action_save_as">Save as %1$s</string>
+    <string name="default_doc_name_pdf">Document.pdf</string>
+    <string name="default_doc_name">Document</string>
+    <string name="label_pages_count">Pages: %1$d</string>
+    <string name="label_images_count">Images: %1$d</string>
+    <string name="label_signatures">Signatures: %1$s</string>
+    <string name="label_type">Type: %1$s</string>
+    <string name="label_total_summary">Total Summary (%1$d files)</string>
+    <string name="action_hide_files">Hide Individual Files</string>
+    <string name="action_view_files">View Individual Files</string>
+    <string name="value_yes">Yes</string>
+    <string name="value_no">No</string>
 </resources>

@@ -197,4 +197,22 @@
     <string name="msg_scanner_not_available">Escáner no disponible.</string>
     <string name="msg_history_cleared">Historial borrado</string>
     <string name="label_type_or_paste">Escribe o pega %1$s aquí</string>
+    <string name="menu_extract">Extraer texto / OCR</string>
+    <string name="menu_extract_desc">Extrae texto de PDFs o escaneos</string>
+    <string name="label_words">Palabras: %1$d</string>
+    <string name="label_chars">Caracteres: %1$d</string>
+    <string name="label_from_format">De: %1$s</string>
+    <string name="label_to_format">A: %1$s</string>
+    <string name="action_save_as">Guardar como %1$s</string>
+    <string name="default_doc_name_pdf">Documento.pdf</string>
+    <string name="default_doc_name">Documento</string>
+    <string name="label_pages_count">Páginas: %1$d</string>
+    <string name="label_images_count">Imágenes: %1$d</string>
+    <string name="label_signatures">Firmas: %1$s</string>
+    <string name="label_type">Tipo: %1$s</string>
+    <string name="label_total_summary">Resumen total (%1$d archivos)</string>
+    <string name="action_hide_files">Ocultar archivos individuales</string>
+    <string name="action_view_files">Ver archivos individuales</string>
+    <string name="value_yes">Sí</string>
+    <string name="value_no">No</string>
 </resources>
