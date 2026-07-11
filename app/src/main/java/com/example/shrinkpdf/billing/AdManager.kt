@@ -10,22 +10,19 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.example.shrinkpdf.utils.AppLogger
+import com.example.shrinkpdf.BuildConfig
 
 object AdManager {
     private var interstitialAd: InterstitialAd? = null
     private var lastAdShownTime: Long = 0
     private const val COOLDOWN_MILLIS = 60_000L // 60 seconds cooldown
-    
-    // Test Interstitial Ad Unit ID
-    private const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
-
     fun loadInterstitial(context: Context) {
         if (interstitialAd != null) return // Already loaded
 
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             context,
-            AD_UNIT_ID,
+            BuildConfig.AD_UNIT_ID,
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {

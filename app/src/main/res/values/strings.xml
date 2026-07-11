@@ -327,5 +327,10 @@
     <string name="history_extracted_text">Extracted Text</string>
     <string name="history_pdf_to_text">PDF to Text</string>
     <string name="history_converted_text">converted_text</string>
-    <string name="title_settings">Settings</string>
+    <string name="settings_about_legal">About &amp; Legal</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_privacy_policy_desc">Read our privacy and data policies</string>
+    <string name="consent_dialog_title">Welcome to PDFchemy</string>
+    <string name="consent_dialog_body">Your privacy is our priority. All PDF processing happens strictly offline on your device.\n\nTo keep this app free, we use third-party services (like Google AdMob) which require internet access to serve advertisements and collect standard device identifiers.\n\nBy tapping \'I Agree\', you consent to this policy.</string>
+    <string name="consent_dialog_agree">I Agree</string>
 </resources>

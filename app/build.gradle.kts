@@ -22,13 +22,31 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release.jks")
+            storePassword = "shrinkpdf123"
+            keyAlias = "shrinkpdf-alias"
+            keyPassword = "shrinkpdf123"
+        }
+    }
+
     buildTypes {
+        debug {
+            buildConfigField("String", "AD_UNIT_ID", "\"ca-app-pub-3940256099942544/1033173712\"") // Google Test Ad Unit ID
+            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"ca-app-pub-3940256099942544/6300978111\"") // Google Test Banner ID
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-3940256099942544~3347511713" // Google Test App ID
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+            buildConfigField("String", "AD_UNIT_ID", "\"ca-app-pub-8945763551071628/9314012106\"")
+            buildConfigField("String", "BANNER_AD_UNIT_ID", "\"ca-app-pub-8945763551071628/5697788038\"")
+            manifestPlaceholders["adMobAppId"] = "ca-app-pub-8945763551071628~8206577473"
         }
     }
     compileOptions {

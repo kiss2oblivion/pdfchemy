@@ -233,18 +233,45 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
-        MobileAds.initialize(this) { }
-        // Do not preload ads on launch while debugging the home UI.
-        // On some emulator/WebView setups, ad preload can create a blank black surface over Compose.
+        
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val hasConsentedInitial = prefs.getBoolean("has_consented", false)
+        if (hasConsentedInitial) {
+            MobileAds.initialize(this) { }
+        }
+
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             var isDarkTheme by remember { mutableStateOf(false) }
             val useDark = isDarkTheme
+            var hasConsented by remember { mutableStateOf(hasConsentedInitial) }
             
             ShrinkPdfTheme(useDarkTheme = useDark) {
+                if (!hasConsented) {
+                    AlertDialog(
+                        onDismissRequest = { /* Must accept to continue */ },
+                        title = { Text(stringResource(R.string.consent_dialog_title)) },
+                        text = { Text(stringResource(R.string.consent_dialog_body)) },
+                        confirmButton = {
+                            Button(onClick = {
+                                prefs.edit().putBoolean("has_consented", true).apply()
+                                hasConsented = true
+                                MobileAds.initialize(this@MainActivity) { }
+                            }) {
+                                Text(stringResource(R.string.consent_dialog_agree))
+                            }
+                        },
+                        properties = androidx.compose.ui.window.DialogProperties(
+                            dismissOnBackPress = false,
+                            dismissOnClickOutside = false
+                        )
+                    )
+                }
+
                 MainApp(
                     windowWidthSizeClass = windowSizeClass.widthSizeClass,
                     isDarkTheme = useDark,
+                    hasConsented = hasConsented,
                     onToggleTheme = { isDarkTheme = !isDarkTheme }
                 )
             }
@@ -291,6 +318,7 @@ fun MainApp(
     viewModel: MainViewModel = viewModel(),
     textConverterViewModel: TextConverterViewModel = viewModel(),
     isDarkTheme: Boolean = false,
+    hasConsented: Boolean = false,
     onToggleTheme: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
@@ -372,7 +400,11 @@ fun MainApp(
                             trackColor = Color.White.copy(alpha = 0.3f)
                         )
                     } else {
-                        Text(stringResource(R.string.compressing_pdf), color = Color.White)
+                        Text(
+                            text = stringResource(R.string.compressing_pdf),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
@@ -458,9 +490,25 @@ fun MainApp(
             }
         }
         }
-            BannerAd(isPremium = isPremium)
+            if (!isPremium && hasConsented) {
+                BannerAdView()
+            }
         }
     }
+}
+
+@Composable
+fun BannerAdView(modifier: Modifier = Modifier) {
+    androidx.compose.ui.viewinterop.AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { ctx ->
+            com.google.android.gms.ads.AdView(ctx).apply {
+                setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+                adUnitId = com.example.shrinkpdf.BuildConfig.BANNER_AD_UNIT_ID
+                loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+            }
+        }
+    )
 }
 
 sealed class Screen {
@@ -2180,7 +2228,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            PremiumTopAppBar(stringResource(R.string.title_settings), onBack)
+            PremiumTopAppBar(stringResource(R.string.settings_title), onBack)
 
             Column(
                 modifier = Modifier
@@ -2302,6 +2350,35 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(stringResource(R.string.settings_clear_history), color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+
+                    Text(stringResource(R.string.settings_about_legal), style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.Start))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://your-website.com/privacy"))
+                                    context.startActivity(intent)
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_privacy_policy), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_privacy_policy_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Rounded.OpenInNew,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
