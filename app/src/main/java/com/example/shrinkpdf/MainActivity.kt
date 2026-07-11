@@ -696,16 +696,16 @@ fun HomeScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PictureAsPdf,
+                        Image(
+                            painter = painterResource(id = R.drawable.in_app_logo),
                             contentDescription = stringResource(R.string.desc_app_logo),
                             modifier = Modifier.fillMaxSize(),
-                            tint = MaterialTheme.colorScheme.primary
+                            contentScale = ContentScale.Crop
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     ShimmerTitle(
-                        text = stringResource(R.string.app_name) + " Tools",
+                        text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.headlineMedium,
                         baseColor = MaterialTheme.colorScheme.primary,
                         isDarkTheme = isDarkTheme
@@ -768,11 +768,11 @@ fun HomeScreen(
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PictureAsPdf,
+                        Image(
+                            painter = painterResource(id = R.drawable.in_app_logo),
                             contentDescription = stringResource(R.string.desc_app_logo),
                             modifier = Modifier.fillMaxSize(),
-                            tint = MaterialTheme.colorScheme.primary
+                            contentScale = ContentScale.Crop
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
