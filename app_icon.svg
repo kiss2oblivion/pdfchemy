@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+    <defs>
+        <!-- Background Gradient -->
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4F46E5" />
+            <stop offset="100%" stop-color="#7C3AED" />
+        </linearGradient>
+        
+        <!-- Flask Liquid Gradient -->
+        <linearGradient id="flaskGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#34D399" />
+            <stop offset="100%" stop-color="#047857" />
+        </linearGradient>
+        
+        <!-- Document Gradient -->
+        <linearGradient id="docGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#F8FAFC" />
+        </linearGradient>
+        
+        <!-- Drop Shadow -->
+        <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.25"/>
+        </filter>
+        <filter id="lightShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.15"/>
+        </filter>
+        
+        <!-- Flask Clip Path -->
+        <clipPath id="flaskClip">
+            <path d="M 472 500 L 552 500 L 552 580 L 652 730 C 672 760, 642 790, 602 790 L 422 790 C 382 790, 352 760, 372 730 L 472 580 Z" />
+        </clipPath>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="1024" height="1024" rx="225" ry="225" fill="url(#bg)" />
+
+    <!-- Document Base -->
+    <path d="M 312 180 L 562 180 L 712 330 L 712 840 C 712 867 690 889 662 889 L 362 889 C 334 889 312 867 312 840 Z" fill="url(#docGrad)" filter="url(#shadow)" />
+    
+    <!-- Document Fold -->
+    <path d="M 562 180 L 562 330 L 712 330 Z" fill="#E2E8F0" />
+    <path d="M 562 330 L 522 370" stroke="#CBD5E1" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    
+    <!-- PDF Text -->
+    <text x="512" y="420" font-family="Arial, sans-serif" font-size="140" font-weight="900" fill="#4F46E5" text-anchor="middle" letter-spacing="6">PDF</text>
+    
+    <!-- Magical Sparkles -->
+    <!-- Top Right -->
+    <path d="M 680 420 L 690 380 L 730 370 L 690 360 L 680 320 L 670 360 L 630 370 L 670 380 Z" fill="#F59E0B" filter="url(#lightShadow)" />
+    <!-- Top Left -->
+    <path d="M 320 280 L 325 250 L 355 245 L 325 240 L 320 210 L 315 240 L 285 245 L 315 250 Z" fill="#FCD34D" opacity="0.8" filter="url(#lightShadow)"/>
+    <!-- Bottom Right -->
+    <path d="M 750 750 L 755 725 L 780 720 L 755 715 L 750 690 L 745 715 L 720 720 L 745 725 Z" fill="#FDE68A" opacity="0.7" />
+    
+    <!-- Flask Group -->
+    <g filter="url(#lightShadow)">
+        <!-- Liquid -->
+        <rect x="0" y="650" width="1024" height="400" fill="url(#flaskGrad)" clip-path="url(#flaskClip)" />
+        
+        <!-- Liquid surface wave -->
+        <path d="M 350 650 Q 400 620 460 650 T 570 650 T 680 650" fill="none" stroke="#6EE7B7" stroke-width="12" clip-path="url(#flaskClip)" />
+        
+        <!-- Bubbles -->
+        <circle cx="480" cy="740" r="16" fill="#FFFFFF" opacity="0.6" clip-path="url(#flaskClip)" />
+        <circle cx="540" cy="710" r="12" fill="#FFFFFF" opacity="0.8" clip-path="url(#flaskClip)" />
+        <circle cx="570" cy="760" r="20" fill="#FFFFFF" opacity="0.5" clip-path="url(#flaskClip)" />
+        <circle cx="440" cy="690" r="8" fill="#FFFFFF" opacity="0.7" clip-path="url(#flaskClip)" />
+        <circle cx="505" cy="775" r="10" fill="#FFFFFF" opacity="0.4" clip-path="url(#flaskClip)" />
+        
+        <!-- Flask Outline -->
+        <path d="M 456 500 L 568 500" stroke="#1E293B" stroke-width="24" stroke-linecap="round" />
+        <path d="M 464 520 L 560 520" stroke="#1E293B" stroke-width="12" stroke-linecap="round" opacity="0.5"/>
+        <path d="M 472 500 L 472 580 L 372 730 C 352 760, 382 790, 422 790 L 602 790 C 642 790, 672 760, 652 730 L 552 580 L 552 500" fill="none" stroke="#1E293B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+        
+        <!-- Flask Glass Reflection -->
+        <path d="M 400 740 C 390 720, 410 690, 430 650" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.4" clip-path="url(#flaskClip)" />
+        <path d="M 488 510 L 488 560" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity="0.4" />
+    </g>
+</svg>
