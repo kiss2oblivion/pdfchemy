@@ -75,7 +75,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.text_format_converter)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent), navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 },
                 
@@ -191,7 +191,7 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                             if (inputText.isBlank()) {
                                 Toast.makeText(context, context.getString(R.string.msg_enter_text), Toast.LENGTH_SHORT).show()
                             } else {
-                                val filename = com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "converted_text", "Document", outputFormat.name.lowercase())
+                                val filename = com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, stringResource(R.string.history_converted_text), stringResource(R.string.default_document_name), outputFormat.name.lowercase())
                                 saveFileLauncher.launch(filename)
                             }
                         },

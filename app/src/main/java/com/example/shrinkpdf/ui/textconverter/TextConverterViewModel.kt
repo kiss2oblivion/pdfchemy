@@ -107,7 +107,7 @@ class TextConverterViewModel : ViewModel() {
                     context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
                         outputStream.write(convertedText.toByteArray(Charsets.UTF_8))
                     }
-                    _uiState.value = UiState.Success("Success", "File converted successfully!")
+                    _uiState.value = UiState.Success(context.getString(R.string.success_title), context.getString(R.string.success_file_converted))
                 } catch (e: Exception) {
                     _uiState.value = UiState.Error("Failed to save file: ${e.message}")
                 }

@@ -319,9 +319,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val result = TextToPdfConverter.convert(context, _inputText.value, destUri)
             
             result.onSuccess {
-                historyRepository.addHistoryItem(destUri, "Text to PDF", "Convert")
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_text_to_pdf), context.getString(R.string.history_convert))
                 refreshHistory()
-                _uiState.value = UiState.Success("PDF Created", "Your document has been saved successfully.", listOf(destUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_pdf_created), context.getString(R.string.success_doc_saved), listOf(destUri))
             }.onFailure { error ->
                 _uiState.value = UiState.Error(error.message ?: "Failed to create PDF.")
             }
@@ -376,7 +376,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     document.close()
                 }
-                _uiState.value = UiState.Success("PDF Created", "Your images have been converted successfully.")
+                _uiState.value = UiState.Success(context.getString(R.string.success_pdf_created), context.getString(R.string.success_images_converted))
             } catch (e: Exception) {
                 AppLogger.e("Exception in MainViewModel", e)
                 _uiState.value = UiState.Error(e.message ?: "Failed to create PDF from images.")
@@ -582,9 +582,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             try {
                 PdfManipulator.mergePdfs(context, sourceUris, destUri)
-                historyRepository.addHistoryItem(destUri, "Merged PDF", "Merge")
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_merged_pdf), context.getString(R.string.history_merge))
                 refreshHistory()
-                _uiState.value = UiState.Success("Merge Complete", "Successfully merged ${sourceUris.size} documents.", listOf(destUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_merge_complete), context.getString(R.string.success_merged_docs, sourceUris.size), listOf(destUri))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to merge PDFs.")
             }
@@ -617,9 +617,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.updateMetadata(context, sourceUri, destUri, newMetadata)
             if (result.isSuccess) {
-                historyRepository.addHistoryItem(destUri, "Updated Metadata PDF", "Metadata")
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_updated_metadata), context.getString(R.string.history_metadata))
                 refreshHistory()
-                _uiState.value = UiState.Success("Metadata Updated", "The document's metadata has been successfully updated.", listOf(destUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_metadata_updated), context.getString(R.string.success_metadata_updated), listOf(destUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to update metadata.")
             }
@@ -631,9 +631,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.clearMetadata(context, sourceUri, destUri)
             if (result.isSuccess) {
-                historyRepository.addHistoryItem(destUri, "Cleared Metadata PDF", "Metadata")
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_cleared_metadata), context.getString(R.string.history_metadata))
                 refreshHistory()
-                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped from the document.", listOf(destUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_metadata_removed), context.getString(R.string.success_metadata_stripped), listOf(destUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to remove metadata.")
             }
@@ -645,9 +645,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             val result = metadataManager.clearMetadataOverwrite(context, sourceUri)
             if (result.isSuccess) {
-                historyRepository.addHistoryItem(sourceUri, "Cleared Metadata PDF", "Metadata")
+                historyRepository.addHistoryItem(sourceUri, context.getString(R.string.history_cleared_metadata), context.getString(R.string.history_metadata))
                 refreshHistory()
-                _uiState.value = UiState.Success("Metadata Removed", "All metadata has been stripped and the original file has been overwritten.", listOf(sourceUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_metadata_removed), context.getString(R.string.success_metadata_stripped_overwrite), listOf(sourceUri))
             } else {
                 _uiState.value = UiState.Error(result.exceptionOrNull()?.message ?: "Failed to overwrite metadata.")
             }
@@ -669,9 +669,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val baseName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, sourceUri)?.substringBeforeLast(".") ?: "split_doc"
                 
                 PdfManipulator.splitPdf(context, sourceUri, directory, baseName, pageRange)
-                historyRepository.addHistoryItem(destTreeUri, "Split PDF Folder", "Split")
+                historyRepository.addHistoryItem(destTreeUri, context.getString(R.string.history_split_pdf_folder), context.getString(R.string.desc_split))
                 refreshHistory()
-                _uiState.value = UiState.Success("Split Complete", "Successfully split the document into the selected folder.", listOf(destTreeUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_split_complete), context.getString(R.string.success_split_success), listOf(destTreeUri))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to split PDF.")
             }
@@ -685,9 +685,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             try {
                 PdfManipulator.deletePages(context, sourceUri, destUri, pageRange)
-                historyRepository.addHistoryItem(destUri, com.example.shrinkpdf.utils.FileUtils.getFileName(context, destUri) ?: "Unknown", "Organize")
+                historyRepository.addHistoryItem(destUri, com.example.shrinkpdf.utils.FileUtils.getFileName(context, destUri) ?: context.getString(R.string.history_unknown), context.getString(R.string.history_organize))
                 refreshHistory()
-                _uiState.value = UiState.Success("Pages Deleted", "Successfully removed the selected pages.", listOf(destUri))
+                _uiState.value = UiState.Success(context.getString(R.string.success_pages_deleted), context.getString(R.string.success_pages_removed), listOf(destUri))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Failed to delete pages.")
             }
@@ -733,7 +733,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 
                 withContext(Dispatchers.Main) {
-                    historyRepository.addHistoryItem(outputDirectory.uri, "Extracted Images Folder", "Extract Images")
+                    historyRepository.addHistoryItem(outputDirectory.uri, context.getString(R.string.history_extracted_images_folder), context.getString(R.string.history_extract_images))
                     refreshHistory()
                     onComplete(extractedCount, errorCount)
                     _uiState.value = UiState.Idle
@@ -754,7 +754,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 PdfManipulator.rotatePdf(context, sourceUri, destUri, degrees, pageRange)
                 withContext(Dispatchers.Main) {
-                    historyRepository.addHistoryItem(destUri, "Rotated PDF", "Rotate PDF")
+                    historyRepository.addHistoryItem(destUri, context.getString(R.string.history_rotated_pdf), context.getString(R.string.history_rotate_pdf))
                     refreshHistory()
                     _uiState.value = UiState.Success("Success", "PDF rotated successfully", listOf(destUri))
                 }
@@ -774,7 +774,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val success = PdfTextExtractor.extractText(context, sourceUri, destUri)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        historyRepository.addHistoryItem(destUri, "Extracted Text", "PDF to Text")
+                        historyRepository.addHistoryItem(destUri, context.getString(R.string.history_extracted_text), context.getString(R.string.history_pdf_to_text))
                         refreshHistory()
                         _uiState.value = UiState.Success("Success", "Text extracted successfully", listOf(destUri))
                     } else {

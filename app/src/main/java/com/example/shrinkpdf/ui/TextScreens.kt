@@ -36,7 +36,7 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -70,18 +70,18 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ActionChip("Trim Spaces") { textContent = textContent.trim() }
-                ActionChip("Normalize Spaces") { textContent = textContent.replace("\\s+".toRegex(), " ") }
-                ActionChip("Remove Empty Lines") { 
+                ActionChip(stringResource(R.string.btn_trim_spaces)) { textContent = textContent.trim() }
+                ActionChip(stringResource(R.string.btn_normalize_spaces)) { textContent = textContent.replace("\\s+".toRegex(), " ") }
+                ActionChip(stringResource(R.string.btn_remove_empty_lines)) { 
                     textContent = textContent.lineSequence().filter { it.isNotBlank() }.joinToString("\n") 
                 }
-                ActionChip("Remove Duplicates") { 
+                ActionChip(stringResource(R.string.btn_remove_duplicates)) { 
                     textContent = textContent.lineSequence().distinct().joinToString("\n") 
                 }
-                ActionChip("Sort Lines") { 
+                ActionChip(stringResource(R.string.btn_sort_lines)) { 
                     textContent = textContent.lineSequence().sorted().joinToString("\n") 
                 }
-                ActionChip("Format JSON") {
+                ActionChip(stringResource(R.string.btn_format_json)) {
                     try {
                         val trimmed = textContent.trim()
                         if (trimmed.startsWith("[")) {
@@ -93,7 +93,7 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                         // ignore or show toast
                     }
                 }
-                ActionChip("Minify JSON") {
+                ActionChip(stringResource(R.string.btn_minify_json)) {
                     try {
                         val trimmed = textContent.trim()
                         if (trimmed.startsWith("[")) {
@@ -105,7 +105,7 @@ fun TextCleanerScreen(onBack: () -> Unit) {
                         // ignore or show toast
                     }
                 }
-                ActionChip("Clear") { textContent = "" }
+                ActionChip(stringResource(R.string.btn_clear)) { textContent = "" }
             }
 
             // Text Input Area

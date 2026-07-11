@@ -2063,7 +2063,7 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     BackHandler { onBack() }
 
     Scaffold(containerColor = Color.Transparent, 
-        topBar = { PremiumTopAppBar("Text to PDF", onBack) }
+        topBar = { PremiumTopAppBar(stringResource(R.string.history_text_to_pdf), onBack) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
             Card(
@@ -2180,7 +2180,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            PremiumTopAppBar("Settings", onBack)
+            PremiumTopAppBar(stringResource(R.string.title_settings), onBack)
 
             Column(
                 modifier = Modifier

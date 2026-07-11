@@ -64,7 +64,7 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -196,7 +196,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                         Text(item.action, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     if (isSelected) {
-                                        Icon(Icons.Rounded.CheckCircle, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Rounded.CheckCircle, contentDescription = stringResource(R.string.desc_selected), tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -215,7 +215,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.merge_pdfs)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.desc_back)) }
                 }
             )
         },
@@ -223,7 +223,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             if (selectedFiles.size >= 2) {
                 ExtendedFloatingActionButton(
                     onClick = { createDocLauncher.launch(com.example.shrinkpdf.logic.FileUtil.generateSuggestedName(null, "merged")) },
-                    icon = { Icon(Icons.Rounded.Merge, "Merge") },
+                    icon = { Icon(Icons.Rounded.Merge, stringResource(R.string.desc_merge)) },
                     text = { Text(stringResource(R.string.merge)) }
                 )
             }
@@ -317,9 +317,9 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Rounded.DragHandle, contentDescription = "Drag", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Rounded.DragHandle, contentDescription = stringResource(R.string.desc_drag), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.width(16.dp))
-                                Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Text(item.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                             }
@@ -366,7 +366,7 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.split_pdf)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.desc_back)) }
                 }
             )
         },
@@ -374,7 +374,7 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             if (selectedFile != null) {
                 ExtendedFloatingActionButton(
                     onClick = { directoryPickerLauncher.launch(null) },
-                    icon = { Icon(Icons.Rounded.CallSplit, "Split") },
+                    icon = { Icon(Icons.Rounded.CallSplit, stringResource(R.string.desc_split)) },
                     text = { Text(stringResource(R.string.split_into_folder)) }
                 )
             }
@@ -401,7 +401,7 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(file.name, fontWeight = FontWeight.Bold)
                         }
@@ -475,7 +475,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.extract_images), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -488,7 +488,7 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             if (selectedPdfUri != null) {
                 ExtendedFloatingActionButton(
                     onClick = { directoryPickerLauncher.launch(null) },
-                    icon = { Icon(Icons.Rounded.Image, contentDescription = "Extract") },
+                    icon = { Icon(Icons.Rounded.Image, contentDescription = stringResource(R.string.desc_extract)) },
                     text = { Text(stringResource(R.string.extract_images)) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -602,7 +602,7 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.delete_pages)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.desc_back)) }
                 }
             )
         },
@@ -611,11 +611,11 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = {
                         val file = selectedFile ?: return@ExtendedFloatingActionButton
-                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, file.uri) ?: "Document"
+                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, file.uri) ?: stringResource(R.string.default_document_name)
                         val suggestedName = "${originalName.substringBeforeLast(".")}_deleted.pdf"
                         createDocumentLauncher.launch(suggestedName)
                     },
-                    icon = { Icon(Icons.Rounded.Delete, "Delete") },
+                    icon = { Icon(Icons.Rounded.Delete, stringResource(R.string.desc_delete)) },
                     text = { Text(stringResource(R.string.save_document)) }
                 )
             }
@@ -642,7 +642,7 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(file.name, fontWeight = FontWeight.Bold)
                     }
@@ -692,7 +692,7 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.rotate_pages)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
                     }
                 }
             )
@@ -704,7 +704,7 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         val file = selectedFile ?: return@ExtendedFloatingActionButton
                         saveFileLauncher.launch("rotated_${file.name}") 
                     },
-                    icon = { Icon(Icons.Rounded.RotateRight, contentDescription = "Save") },
+                    icon = { Icon(Icons.Rounded.RotateRight, contentDescription = stringResource(R.string.desc_save)) },
                     text = { Text(stringResource(R.string.rotate_save)) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -734,7 +734,7 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "PDF", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(file.name ?: stringResource(R.string.default_doc_name), fontWeight = FontWeight.Bold)
                     }
