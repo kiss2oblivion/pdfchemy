@@ -331,6 +331,11 @@
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_privacy_policy_desc">Read our privacy and data policies</string>
     <string name="consent_dialog_title">Welcome to PDFchemy</string>
-    <string name="consent_dialog_body">Your privacy is our priority. All PDF processing happens strictly offline on your device.\n\nTo keep this app free, we use third-party services (like Google AdMob) which require internet access to serve advertisements and collect standard device identifiers.\n\nBy tapping \'I Agree\', you consent to this policy.</string>
+    <string name="consent_dialog_body">Your privacy is our priority. All PDF processing happens strictly offline on your device.\n\nTo keep this app free, we use third-party services like Google AdMob to display ads. These services may collect and use data (like your device identifier and location) to provide personalized advertising.\n\nBy clicking "I Agree", you consent to the use of this data for advertising purposes.</string>
     <string name="consent_dialog_agree">I Agree</string>
+    
+    <string name="refund_policy_title">Refund Policy</string>
+    <string name="refund_policy_body">If you have not requested a refund within 14 days of purchase, there will be no refund issued.</string>
+    <string name="settings_refund_policy">Refund Policy</string>
+    <string name="settings_refund_policy_desc">View our refund policy for premium purchases</string>
 </resources>

@@ -111,6 +111,10 @@ dependencies {
     // 4. AdMob
     implementation("com.google.android.gms:play-services-ads:23.2.0")
 
+    // Firebase Setup
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-analytics")
+
     // ML Kit Document Scanner
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
     // ML Kit Text Recognition

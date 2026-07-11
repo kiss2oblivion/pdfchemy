@@ -2206,6 +2206,8 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val isSfxEnabled by viewModel.isSfxEnabled.collectAsState()
     val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsState()
     var showClearHistoryDialog by remember { mutableStateOf(false) }
+    var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
+    var showRefundPolicyDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     if (showClearHistoryDialog) {
@@ -2222,6 +2224,32 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             },
             dismissButton = {
                 TextButton(onClick = { showClearHistoryDialog = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+
+    if (showPrivacyPolicyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyPolicyDialog = false },
+            title = { Text(stringResource(R.string.consent_dialog_title)) },
+            text = { Text(stringResource(R.string.consent_dialog_body)) },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyPolicyDialog = false }) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showRefundPolicyDialog) {
+        AlertDialog(
+            onDismissRequest = { showRefundPolicyDialog = false },
+            title = { Text(stringResource(R.string.refund_policy_title)) },
+            text = { Text(stringResource(R.string.refund_policy_body)) },
+            confirmButton = {
+                TextButton(onClick = { showRefundPolicyDialog = false }) {
+                    Text(stringResource(R.string.ok))
+                }
             }
         )
     }
@@ -2364,8 +2392,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://your-website.com/privacy"))
-                                    context.startActivity(intent)
+                                    showPrivacyPolicyDialog = true
                                 },
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -2375,7 +2402,27 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                     Text(stringResource(R.string.settings_privacy_policy_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Rounded.OpenInNew,
+                                    imageVector = Icons.Rounded.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    showRefundPolicyDialog = true
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_refund_policy), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_refund_policy_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Info,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -2387,12 +2434,6 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         }
     }
 }
-
-
-
-
-
-
 
 @Composable
 fun RecentFilesSection(viewModel: MainViewModel) {
