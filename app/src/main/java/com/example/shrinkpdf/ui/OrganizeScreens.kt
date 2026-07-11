@@ -611,7 +611,7 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ExtendedFloatingActionButton(
                     onClick = {
                         val file = selectedFile ?: return@ExtendedFloatingActionButton
-                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, file.uri) ?: stringResource(R.string.default_document_name)
+                        val originalName = com.example.shrinkpdf.utils.FileUtils.getFileName(context, file.uri) ?: context.getString(R.string.default_document_name)
                         val suggestedName = "${originalName.substringBeforeLast(".")}_deleted.pdf"
                         createDocumentLauncher.launch(suggestedName)
                     },

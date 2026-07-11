@@ -582,7 +582,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             try {
                 PdfManipulator.mergePdfs(context, sourceUris, destUri)
-                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_merged_pdf), context.getString(R.string.history_merge))
+                historyRepository.addHistoryItem(destUri, context.getString(R.string.history_merged_pdf), context.getString(R.string.desc_merge))
                 refreshHistory()
                 _uiState.value = UiState.Success(context.getString(R.string.success_merge_complete), context.getString(R.string.success_merged_docs, sourceUris.size), listOf(destUri))
             } catch (e: Exception) {
