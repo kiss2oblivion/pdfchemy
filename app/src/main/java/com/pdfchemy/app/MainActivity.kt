@@ -737,7 +737,7 @@ fun HomeScreen(
         val isPremium by viewModel.isPremium.collectAsState()
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-        val isWideScreen = windowWidthSizeClass != WindowWidthSizeClass.Compact
+        val isWideScreen = windowWidthSizeClass == WindowWidthSizeClass.Expanded
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -840,11 +840,12 @@ fun HomeScreen(
                 }
             }
         } else {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    modifier = Modifier.widthIn(max = 600.dp).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.graphicsLayer {
@@ -909,6 +910,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     RecentFilesSection(viewModel)
                 }
+            }
             }
         }
         } // End of Box weight(1f)
