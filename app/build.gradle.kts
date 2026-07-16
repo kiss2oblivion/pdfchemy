@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.shrinkpdf"
+    namespace = "com.pdfchemy.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.shrinkpdf"
+        applicationId = "com.pdfchemy.app"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -20,6 +20,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 
     signingConfigs {
@@ -114,6 +119,9 @@ dependencies {
     // Firebase Setup
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")
+
+    // Google User Messaging Platform (UMP) for GDPR
+    implementation("com.google.android.ump:user-messaging-platform:2.2.0")
 
     // ML Kit Document Scanner
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")

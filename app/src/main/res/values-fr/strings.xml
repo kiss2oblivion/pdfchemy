@@ -33,6 +33,15 @@
     <string name="menu_metadata_desc">Voir les propriétés cachées</string>
     <string name="settings_title">Paramètres</string>
     <string name="settings_preferences">Préférences de l\'Application</string>
+    <string name="settings_privacy_policy">Politique de Confidentialité</string>
+    <string name="settings_privacy_policy_desc">Lisez nos politiques de confidentialité et de données</string>
+    <string name="consent_dialog_title">Bienvenue sur PDFchemy</string>
+    <string name="consent_dialog_body">Votre confidentialité est notre priorité. Tout le traitement PDF s\'effectue strictement hors ligne sur votre appareil.\n\nPour que cette application reste gratuite, nous utilisons des services tiers tels que Google AdMob pour afficher des annonces. Ces services peuvent collecter et utiliser des données (comme l\'identifiant de votre appareil et votre position) pour fournir des publicités personnalisées.\n\nEn cliquant sur "J\'accepte", vous consentez à l\'utilisation de ces données à des fins publicitaires.</string>
+    <string name="consent_dialog_agree">J\'accepte</string>
+    <string name="refund_policy_title">Politique de remboursement</string>
+    <string name="refund_policy_body">Si vous n\'avez pas demandé de remboursement dans les 14 jours suivant l\'achat, aucun remboursement ne sera effectué.</string>
+    <string name="settings_refund_policy">Politique de remboursement</string>
+    <string name="settings_refund_policy_desc">Consultez notre politique de remboursement pour les achats premium</string>
     <string name="settings_haptic">Retour Haptique</string>
     <string name="settings_haptic_desc">Vibrer lors des interactions</string>
     <string name="settings_sfx">Effets Sonores</string>

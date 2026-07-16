@@ -1164,12 +1164,13 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 300.dp),
+                modifier = Modifier.widthIn(max = 800.dp).fillMaxHeight().padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             item {
                 ToolCard(
                     title = stringResource(R.string.menu_scan),
@@ -1203,6 +1204,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 )
             }
         }
+        }
     }
 }
 
@@ -1222,12 +1224,13 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.padding(padding).fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 300.dp),
+                modifier = Modifier.widthIn(max = 800.dp).fillMaxHeight().padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             item {
                 ToolCard(
                     title = stringResource(R.string.compress_title),
@@ -1244,6 +1247,7 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     onClick = { onNavigate(Screen.BatchCompressPdf) } // Routes to same tool where tab exists
                 )
             }
+        }
         }
     }
 }

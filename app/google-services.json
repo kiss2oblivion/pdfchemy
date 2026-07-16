@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:472051479443:android:53414dc6a0ff03e8ccee66",
+        "mobilesdk_app_id": "1:472051479443:android:16cbf90985d2e3aaccee66",
         "android_client_info": {
-          "package_name": "com.example.shrinkpdf"
+          "package_name": "com.pdfchemy.app"
         }
       },
       "oauth_client": [],

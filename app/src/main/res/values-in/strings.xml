@@ -33,6 +33,15 @@
     <string name="menu_metadata_desc">Lihat properti tersembunyi</string>
     <string name="settings_title">Pengaturan</string>
     <string name="settings_preferences">Preferensi Aplikasi</string>
+    <string name="settings_privacy_policy">Kebijakan Privasi</string>
+    <string name="settings_privacy_policy_desc">Baca kebijakan privasi dan data kami</string>
+    <string name="consent_dialog_title">Selamat Datang di PDFchemy</string>
+    <string name="consent_dialog_body">Privasi Anda adalah prioritas kami. Semua pemrosesan PDF dilakukan secara offline di perangkat Anda.\n\nUntuk membuat aplikasi ini tetap gratis, kami menggunakan layanan pihak ketiga seperti Google AdMob untuk menampilkan iklan. Layanan ini mungkin mengumpulkan dan menggunakan data (seperti pengenal dan lokasi perangkat Anda) untuk menyediakan iklan yang dipersonalisasi.\n\nDengan mengeklik "Saya Setuju", Anda menyetujui penggunaan data ini untuk tujuan periklanan.</string>
+    <string name="consent_dialog_agree">Saya Setuju</string>
+    <string name="refund_policy_title">Kebijakan Pengembalian Dana</string>
+    <string name="refund_policy_body">Jika Anda belum meminta pengembalian dana dalam 14 hari setelah pembelian, tidak ada pengembalian dana yang akan dikeluarkan.</string>
+    <string name="settings_refund_policy">Kebijakan Pengembalian Dana</string>
+    <string name="settings_refund_policy_desc">Lihat kebijakan pengembalian dana kami untuk pembelian premium</string>
     <string name="settings_haptic">Umpan Balik Haptik</string>
     <string name="settings_haptic_desc">Getar saat berinteraksi</string>
     <string name="settings_sfx">Efek Suara</string>

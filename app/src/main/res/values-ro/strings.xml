@@ -33,6 +33,15 @@
     <string name="menu_metadata_desc">Vezi proprietățile ascunse</string>
     <string name="settings_title">Setări</string>
     <string name="settings_preferences">Preferințe Aplicație</string>
+    <string name="settings_privacy_policy">Politica de confidențialitate</string>
+    <string name="settings_privacy_policy_desc">Citiți politicile noastre de confidențialitate și date</string>
+    <string name="consent_dialog_title">Bun venit la PDFchemy</string>
+    <string name="consent_dialog_body">Confidențialitatea dvs. este prioritatea noastră. Toată procesarea PDF are loc strict offline pe dispozitivul dvs.\n\nPentru a menține această aplicație gratuită, folosim servicii terțe precum Google AdMob pentru a afișa reclame. Aceste servicii pot colecta și utiliza date (cum ar fi identificatorul dispozitivului și locația) pentru a oferi publicitate personalizată.\n\nFăcând clic pe "Sunt de acord", sunteți de acord cu utilizarea acestor date în scopuri publicitare.</string>
+    <string name="consent_dialog_agree">Sunt de acord</string>
+    <string name="refund_policy_title">Politica de rambursare</string>
+    <string name="refund_policy_body">Dacă nu ați solicitat o rambursare în termen de 14 zile de la cumpărare, nu se va emite nicio rambursare.</string>
+    <string name="settings_refund_policy">Politica de rambursare</string>
+    <string name="settings_refund_policy_desc">Vizualizați politica noastră de rambursare pentru achizițiile premium</string>
     <string name="settings_haptic">Vibrații</string>
     <string name="settings_haptic_desc">Vibrează la interacțiuni</string>
     <string name="settings_sfx">Efecte Sonore</string>
