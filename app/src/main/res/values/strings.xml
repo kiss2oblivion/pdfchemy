@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PDFchemy</string>
+    <string name="app_name">PDFchemy Tools</string>
     <string name="coming_soon">Coming Soon</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
@@ -153,6 +153,7 @@
     <string name="action_export">Export</string>
     <string name="msg_failed_scan">Failed to process scan</string>
     <string name="subtitle_images_to_pdf">Convert JPG, PNG, and other images to a single PDF</string>
+    <string name="text_to_pdf">Text to PDF</string>
     <string name="subtitle_text_to_pdf">Convert your notes or .txt files to PDF</string>
     <string name="subtitle_format_converter">Convert between TXT, MD, CSV, JSON, and more</string>
     <string name="subtitle_batch_compress">Select a folder and compress all PDFs inside</string>

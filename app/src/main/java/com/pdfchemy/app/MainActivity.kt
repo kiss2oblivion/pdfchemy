@@ -241,43 +241,46 @@ class MainActivity : AppCompatActivity() {
         PDFBoxResourceLoader.init(applicationContext)
         
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val hasConsentedInitial = prefs.getBoolean("has_consented", false)
-        val isDarkThemeInitial = prefs.getBoolean("is_dark_theme", false)
+        val isScreenshotRun = intent.getBooleanExtra("isScreenshotRun", false)
+        val hasConsentedInitial = if (isScreenshotRun) true else prefs.getBoolean("has_consented", false)
+        val isDarkThemeInitial = if (isScreenshotRun) true else prefs.getBoolean("is_dark_theme", false)
 
-        val consentInformation = UserMessagingPlatform.getConsentInformation(this)
-        if (consentInformation.canRequestAds()) {
-            MobileAds.initialize(this) { }
-        }
-
-        val debugSettings = ConsentDebugSettings.Builder(this)
-            .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
-            .addTestDeviceHashedId("TEST-EMULATOR")
-            .build()
-
-        val params = ConsentRequestParameters.Builder()
-            // Uncomment the next line to force the GDPR form for testing
-            // .setConsentDebugSettings(debugSettings) 
-            .build()
-
-        consentInformation.requestConsentInfoUpdate(
-            this,
-            params,
-            {
-                UserMessagingPlatform.loadAndShowConsentFormIfRequired(
-                    this
-                ) { loadAndShowError ->
-                    if (loadAndShowError != null) {
-                        Log.w("UMP", "${loadAndShowError.errorCode}: ${loadAndShowError.message}")
-                    }
-                    if (consentInformation.canRequestAds()) {
-                        MobileAds.initialize(this) { }
-                    }
-                }
-            },
-            { requestConsentError ->
-                Log.w("UMP", "${requestConsentError.errorCode}: ${requestConsentError.message}")
+        if (!isScreenshotRun) {
+            val consentInformation = UserMessagingPlatform.getConsentInformation(this)
+            if (consentInformation.canRequestAds()) {
+                MobileAds.initialize(this) { }
             }
-        )
+
+            val debugSettings = ConsentDebugSettings.Builder(this)
+                .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
+                .addTestDeviceHashedId("TEST-EMULATOR")
+                .build()
+
+            val params = ConsentRequestParameters.Builder()
+                // Uncomment the next line to force the GDPR form for testing
+                // .setConsentDebugSettings(debugSettings) 
+                .build()
+
+            consentInformation.requestConsentInfoUpdate(
+                this,
+                params,
+                {
+                    UserMessagingPlatform.loadAndShowConsentFormIfRequired(
+                        this
+                    ) { loadAndShowError ->
+                        if (loadAndShowError != null) {
+                            Log.w("UMP", "${loadAndShowError.errorCode}: ${loadAndShowError.message}")
+                        }
+                        if (consentInformation.canRequestAds()) {
+                            MobileAds.initialize(this) { }
+                        }
+                    }
+                },
+                { requestConsentError ->
+                    Log.w("UMP", "${requestConsentError.errorCode}: ${requestConsentError.message}")
+                }
+            )
+        }
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
@@ -310,6 +313,7 @@ class MainActivity : AppCompatActivity() {
                     windowWidthSizeClass = windowSizeClass.widthSizeClass,
                     isDarkTheme = useDark,
                     hasConsented = hasConsented,
+                    isScreenshotRun = isScreenshotRun,
                     onToggleTheme = { 
                         isDarkTheme = !isDarkTheme 
                         prefs.edit().putBoolean("is_dark_theme", isDarkTheme).apply()
@@ -360,11 +364,18 @@ fun MainApp(
     textConverterViewModel: TextConverterViewModel = viewModel(),
     isDarkTheme: Boolean = false,
     hasConsented: Boolean = false,
+    isScreenshotRun: Boolean = false,
     onToggleTheme: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    
+    LaunchedEffect(isScreenshotRun) {
+        if (isScreenshotRun) {
+            viewModel.setPremiumForScreenshot()
+        }
+    }
     
     LaunchedEffect(Unit) {
         viewModel.initBilling(context)
@@ -386,8 +397,8 @@ fun MainApp(
                 viewModel = viewModel
             )
             Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.CompressPdf -> CompressPdfScreen(viewModel, 0) { currentScreen = Screen.CompressCategory }
-            Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1) { currentScreen = Screen.CompressCategory }
+            Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+            Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
             Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
@@ -1189,7 +1200,7 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             }
             item {
                 ToolCard(
-                    title = stringResource(R.string.text_format_converter),
+                    title = stringResource(R.string.text_to_pdf),
                     subtitle = stringResource(R.string.subtitle_text_to_pdf),
                     icon = Icons.Rounded.Description,
                     onClick = { onNavigate(Screen.TextToPdf) }
@@ -1348,7 +1359,7 @@ fun ToolCard(title: String, subtitle: String, icon: ImageVector, onClick: () -> 
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () -> Unit) {
+fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreenshotRun: Boolean = false, onBack: () -> Unit) {
     val context = LocalContext.current
     val view = androidx.compose.ui.platform.LocalView.current
     val isHaptic by viewModel.isHapticEnabled.collectAsState()
@@ -1468,7 +1479,24 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                                 useGrayscale = useGrayscale,
                                 useLossless = useLossless,
                                 viewModel = viewModel,
-                                onPickSingle = { pickPdfLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) },
+                                onPickSingle = { 
+                                    if (isScreenshotRun) {
+                                        val file = java.io.File(context.cacheDir, "Annual_Report_2026.pdf")
+                                        if (!file.exists()) {
+                                            context.assets.open("Annual_Report_2026.pdf").use { input ->
+                                                file.outputStream().use { output ->
+                                                    input.copyTo(output)
+                                                }
+                                            }
+                                        }
+                                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                        sourceUri = uri
+                                        sourceName = file.name
+                                        viewModel.onFileSelected(context, uri)
+                                    } else {
+                                        pickPdfLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) 
+                                    }
+                                },
                                 onPickMultiple = { pickMultiplePdfsLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) }
                             )
                         }
@@ -1516,7 +1544,24 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, onBack: () 
                             useGrayscale = useGrayscale,
                             useLossless = useLossless,
                             viewModel = viewModel,
-                            onPickSingle = { pickPdfLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) },
+                            onPickSingle = { 
+                                if (isScreenshotRun) {
+                                    val file = java.io.File(context.cacheDir, "Annual_Report_2026.pdf")
+                                    if (!file.exists()) {
+                                        context.assets.open("Annual_Report_2026.pdf").use { input ->
+                                            file.outputStream().use { output ->
+                                                input.copyTo(output)
+                                            }
+                                        }
+                                    }
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                    sourceUri = uri
+                                    sourceName = file.name
+                                    viewModel.onFileSelected(context, uri)
+                                } else {
+                                    pickPdfLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) 
+                                }
+                            },
                             onPickMultiple = { pickMultiplePdfsLauncher.launch(arrayOf("application/pdf", "application/x-pdf")) }
                         )
 

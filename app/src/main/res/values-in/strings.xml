@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PDFchemy</string>
+    <string name="app_name">PDFchemy Tools</string>
     <string name="coming_soon">Segera Hadir</string>
     <string name="ok">OK</string>
     <string name="cancel">Batal</string>
@@ -165,7 +165,7 @@
     <string name="subtitle_text_to_pdf">Ubah catatan atau file .txt ke PDF</string>
     <string name="subtitle_format_converter">Konversi antara TXT, MD, CSV, JSON, dll.</string>
     <string name="subtitle_batch_compress">Pilih folder dan kompres semua PDF di dalamnya</string>
-    <string name="title_tools">Alat PDFchemy</string>
+    <string name="title_tools">PDFchemy Tools</string>
     <string name="file_name_label">Nama File: %1$s</string>
     <string name="selected_batch_files">File Batch Terpilih:</string>
     <string name="analyzing_doc">Menganalisis dokumen...</string>

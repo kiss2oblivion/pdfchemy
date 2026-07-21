@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PDFchemy</string>
+    <string name="app_name">PDFchemy Tools</string>
     <string name="coming_soon">Demnächst</string>
     <string name="ok">OK</string>
     <string name="cancel">Abbrechen</string>
@@ -165,7 +165,7 @@
     <string name="subtitle_text_to_pdf">Notizen oder .txt-Dateien in PDF konvertieren</string>
     <string name="subtitle_format_converter">Konvertieren zwischen TXT, MD, CSV, JSON und mehr</string>
     <string name="subtitle_batch_compress">Ordner auswählen und alle PDFs komprimieren</string>
-    <string name="title_tools">PDFchemy Werkzeuge</string>
+    <string name="title_tools">PDFchemy Tools</string>
     <string name="file_name_label">Dateiname: %1$s</string>
     <string name="selected_batch_files">Ausgewählte Batch-Dateien:</string>
     <string name="analyzing_doc">Dokumentenstruktur analysieren...</string>
