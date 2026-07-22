@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -238,7 +239,7 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
         
