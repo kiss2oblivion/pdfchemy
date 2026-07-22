@@ -238,6 +238,7 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen(this)
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
         
@@ -793,21 +794,6 @@ fun HomeScreen(
                             translationX = -headerOffsetY.value  // slide from left in landscape
                         }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.in_app_logo),
-                            contentDescription = stringResource(R.string.desc_app_logo),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
                     ShimmerTitle(
                         text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.headlineMedium,
@@ -868,21 +854,6 @@ fun HomeScreen(
                         translationY = -headerOffsetY.value  // slide down from above
                     }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.in_app_logo),
-                            contentDescription = stringResource(R.string.desc_app_logo),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
                     ShimmerTitle(
                         text = stringResource(R.string.title_tools),
                         style = MaterialTheme.typography.headlineLarge,
