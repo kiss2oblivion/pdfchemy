@@ -754,7 +754,7 @@ fun HomeScreen(
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
         val configuration = LocalConfiguration.current
         val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val isWideScreen = isLandscape || windowWidthSizeClass == WindowWidthSizeClass.Expanded
+        val isWideScreen = isLandscape
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
