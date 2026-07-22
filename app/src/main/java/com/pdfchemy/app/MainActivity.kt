@@ -748,7 +748,9 @@ fun HomeScreen(
         val isPremium by viewModel.isPremium.collectAsState()
 
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-        val isWideScreen = windowWidthSizeClass == WindowWidthSizeClass.Expanded
+        val configuration = LocalConfiguration.current
+        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val isWideScreen = isLandscape || windowWidthSizeClass == WindowWidthSizeClass.Expanded
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -773,7 +775,7 @@ fun HomeScreen(
             }
         }
 
-        Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             if (isWideScreen) {
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
@@ -819,16 +821,16 @@ fun HomeScreen(
                         }
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(180.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.fillMaxWidth().height(130.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
                         CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(180.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.fillMaxWidth().height(130.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
                         CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
@@ -862,7 +864,7 @@ fun HomeScreen(
                             letterSpacing = 2.sp
                         ),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(top = 8.dp, bottom = 48.dp)
+                        modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
                     )
                 }
 
@@ -874,7 +876,7 @@ fun HomeScreen(
                     }
                 ) {
                   Row(
-                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
@@ -882,7 +884,7 @@ fun HomeScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
@@ -1000,36 +1002,40 @@ fun CategoryCard(
                 }
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(44.dp)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = title,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
