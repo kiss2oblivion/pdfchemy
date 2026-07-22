@@ -382,7 +382,8 @@ fun MainApp(
         viewModel.initBilling(context)
     }
 
-    val isPremium by viewModel.isPremium.collectAsState()
+    val isPremiumRaw by viewModel.isPremium.collectAsState()
+    val isPremium = isPremiumRaw || isScreenshotRun
     
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -543,7 +544,7 @@ fun MainApp(
             }
         }
         }
-            if (!isPremium && hasConsented) {
+            if (!isPremium && hasConsented && !isScreenshotRun) {
                 BannerAdView()
             }
         }
@@ -1003,27 +1004,27 @@ fun CategoryCard(
                 }
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 10.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(36.dp)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = title,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
@@ -1032,7 +1033,7 @@ fun CategoryCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 2,
