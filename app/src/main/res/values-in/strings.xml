@@ -336,4 +336,37 @@
     <string name="history_pdf_to_text">PDF ke Teks</string>
     <string name="history_converted_text">dikonversi_teks</string>
     <string name="title_settings">Pengaturan</string>
+    
+    <string name="settings_about_legal">Tentang &amp; Hukum</string>
+    <string name="settings_theme">Tema Aplikasi</string>
+    <string name="settings_theme_desc">Pilih antara tema Terang, Gelap, atau Default Sistem</string>
+    <string name="theme_system">Default Sistem</string>
+    <string name="theme_light">Mode Terang</string>
+    <string name="theme_dark">Mode Gelap</string>
+    <string name="settings_rate_app">Beri Nilai PDFchemy Tools</string>
+    <string name="settings_rate_app_desc">Menikmati aplikasi ini? Beri kami ulasan di Google Play!</string>
+    <string name="settings_rate_app_thanks">Terima kasih atas dukungan Anda!</string>
+    
+    <string name="settings_app_tour">Tur Aplikasi</string>
+    <string name="settings_app_tour_desc">Kunjungi kembali panduan singkat fitur-fitur utama</string>
+    <string name="settings_feedback">Kirim Masukan &amp; Bantuan</string>
+    <string name="settings_feedback_desc">Laporkan masalah, minta fitur, atau ajukan pertanyaan</string>
+    <string name="feedback_email_subject">Masukan &amp; Bantuan PDFchemy Tools</string>
+    
+    <!-- Onboarding Walkthrough Strings -->
+    <string name="onboarding_skip">Lewati</string>
+    <string name="onboarding_next">Berikutnya</string>
+    <string name="onboarding_get_started">Mulai</string>
+    
+    <string name="onboarding_slide1_title">Kompresi PDF Cerdas</string>
+    <string name="onboarding_slide1_desc">Kecilkan ukuran file PDF untuk email dan batas unggahan dengan tetap menjaga keterbacaan dan format yang tajam.</string>
+    
+    <string name="onboarding_slide2_title">Pindai &amp; Buat</string>
+    <string name="onboarding_slide2_desc">Ubah foto kamera dan gambar galeri menjadi PDF rapi, atau konversikan teks biasa hanya dengan satu ketukan.</string>
+    
+    <string name="onboarding_slide3_title">Atur &amp; Gabungkan</string>
+    <string name="onboarding_slide3_desc">Gabungkan beberapa dokumen dengan seret dan lepas, ekstrak halaman, atau pisahkan file PDF dengan mudah.</string>
+    
+    <string name="onboarding_slide4_title">100% Pribadi &amp; Offline</string>
+    <string name="onboarding_slide4_desc">Dokumen Anda tetap berada di perangkat Anda. Tanpa unggahan cloud, tanpa akun wajib—privasi total.</string>
 </resources>

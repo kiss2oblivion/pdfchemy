@@ -337,4 +337,37 @@
     <string name="history_pdf_to_text">PDF zu Text</string>
     <string name="history_converted_text">konvertierter_text</string>
     <string name="title_settings">Einstellungen</string>
+    
+    <string name="settings_about_legal">Über &amp; Rechtliches</string>
+    <string name="settings_theme">App-Design</string>
+    <string name="settings_theme_desc">Wählen Sie zwischen Hellem, Dunklem oder System-Standarddesign</string>
+    <string name="theme_system">System-Standard</string>
+    <string name="theme_light">Heller Modus</string>
+    <string name="theme_dark">Dunkler Modus</string>
+    <string name="settings_rate_app">PDFchemy Tools bewerten</string>
+    <string name="settings_rate_app_desc">Gefällt Ihnen die App? Hinterlassen Sie uns eine Bewertung bei Google Play!</string>
+    <string name="settings_rate_app_thanks">Vielen Dank für Ihre Unterstützung!</string>
+    
+    <string name="settings_app_tour">App-Tour</string>
+    <string name="settings_app_tour_desc">Kurze Einführung in die wichtigsten Funktionen ansehen</string>
+    <string name="settings_feedback">Feedback &amp; Support senden</string>
+    <string name="settings_feedback_desc">Fehler melden, Funktionen anfragen oder Fragen stellen</string>
+    <string name="feedback_email_subject">PDFchemy Tools Feedback &amp; Support</string>
+    
+    <!-- Onboarding Walkthrough Strings -->
+    <string name="onboarding_skip">Überspringen</string>
+    <string name="onboarding_next">Weiter</string>
+    <string name="onboarding_get_started">Loslegen</string>
+    
+    <string name="onboarding_slide1_title">Intelligente PDF-Komprimierung</string>
+    <string name="onboarding_slide1_desc">Verkleinern Sie große PDFs für E-Mail- und Upload-Limits bei gestochen scharfer Lesbarkeit und Formatierung.</string>
+    
+    <string name="onboarding_slide2_title">Scannen &amp; Erstellen</string>
+    <string name="onboarding_slide2_desc">Verwandeln Sie Kamerafotos und Galeriebilder in saubere PDFs oder konvertieren Sie Text mit einem Fingertipp.</string>
+    
+    <string name="onboarding_slide3_title">Organisieren &amp; Zusammenführen</string>
+    <string name="onboarding_slide3_desc">Kombinieren Sie mehrere Dokumente per Drag-and-Drop, extrahieren Sie Seiten oder teilen Sie PDFs mühelos.</string>
+    
+    <string name="onboarding_slide4_title">100% Privat &amp; Offline</string>
+    <string name="onboarding_slide4_desc">Ihre Dokumente bleiben auf Ihrem Gerät. Keine Cloud-Uploads, keine Registrierungspflicht – absolute Privatsphäre.</string>
 </resources>

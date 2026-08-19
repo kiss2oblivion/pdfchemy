@@ -337,4 +337,37 @@
     <string name="history_pdf_to_text">PDF în text</string>
     <string name="history_converted_text">text_convertit</string>
     <string name="title_settings">Setări</string>
+    
+    <string name="settings_about_legal">Despre și Termeni Legali</string>
+    <string name="settings_theme">Tema aplicației</string>
+    <string name="settings_theme_desc">Alegeți între tema Luminoasă, Întunecată sau Implicită de sistem</string>
+    <string name="theme_system">Implicit de sistem</string>
+    <string name="theme_light">Mod luminos</string>
+    <string name="theme_dark">Mod întunecat</string>
+    <string name="settings_rate_app">Evaluează PDFchemy Tools</string>
+    <string name="settings_rate_app_desc">Vă place aplicația? Lăsați-ne o recenzie pe Google Play!</string>
+    <string name="settings_rate_app_thanks">Vă mulțumim pentru sprijin!</string>
+    
+    <string name="settings_app_tour">Ghidul aplicației</string>
+    <string name="settings_app_tour_desc">Revizuiți prezentarea rapidă a funcțiilor principale</string>
+    <string name="settings_feedback">Trimite feedback și asistență</string>
+    <string name="settings_feedback_desc">Raportați erori, sugerați funcții sau adresați întrebări</string>
+    <string name="feedback_email_subject">Feedback și asistență PDFchemy Tools</string>
+    
+    <!-- Onboarding Walkthrough Strings -->
+    <string name="onboarding_skip">Omite</string>
+    <string name="onboarding_next">Următorul</string>
+    <string name="onboarding_get_started">Începe</string>
+    
+    <string name="onboarding_slide1_title">Compresie PDF inteligentă</string>
+    <string name="onboarding_slide1_desc">Reduceți fișierele PDF mari pentru e-mail și limite de încărcare, păstrând claritatea și formatarea documentului.</string>
+    
+    <string name="onboarding_slide2_title">Scanați și creați</string>
+    <string name="onboarding_slide2_desc">Transformați fotografiile și imaginile din galerie în PDF-uri clare sau convertiți text simplu printr-o singură atingere.</string>
+    
+    <string name="onboarding_slide3_title">Organizați și îmbinați</string>
+    <string name="onboarding_slide3_desc">Combinați mai multe documente prin glisare și fixare, extrageți pagini sau împărțiți fișiere PDF cu ușurință.</string>
+    
+    <string name="onboarding_slide4_title">100% privat și offline</string>
+    <string name="onboarding_slide4_desc">Documentele dvs. rămân pe dispozitivul dvs. Fără încărcări în cloud, fără cont obligatoriu: confidențialitate deplină.</string>
 </resources>

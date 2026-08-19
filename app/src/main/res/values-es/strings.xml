@@ -337,4 +337,37 @@
     <string name="history_pdf_to_text">PDF a texto</string>
     <string name="history_converted_text">texto_convertido</string>
     <string name="title_settings">Ajustes</string>
+    
+    <string name="settings_about_legal">Acerca de y legal</string>
+    <string name="settings_theme">Tema de la app</string>
+    <string name="settings_theme_desc">Elija entre tema Claro, Oscuro o Predeterminado del sistema</string>
+    <string name="theme_system">Predeterminado del sistema</string>
+    <string name="theme_light">Modo claro</string>
+    <string name="theme_dark">Modo oscuro</string>
+    <string name="settings_rate_app">Calificar PDFchemy Tools</string>
+    <string name="settings_rate_app_desc">¿Disfrutas de la app? ¡Déjanos una reseña en Google Play!</string>
+    <string name="settings_rate_app_thanks">¡Gracias por su apoyo!</string>
+    
+    <string name="settings_app_tour">Guía de la app</string>
+    <string name="settings_app_tour_desc">Revise el recorrido rápido de las funciones clave</string>
+    <string name="settings_feedback">Enviar comentarios y soporte</string>
+    <string name="settings_feedback_desc">Reportar errores, solicitar funciones o hacer preguntas</string>
+    <string name="feedback_email_subject">Comentarios y soporte de PDFchemy Tools</string>
+    
+    <!-- Onboarding Walkthrough Strings -->
+    <string name="onboarding_skip">Saltar</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_get_started">Comenzar</string>
+    
+    <string name="onboarding_slide1_title">Compresión inteligente de PDF</string>
+    <string name="onboarding_slide1_desc">Reduzca archivos PDF grandes para límites de correo y subida manteniendo una legibilidad y formato nítidos.</string>
+    
+    <string name="onboarding_slide2_title">Escanear y crear</string>
+    <string name="onboarding_slide2_desc">Convierta fotos de la cámara e imágenes de la galería en PDF limpios, o transforme texto plano con un solo toque.</string>
+    
+    <string name="onboarding_slide3_title">Organizar y combinar</string>
+    <string name="onboarding_slide3_desc">Combine múltiples documentos arrastrando y soltando, extraiga páginas o divida archivos PDF fácilmente.</string>
+    
+    <string name="onboarding_slide4_title">100% privado y sin conexión</string>
+    <string name="onboarding_slide4_desc">Sus documentos permanecen en su dispositivo. Cero subidas a la nube, sin cuentas obligatorias: total privacidad.</string>
 </resources>
