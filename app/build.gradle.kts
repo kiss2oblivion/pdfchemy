@@ -7,13 +7,13 @@ plugins {
 
 android {
     namespace = "com.pdfchemy.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pdfchemy.app"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
+        targetSdk = 36
+        versionCode = 3
         versionName = "1.0-alpha-stable"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -129,7 +129,7 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1")
 
     // 5. Google Play Billing Library
-    implementation("com.android.billingclient:billing-ktx:7.0.0")
+    implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("androidx.compose.material3:material3-window-size-class")
 
     // Text Conversion Libraries

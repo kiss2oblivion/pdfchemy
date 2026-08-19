@@ -246,7 +246,14 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val isScreenshotRun = intent.getBooleanExtra("isScreenshotRun", false)
         val hasConsentedInitial = if (isScreenshotRun) true else prefs.getBoolean("has_consented", false)
-        val isDarkThemeInitial = if (isScreenshotRun) true else prefs.getBoolean("is_dark_theme", false)
+        val hasCompletedOnboardingInitial = if (isScreenshotRun) true else prefs.getBoolean("has_completed_onboarding", false)
+        val themeModeInitial = if (isScreenshotRun) "DARK" else {
+            prefs.getString("theme_mode", null) ?: if (prefs.contains("is_dark_theme")) {
+                if (prefs.getBoolean("is_dark_theme", false)) "DARK" else "LIGHT"
+            } else {
+                "SYSTEM"
+            }
+        }
 
         if (!isScreenshotRun) {
             val consentInformation = UserMessagingPlatform.getConsentInformation(this)
@@ -287,9 +294,16 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
-            var isDarkTheme by remember { mutableStateOf(isDarkThemeInitial) }
-            val useDark = isDarkTheme
+            var themeMode by remember { mutableStateOf(themeModeInitial) }
+            val systemInDark = isSystemInDarkTheme()
+            val useDark = when (themeMode) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> systemInDark
+            }
             var hasConsented by remember { mutableStateOf(hasConsentedInitial) }
+            var hasCompletedOnboarding by remember { mutableStateOf(hasCompletedOnboardingInitial) }
+            var showTourManually by remember { mutableStateOf(false) }
             
             ShrinkPdfTheme(useDarkTheme = useDark) {
                 if (!hasConsented) {
@@ -312,14 +326,28 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
+                if (hasConsented && (!hasCompletedOnboarding || showTourManually)) {
+                    OnboardingWalkthroughDialog(
+                        onDismiss = {
+                            hasCompletedOnboarding = true
+                            prefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                            showTourManually = false
+                        }
+                    )
+                }
+
                 MainApp(
                     windowWidthSizeClass = windowSizeClass.widthSizeClass,
                     isDarkTheme = useDark,
+                    themeMode = themeMode,
                     hasConsented = hasConsented,
                     isScreenshotRun = isScreenshotRun,
-                    onToggleTheme = { 
-                        isDarkTheme = !isDarkTheme 
-                        prefs.edit().putBoolean("is_dark_theme", isDarkTheme).apply()
+                    onChangeThemeMode = { newMode ->
+                        themeMode = newMode
+                        prefs.edit().putString("theme_mode", newMode).apply()
+                    },
+                    onOpenTour = {
+                        showTourManually = true
                     }
                 )
             }
@@ -366,9 +394,11 @@ fun MainApp(
     viewModel: MainViewModel = viewModel(),
     textConverterViewModel: TextConverterViewModel = viewModel(),
     isDarkTheme: Boolean = false,
+    themeMode: String = "SYSTEM",
     hasConsented: Boolean = false,
     isScreenshotRun: Boolean = false,
-    onToggleTheme: () -> Unit = {}
+    onChangeThemeMode: (String) -> Unit = {},
+    onOpenTour: () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     val uiState by viewModel.uiState.collectAsState()
@@ -396,7 +426,14 @@ fun MainApp(
             Screen.Home -> HomeScreen(
                 windowWidthSizeClass = windowWidthSizeClass,
                 isDarkTheme = isDarkTheme,
-                onToggleTheme = onToggleTheme,
+                onToggleTheme = {
+                    val nextMode = when (themeMode) {
+                        "SYSTEM" -> "LIGHT"
+                        "LIGHT" -> "DARK"
+                        else -> "SYSTEM"
+                    }
+                    onChangeThemeMode(nextMode)
+                },
                 onNavigate = { screen -> currentScreen = screen },
                 viewModel = viewModel
             )
@@ -406,7 +443,12 @@ fun MainApp(
             Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
-            Screen.Settings -> SettingsScreen(viewModel) { currentScreen = Screen.Home }
+            Screen.Settings -> SettingsScreen(
+                viewModel = viewModel,
+                themeMode = themeMode,
+                onChangeThemeMode = onChangeThemeMode,
+                onOpenTour = onOpenTour
+            ) { currentScreen = Screen.Home }
             Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
@@ -2275,7 +2317,13 @@ fun CompressionPresetButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    viewModel: MainViewModel,
+    themeMode: String = "SYSTEM",
+    onChangeThemeMode: (String) -> Unit = {},
+    onOpenTour: () -> Unit = {},
+    onBack: () -> Unit
+) {
     val isHapticEnabled by viewModel.isHapticEnabled.collectAsState()
     val isSfxEnabled by viewModel.isSfxEnabled.collectAsState()
     val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsState()
@@ -2353,6 +2401,41 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            // Theme Selector
+                            var themeExpanded by remember { mutableStateOf(false) }
+                            val themeOptions = mapOf(
+                                "SYSTEM" to stringResource(R.string.theme_system),
+                                "LIGHT" to stringResource(R.string.theme_light),
+                                "DARK" to stringResource(R.string.theme_dark)
+                            )
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { themeExpanded = true },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_theme_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Box {
+                                    Text(themeOptions[themeMode] ?: stringResource(R.string.theme_system), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    DropdownMenu(expanded = themeExpanded, onDismissRequest = { themeExpanded = false }) {
+                                        themeOptions.forEach { (modeKey, modeName) ->
+                                            DropdownMenuItem(
+                                                text = { Text(modeName) },
+                                                onClick = {
+                                                    onChangeThemeMode(modeKey)
+                                                    themeExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                             // Language Selector
                             var expanded by remember { mutableStateOf(false) }
                             val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
@@ -2464,6 +2547,82 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            // App Tour
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { onOpenTour() },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_app_tour), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_app_tour_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            // Send Feedback & Support
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = Uri.parse("mailto:support@pdfchemy.app")
+                                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.feedback_email_subject))
+                                        putExtra(Intent.EXTRA_TEXT, "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nFeedback:\n")
+                                    }
+                                    try {
+                                        context.startActivity(Intent.createChooser(emailIntent, context.getString(R.string.settings_feedback)))
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "No email app found", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_feedback), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_feedback_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Email,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            // Rate App
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    val packageName = context.packageName
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
+                                    } catch (e: Exception) {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")))
+                                    }
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_rate_app), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_rate_app_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFD700)
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            // Privacy Policy
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
                                     showPrivacyPolicyDialog = true
@@ -2484,6 +2643,7 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+                            // Refund Policy
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
                                     showRefundPolicyDialog = true
@@ -2646,4 +2806,197 @@ fun PremiumUpgradeScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         }
     }
 }
+}
+
+data class OnboardingSlide(
+    val titleRes: Int,
+    val descRes: Int,
+    val icon: ImageVector,
+    val iconTint: Color
+)
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun OnboardingWalkthroughDialog(
+    onDismiss: () -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val slides = listOf(
+        OnboardingSlide(
+            titleRes = R.string.onboarding_slide1_title,
+            descRes = R.string.onboarding_slide1_desc,
+            icon = Icons.Rounded.Compress,
+            iconTint = MaterialTheme.colorScheme.primary
+        ),
+        OnboardingSlide(
+            titleRes = R.string.onboarding_slide2_title,
+            descRes = R.string.onboarding_slide2_desc,
+            icon = Icons.Rounded.DocumentScanner,
+            iconTint = MaterialTheme.colorScheme.secondary
+        ),
+        OnboardingSlide(
+            titleRes = R.string.onboarding_slide3_title,
+            descRes = R.string.onboarding_slide3_desc,
+            icon = Icons.Rounded.FolderOpen,
+            iconTint = MaterialTheme.colorScheme.tertiary
+        ),
+        OnboardingSlide(
+            titleRes = R.string.onboarding_slide4_title,
+            descRes = R.string.onboarding_slide4_desc,
+            icon = Icons.Rounded.Security,
+            iconTint = Color(0xFF4CAF50)
+        )
+    )
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { slides.size })
+
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .padding(vertical = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Top Row with Title and Skip button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "PDFchemy Tools",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (pagerState.currentPage < slides.size - 1) {
+                        TextButton(onClick = onDismiss) {
+                            Text(
+                                text = stringResource(R.string.onboarding_skip),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.size(48.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Pager with slides
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                ) { page ->
+                    val slide = slides[page]
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(CircleShape)
+                                .background(slide.iconTint.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = slide.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = slide.iconTint
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = stringResource(slide.titleRes),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = stringResource(slide.descRes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Page Indicator Dots
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                ) {
+                    repeat(slides.size) { index ->
+                        val isSelected = pagerState.currentPage == index
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .height(8.dp)
+                                .width(if (isSelected) 24.dp else 8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                                )
+                        )
+                    }
+                }
+
+                // Next or Get Started Button
+                val isLastPage = pagerState.currentPage == slides.size - 1
+                Button(
+                    onClick = {
+                        if (isLastPage) {
+                            onDismiss()
+                        } else {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = if (isLastPage) stringResource(R.string.onboarding_get_started) else stringResource(R.string.onboarding_next),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
 }

@@ -339,4 +339,36 @@
     <string name="refund_policy_body">If you have not requested a refund within 14 days of purchase, there will be no refund issued.</string>
     <string name="settings_refund_policy">Refund Policy</string>
     <string name="settings_refund_policy_desc">View our refund policy for premium purchases</string>
+    
+    <string name="settings_theme">App Theme</string>
+    <string name="settings_theme_desc">Choose between Light, Dark, or System Default theme</string>
+    <string name="theme_system">System Default</string>
+    <string name="theme_light">Light Mode</string>
+    <string name="theme_dark">Dark Mode</string>
+    <string name="settings_rate_app">Rate PDFchemy Tools</string>
+    <string name="settings_rate_app_desc">Enjoying the app? Leave us a review on Google Play!</string>
+    <string name="settings_rate_app_thanks">Thank you for your support!</string>
+    
+    <string name="settings_app_tour">App Tour</string>
+    <string name="settings_app_tour_desc">Revisit the quick walkthrough of key features</string>
+    <string name="settings_feedback">Send Feedback &amp; Support</string>
+    <string name="settings_feedback_desc">Report bugs, request features, or ask questions</string>
+    <string name="feedback_email_subject">PDFchemy Tools Feedback &amp; Support</string>
+    
+    <!-- Onboarding Walkthrough Strings -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    
+    <string name="onboarding_slide1_title">Smart PDF Compression</string>
+    <string name="onboarding_slide1_desc">Shrink large PDFs to fit email and upload limits while preserving crisp readability and formatting.</string>
+    
+    <string name="onboarding_slide2_title">Scan &amp; Create</string>
+    <string name="onboarding_slide2_desc">Turn camera photos and gallery images into clean PDFs, or convert raw text with a single tap.</string>
+    
+    <string name="onboarding_slide3_title">Organize &amp; Merge</string>
+    <string name="onboarding_slide3_desc">Combine multiple documents with drag-and-drop ordering, extract pages, or split PDFs effortlessly.</string>
+    
+    <string name="onboarding_slide4_title">100% Private &amp; Offline</string>
+    <string name="onboarding_slide4_desc">Your documents stay on your device. Zero cloud uploads, zero account requirements—total privacy.</string>
 </resources>
