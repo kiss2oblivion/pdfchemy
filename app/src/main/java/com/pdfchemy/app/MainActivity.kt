@@ -2570,7 +2570,7 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
                                     val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                        data = Uri.parse("mailto:support@pdfchemy.app")
+                                        data = Uri.parse("mailto:cucosandreiioan@gmail.com")
                                         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.feedback_email_subject))
                                         putExtra(Intent.EXTRA_TEXT, "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid: ${android.os.Build.VERSION.RELEASE}\n\nFeedback:\n")
                                     }
