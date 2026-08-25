@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
@@ -77,6 +78,14 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_edit_pdf),
+                    subtitle = stringResource(R.string.menu_edit_pdf_desc),
+                    icon = Icons.Filled.Edit,
+                    onClick = { onNavigate(Screen.PdfEditor) }
+                )
+            }
             item {
                 ToolCard(
                     title = stringResource(R.string.menu_merge),

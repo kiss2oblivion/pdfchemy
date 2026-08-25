@@ -17,6 +17,7 @@ This document outlines all the tools and capabilities built into **PDFchemy Tool
 - **Text Format Converter**: Parse and convert data seamlessly between TXT, Markdown, CSV, HTML, and JSON formats.
 
 ## 3. Organize (Structural Editing)
+- **Edit & Annotate PDF**: Interactive full-page multi-page PDF reader and editor. Draw freehand signatures and annotations, highlight text with neon markers, place draggable text boxes with custom styling, stamp pre-designed business stamps (*Approved*, *Confidential*, *Draft*, *Paid*, *Rejected*), and rotate or delete pages on the fly with 100% on-device vector preservation.
 - **Merge PDFs**: Select multiple PDFs and combine them into one. Supports long-press and drag-to-reorder, and integrates directly with the app's History Repository to merge recent scans.
 - **Split PDF**: Extract specific page ranges (e.g., `1-3, 5`) from a larger document into a new PDF.
 - **Delete Pages**: Select specific pages to permanently remove from a PDF.
