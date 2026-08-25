@@ -4,6 +4,27 @@ All notable changes to the **PDFchemy Tools (Shrink PDF)** project will be docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-25
+
+### Added
+- **Interactive PDF Editor Engine (`PdfEditor.kt`)**:
+  - 100% on-device high-resolution PDF rendering via Android `PdfRenderer`.
+  - Multi-page document navigation with real-time vector and annotation compositing using `PDFBox-Android`.
+  - **Freehand Drawing & Signature Tool**: Smooth Bezier stroke capture with customizable stroke thickness and full RGBA color palette.
+  - **Translucent Highlighter**: Fluorescent alpha-blended highlighting for text emphasis and document markup.
+  - **Draggable Text Box Annotations**: Movable text overlays with dynamic typography styling, custom fonts, and colored bounding backgrounds.
+  - **Business Stamp Suite**: Predefined enterprise stamps (*APPROVED*, *CONFIDENTIAL*, *DRAFT*, *PAID*, *REJECTED*, *FINAL*, *URGENT*) with angled borders and high-contrast typography.
+  - **Structural Page Operations**: Dynamic 90°/180°/270° page rotation, selective page deletion, and non-destructive vector preservation during export.
+- **Interactive PDF Editor UI (`PdfEditorScreen.kt`)**:
+  - Fullscreen interactive page canvas with gesture detection and live visual feedback.
+  - Floating bottom tool shelf with quick tool switcher (View, Pen, Highlight, Text, Stamp, Color Picker).
+  - Page navigation controls with page count indicator and one-tap Undo action.
+  - Direct PDF export with native Android storage integration (`CreateDocument`) and instant share sheets.
+- **Automated Unit Test Suite (`PdfEditorTest.kt`)**:
+  - Automated tests verifying multi-page annotation overlays, signature compositing, stamp rendering, page rotations, and page deletions.
+- **Full 9-Language Localization**:
+  - Native translations added across English (`en`), German (`de`), Spanish (`es`), French (`fr`), Indonesian (`in`), Italian (`it`), Portuguese - Portugal (`pt`), Portuguese - Brazil (`pt-rBR`), and Romanian (`ro`).
+
 ---
 
 ## [1.1.0] - 2026-08-25

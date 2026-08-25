@@ -999,5 +999,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    fun exportEditedPdf(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        modifications: Map<Int, com.pdfchemy.app.logic.PageModification>,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            val result = com.pdfchemy.app.logic.PdfEditor.exportModifiedPdf(
+                context = context,
+                sourceUri = sourceUri,
+                destUri = destUri,
+                modifications = modifications
+            )
+            withContext(Dispatchers.Main) {
+                if (result.isSuccess) {
+                    historyRepository.addHistoryItem(
+                        destUri,
+                        context.getString(R.string.history_edited_pdf),
+                        context.getString(R.string.menu_edit_pdf)
+                    )
+                    refreshHistory()
+                    _uiState.value = UiState.Idle
+                    onComplete(true)
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: context.getString(R.string.error)
+                    _uiState.value = UiState.Error(errorMsg)
+                    onComplete(false)
+                }
+            }
+        }
+    }
 }
 

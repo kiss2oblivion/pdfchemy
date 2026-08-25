@@ -70,6 +70,7 @@ import com.pdfchemy.app.ui.RotatePdfScreen
 import com.pdfchemy.app.ui.ExtractTextScreen
 import com.pdfchemy.app.ui.textconverter.TextConverterViewModel
 import com.pdfchemy.app.ui.textconverter.TextConverterScreen
+import com.pdfchemy.app.ui.PdfEditorScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
@@ -453,6 +454,7 @@ fun MainApp(
             ) { currentScreen = Screen.Home }
             Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+            Screen.PdfEditor -> PdfEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
@@ -616,6 +618,7 @@ sealed class Screen {
     object CompressPdf : Screen()
     object BatchCompressPdf : Screen()
     object ImageCompressor : Screen()
+    object PdfEditor : Screen()
     object TextToPdf : Screen()
     object TextConverter : Screen()
     object Settings : Screen()
