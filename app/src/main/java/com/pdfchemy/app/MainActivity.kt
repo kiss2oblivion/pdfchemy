@@ -601,16 +601,24 @@ fun MainApp(
 
 @Composable
 fun BannerAdView(modifier: Modifier = Modifier) {
-    androidx.compose.ui.viewinterop.AndroidView(
-        modifier = modifier.fillMaxWidth(),
-        factory = { ctx ->
-            com.google.android.gms.ads.AdView(ctx).apply {
-                setAdSize(com.google.android.gms.ads.AdSize.BANNER)
-                adUnitId = com.pdfchemy.app.BuildConfig.BANNER_AD_UNIT_ID
-                loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.ui.viewinterop.AndroidView(
+            modifier = Modifier.wrapContentSize(),
+            factory = { ctx ->
+                com.google.android.gms.ads.AdView(ctx).apply {
+                    setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+                    adUnitId = com.pdfchemy.app.BuildConfig.BANNER_AD_UNIT_ID
+                    loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 sealed class Screen {
@@ -2744,16 +2752,24 @@ fun RecentFilesSection(viewModel: MainViewModel) {
 @Composable
 fun BannerAd(isPremium: Boolean, modifier: Modifier = Modifier) {
     if (isPremium) return
-    AndroidView(
-        modifier = modifier.fillMaxWidth(),
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test Banner ID
-                loadAd(AdRequest.Builder().build())
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            modifier = Modifier.wrapContentSize(),
+            factory = { context ->
+                AdView(context).apply {
+                    setAdSize(AdSize.BANNER)
+                    adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test Banner ID
+                    loadAd(AdRequest.Builder().build())
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @Composable
