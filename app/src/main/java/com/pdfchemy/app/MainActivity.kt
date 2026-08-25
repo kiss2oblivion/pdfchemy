@@ -65,6 +65,7 @@ import com.pdfchemy.app.ui.InspectMetadataScreen
 import com.pdfchemy.app.ui.StripMetadataScreen
 import com.pdfchemy.app.ui.TextCleanerScreen
 import com.pdfchemy.app.ui.ImagesToPdfScreen
+import com.pdfchemy.app.ui.ImageCompressorScreen
 import com.pdfchemy.app.ui.RotatePdfScreen
 import com.pdfchemy.app.ui.ExtractTextScreen
 import com.pdfchemy.app.ui.textconverter.TextConverterViewModel
@@ -440,6 +441,7 @@ fun MainApp(
             Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
             Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+            Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
             Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
@@ -613,6 +615,7 @@ sealed class Screen {
     object Home : Screen()
     object CompressPdf : Screen()
     object BatchCompressPdf : Screen()
+    object ImageCompressor : Screen()
     object TextToPdf : Screen()
     object TextConverter : Screen()
     object Settings : Screen()
@@ -1278,6 +1281,14 @@ fun CompressCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.subtitle_batch_compress),
                     icon = Icons.Rounded.LibraryBooks,
                     onClick = { onNavigate(Screen.BatchCompressPdf) } // Routes to same tool where tab exists
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_compress_image),
+                    subtitle = stringResource(R.string.menu_compress_image_desc),
+                    icon = Icons.Rounded.Image,
+                    onClick = { onNavigate(Screen.ImageCompressor) }
                 )
             }
         }

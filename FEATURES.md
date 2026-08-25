@@ -7,6 +7,8 @@ This document outlines all the tools and capabilities built into **PDFchemy Tool
 ## 1. Compress (Optimization)
 - **Compress PDF**: Shrink a single PDF file with an adjustable quality slider (0-100%). Includes options to strip metadata and convert to grayscale to further reduce file size.
 - **Batch Compress PDF**: Select a folder and compress all PDF files inside it simultaneously.
+- **Compress Images**: Compress single or multiple JPG, PNG, and WebP images with custom quality slider, downscale resolution limits (4K/1080p/720p/Web), format conversion, and EXIF privacy stripping.
+- **Batch Compress Images**: Select multiple photos from your gallery and compress them together to a chosen destination directory with live progress tracking and total size savings statistics.
 
 ## 2. Create (Generation)
 - **Scan to PDF**: Uses Google's native ML Kit Document Scanner to take photos of physical documents, crop them, enhance them, and save them silently to the app's internal repository.

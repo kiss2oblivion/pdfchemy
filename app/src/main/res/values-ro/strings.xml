@@ -370,4 +370,49 @@
     
     <string name="onboarding_slide4_title">100% privat și offline</string>
     <string name="onboarding_slide4_desc">Documentele dvs. rămân pe dispozitivul dvs. Fără încărcări în cloud, fără cont obligatoriu: confidențialitate deplină.</string>
+    
+    <!-- Image Compressor Strings -->
+    <string name="menu_compress_image">Comprimare imagini</string>
+    <string name="menu_compress_image_desc">Reduceți JPG, PNG, WebP</string>
+    <string name="history_compressed_image">Imagine comprimată</string>
+    <string name="history_compressed_images_folder">Dosar imagini comprimate</string>
+    <string name="image_compress_single">Imagine individuală</string>
+    <string name="image_compress_batch">În masă</string>
+    <string name="image_select_single">Selectați o imagine</string>
+    <string name="image_select_single_desc">JPG, PNG sau WebP până la 100 MB</string>
+    <string name="image_select_batch">Selectați imagini</string>
+    <string name="image_select_batch_desc">Alegeți mai multe imagini pentru a le comprima împreună</string>
+    <string name="image_selected_label">Imagine selectată</string>
+    <string name="image_batch_selected_count">%1$d imagini selectate</string>
+    <string name="image_batch_total_size">Dimensiune totală: %1$s</string>
+    <string name="image_compress_options">Opțiuni de comprimare</string>
+    <string name="image_compress_quality">Calitatea imaginii</string>
+    <string name="preset_extreme">Extrem (40%)</string>
+    <string name="preset_optimal">Optim (65%)</string>
+    <string name="preset_crisp">Clar (85%)</string>
+    <string name="preset_max">Max (100%)</string>
+    <string name="image_output_format">Format de ieșire</string>
+    <string name="image_max_resolution">Rezoluție maximă</string>
+    <string name="res_original">Original (100%)</string>
+    <string name="image_strip_exif">Eliminați datele EXIF și locația</string>
+    <string name="image_strip_exif_desc">Șterge etichetele GPS, detaliile camerei și metadatele</string>
+    <string name="image_btn_compress">Comprimă imaginea</string>
+    <string name="image_btn_compress_batch">Comprimă %1$d imagini</string>
+    <string name="image_result_success">Imagine comprimată cu succes!</string>
+    <string name="image_result_dimensions">Dimensiuni</string>
+    <string name="label_original">Original</string>
+    <string name="label_compressed">Comprimat</string>
+    <string name="image_batch_completed_title">Comprimare în masă finalizată!</string>
+    <string name="image_batch_completed_summary">S-au comprimat cu succes %1$d din %2$d imagini.\nOriginal: %3$s → Comprimat: %4$s (%5$d%% economisit).</string>
+    <string name="mode_quality_slider">Glisor de Calitate (%)</string>
+    <string name="mode_target_size">Dimensiune Țintă (MB)</string>
+    <string name="target_size_preset_title">Dimensiune Țintă</string>
+    <string name="target_custom">Personalizat</string>
+    <string name="custom_target_mb_label">Dimensiune țintă în MB</string>
+    <string name="estimator_title">Estimator de Comprimare AI</string>
+    <string name="savings_label">Economie</string>
+    <string name="estimated_size_label">Dimensiune Estimată</string>
+    <string name="estimated_quality_loss_label">Fidelitate Calitate Vizuală</string>
+    <string name="validation_denied_title">Graficul nu poate fi comprimat</string>
+    <string name="validation_warning_title">Avertisment Imagine</string>
 </resources>

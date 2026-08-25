@@ -369,4 +369,49 @@
     
     <string name="onboarding_slide4_title">100% Pribadi &amp; Offline</string>
     <string name="onboarding_slide4_desc">Dokumen Anda tetap berada di perangkat Anda. Tanpa unggahan cloud, tanpa akun wajib—privasi total.</string>
+    
+    <!-- Image Compressor Strings -->
+    <string name="menu_compress_image">Kompres Gambar</string>
+    <string name="menu_compress_image_desc">Kecilkan JPG, PNG, WebP</string>
+    <string name="history_compressed_image">Gambar Terkompresi</string>
+    <string name="history_compressed_images_folder">Folder Gambar Terkompresi</string>
+    <string name="image_compress_single">Satu Gambar</string>
+    <string name="image_compress_batch">Banyak Gambar</string>
+    <string name="image_select_single">Pilih Gambar</string>
+    <string name="image_select_single_desc">JPG, PNG, atau WebP hingga 100MB</string>
+    <string name="image_select_batch">Pilih Banyak Gambar</string>
+    <string name="image_select_batch_desc">Pilih beberapa gambar untuk dikompres bersama</string>
+    <string name="image_selected_label">Gambar Terpilih</string>
+    <string name="image_batch_selected_count">%1$d gambar dipilih</string>
+    <string name="image_batch_total_size">Ukuran total: %1$s</string>
+    <string name="image_compress_options">Opsi Kompresi</string>
+    <string name="image_compress_quality">Kualitas Gambar</string>
+    <string name="preset_extreme">Ekstrem (40%)</string>
+    <string name="preset_optimal">Optimal (65%)</string>
+    <string name="preset_crisp">Tajam (85%)</string>
+    <string name="preset_max">Maks (100%)</string>
+    <string name="image_output_format">Format Output</string>
+    <string name="image_max_resolution">Resolusi Maksimum</string>
+    <string name="res_original">Asli (100%)</string>
+    <string name="image_strip_exif">Hapus EXIF &amp; Lokasi</string>
+    <string name="image_strip_exif_desc">Hapus tag GPS, detail kamera &amp; metadata</string>
+    <string name="image_btn_compress">Kompres Gambar</string>
+    <string name="image_btn_compress_batch">Kompres %1$d Gambar</string>
+    <string name="image_result_success">Gambar Berhasil Dikompresi!</string>
+    <string name="image_result_dimensions">Dimensi</string>
+    <string name="label_original">Asli</string>
+    <string name="label_compressed">Terkompresi</string>
+    <string name="image_batch_completed_title">Kompresi Batch Selesai!</string>
+    <string name="image_batch_completed_summary">Berhasil mengompres %1$d dari %2$d gambar.\nAsli: %3$s → Terkompresi: %4$s (hemat %5$d%%).</string>
+    <string name="mode_quality_slider">Penggeser Kualitas (%)</string>
+    <string name="mode_target_size">Ukuran Target (MB)</string>
+    <string name="target_size_preset_title">Ukuran Target</string>
+    <string name="target_custom">Kustom</string>
+    <string name="custom_target_mb_label">Ukuran target dalam MB</string>
+    <string name="estimator_title">Estimator Kompresi AI</string>
+    <string name="savings_label">Hemat</string>
+    <string name="estimated_size_label">Perkiraan Ukuran</string>
+    <string name="estimated_quality_loss_label">Fidelitas Kualitas Visual</string>
+    <string name="validation_denied_title">Grafik Tidak Dapat Dikompresi</string>
+    <string name="validation_warning_title">Peringatan Gambar</string>
 </resources>

@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDFchemy - Cute Feature Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0d1117;
+      --card-bg: rgba(22, 27, 34, 0.85);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-purple: #9b51e0;
+      --accent-pink: #ff5e97;
+      --accent-green: #00e676;
+      --text-main: #f0f6fc;
+      --text-sub: #8b949e;
+      --text-dim: #484f58;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0d1117 70%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Glows */
+    .ambient-glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+      animation: floatGlow 10s ease-in-out infinite alternate;
+    }
+
+    .glow-1 {
+      top: -100px;
+      left: -100px;
+      background: #7928ca;
+    }
+
+    .glow-2 {
+      bottom: -100px;
+      right: -100px;
+      background: #00dfd8;
+    }
+
+    @keyframes floatGlow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.15); }
+    }
+
+    /* Showcase Container */
+    .showcase-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+      max-width: 1100px;
+      width: 100%;
+      padding: 20px;
+    }
+
+    /* Marketing Info Side */
+    .brand-side {
+      flex: 1;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(0, 242, 254, 0.12);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      color: var(--accent-cyan);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      width: fit-content;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+    }
+
+    .brand-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 42px;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 30%, #4facfe 70%, #00f2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-desc {
+      color: #94a3b8;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .feature-points {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-item .icon {
+      font-size: 20px;
+    }
+
+    /* Mobile Device Mockup */
+    .phone-mockup {
+      position: relative;
+      width: 375px;
+      height: 760px;
+      background: #090d16;
+      border-radius: 46px;
+      box-shadow: 
+        0 25px 60px -15px rgba(0, 0, 0, 0.8),
+        0 0 0 12px #1e293b,
+        0 0 0 14px rgba(255, 255, 255, 0.1),
+        0 0 50px rgba(0, 242, 254, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Phone Notch / Camera */
+    .phone-camera-notch {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 24px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .camera-lens {
+      width: 10px;
+      height: 10px;
+      background: #111827;
+      border-radius: 50%;
+      border: 1.5px solid #1f2937;
+    }
+
+    /* Phone Status Bar */
+    .phone-status-bar {
+      height: 44px;
+      padding: 12px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      z-index: 50;
+    }
+
+    /* App Header inside Phone */
+    .app-header {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .app-logo-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-logo-badge {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 242, 254, 0.3);
+      font-size: 20px;
+    }
+
+    .app-name-text {
+      font-family: 'Fredoka', cursive;
+      font-size: 19px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .app-tag {
+      font-size: 10px;
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--accent-green);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    /* Screen Content */
+    .phone-screen {
+      flex: 1;
+      padding: 16px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* Mascot Speech Card */
+    .mascot-card {
+      background: linear-gradient(135deg, rgba(79, 172, 254, 0.15), rgba(0, 242, 254, 0.05));
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      border-radius: 20px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      animation: pulseCard 3s infinite ease-in-out;
+    }
+
+    @keyframes pulseCard {
+      0%, 100% { border-color: rgba(0, 242, 254, 0.25); }
+      50% { border-color: rgba(0, 242, 254, 0.5); }
+    }
+
+    .mascot-avatar {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #9b51e0, #ff5e97);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 15px rgba(255, 94, 151, 0.35);
+      animation: cuteBounce 2s infinite ease-in-out;
+    }
+
+    @keyframes cuteBounce {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(3deg); }
+    }
+
+    .mascot-avatar .sparkle-dot {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 14px;
+      height: 14px;
+      background: #ffeb3b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      box-shadow: 0 0 8px #ffeb3b;
+    }
+
+    .mascot-dialogue {
+      flex: 1;
+    }
+
+    .dialogue-bubble {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      line-height: 1.4;
+    }
+
+    .dialogue-sub {
+      font-size: 11px;
+      color: #38bdf8;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* Selected Document Card */
+    .doc-picker-box {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1.5px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .doc-picker-box.active {
+      border-style: solid;
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.08);
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
+    }
+
+    .doc-icon-wrap {
+      width: 44px;
+      height: 48px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+      color: #fff;
+      position: relative;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+      flex-shrink: 0;
+    }
+
+    .doc-details {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .doc-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+      font-size: 12px;
+      color: #94a3b8;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 3px;
+    }
+
+    .size-badge-heavy {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    /* Compression Slider Card */
+    .control-card {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slider-val {
+      font-family: 'Fredoka', cursive;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.12);
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    /* Custom Slider */
+    .slider-track-wrap {
+      position: relative;
+      width: 100%;
+      height: 28px;
+      display: flex;
+      align-items: center;
+    }
+
+    .slider-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #334155;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .slider-bar-fill {
+      height: 100%;
+      width: 65%;
+      background: linear-gradient(90deg, #00f2fe, #4facfe);
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slider-thumb-custom {
+      position: absolute;
+      left: calc(65% - 12px);
+      width: 24px;
+      height: 24px;
+      background: #ffffff;
+      border: 4px solid #00f2fe;
+      border-radius: 50%;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      cursor: grab;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Quick Preset Chips */
+    .preset-chips {
+      display: flex;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .preset-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: #94a3b8;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn.active {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+
+    /* Feature Toggles */
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .toggle-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toggle-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .toggle-hint {
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    .cute-switch {
+      width: 44px;
+      height: 24px;
+      background: #334155;
+      border-radius: 20px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .cute-switch.on {
+      background: linear-gradient(90deg, #00e676, #00b0ff);
+    }
+
+    .cute-switch-handle {
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .cute-switch.on .cute-switch-handle {
+      transform: translateX(20px);
+    }
+
+    /* Action CTA Button */
+    .cta-btn-main {
+      position: relative;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #9b51e0 100%);
+      background-size: 200% auto;
+      border: none;
+      border-radius: 18px;
+      color: #ffffff;
+      font-family: 'Fredoka', cursive;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0, 242, 254, 0.35);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+
+    .cta-btn-main:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 14px 30px rgba(0, 242, 254, 0.5);
+    }
+
+    .cta-btn-main:active {
+      transform: scale(0.98);
+    }
+
+    .cta-shine {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transform: skewX(-25deg);
+      animation: shineLoop 3s infinite;
+    }
+
+    @keyframes shineLoop {
+      0% { left: -100%; }
+      30%, 100% { left: 200%; }
+    }
+
+    /* Processing Overlay / State */
+    .processing-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(13, 17, 23, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      gap: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .processing-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .alchemy-beaker-animation {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .potion-circle {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00f2fe 0%, #7928ca 80%);
+      box-shadow: 0 0 35px rgba(0, 242, 254, 0.6);
+      animation: brewPulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes brewPulse {
+      0%, 100% { transform: scale(0.95); box-shadow: 0 0 25px rgba(0, 242, 254, 0.4); }
+      50% { transform: scale(1.1); box-shadow: 0 0 45px rgba(121, 40, 202, 0.8); }
+    }
+
+    .potion-icon {
+      position: relative;
+      z-index: 2;
+      font-size: 42px;
+      animation: wobbleIcon 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes wobbleIcon {
+      0% { transform: rotate(-8deg) translateY(-2px); }
+      100% { transform: rotate(8deg) translateY(2px); }
+    }
+
+    .process-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 20px;
+      color: #fff;
+      text-align: center;
+    }
+
+    .process-subtitle {
+      font-size: 13px;
+      color: #38bdf8;
+      margin-top: -12px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 10px;
+      background: #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00f2fe, #ff5e97);
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.8);
+      transition: width 0.2s linear;
+    }
+
+    /* Result Celebration Card */
+    .result-sheet {
+      position: absolute;
+      bottom: -100%;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border-top: 2px solid var(--accent-cyan);
+      border-radius: 32px 32px 0 0;
+      padding: 24px 20px;
+      box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.8);
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .result-sheet.show {
+      bottom: 0;
+    }
+
+    .success-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      align-self: center;
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid rgba(0, 230, 118, 0.4);
+      color: var(--accent-green);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .savings-display {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .size-box {
+      text-align: center;
+    }
+
+    .size-box-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .size-box-val {
+      font-family: 'Fredoka', cursive;
+      font-size: 22px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .size-box-val.old {
+      color: #f87171;
+      text-decoration: line-through;
+    }
+
+    .size-box-val.new {
+      color: #00f2fe;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+    }
+
+    .arrow-icon {
+      font-size: 24px;
+      color: #38bdf8;
+      animation: arrowSlide 1s infinite alternate;
+    }
+
+    @keyframes arrowSlide {
+      0% { transform: translateX(-4px); }
+      100% { transform: translateX(4px); }
+    }
+
+    .percent-saved-pill {
+      background: linear-gradient(135deg, #00e676, #00b0ff);
+      color: #000;
+      font-family: 'Fredoka', cursive;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary-share {
+      flex: 1.3;
+      padding: 12px;
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      border: none;
+      border-radius: 14px;
+      color: #000;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
+    }
+
+    /* Virtual Hand / Click Indicator for Demonstration */
+    .virtual-cursor {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      background: rgba(0, 242, 254, 0.35);
+      border: 2px solid #00f2fe;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%) scale(1);
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.8);
+      transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+      display: none;
+    }
+
+    .virtual-cursor.clicking {
+      transform: translate(-50%, -50%) scale(0.7);
+      background: rgba(255, 94, 151, 0.6);
+      border-color: #ff5e97;
+    }
+
+    /* Cute Floating Badges */
+    .floating-badge {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      padding: 10px 16px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 40;
+      animation: floatBadge 4s infinite ease-in-out alternate;
+    }
+
+    .badge-top-right {
+      top: 60px;
+      right: -25px;
+    }
+
+    .badge-bottom-left {
+      bottom: 80px;
+      left: -35px;
+      animation-delay: -2s;
+    }
+
+    @keyframes floatBadge {
+      0% { transform: translateY(0px) rotate(-2deg); }
+      100% { transform: translateY(-12px) rotate(2deg); }
+    }
+
+    /* Confetti Particle Canvas */
+    #confettiCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="showcase-wrapper">
+    <!-- Marketing Overview -->
+    <div class="brand-side">
+      <div class="pill-badge">⚡ Instant PDF Alchemy</div>
+      <h1 class="brand-title">Shrink Big PDFs in Seconds.</h1>
+      <p class="brand-desc">
+        100% private, local-first offline compression. Strip bloated metadata, optimize photos, and reduce huge files by up to 95% without quality loss.
+      </p>
+
+      <div class="feature-points">
+        <div class="feature-item">
+          <span class="icon">🔒</span>
+          <span>100% On-Device & Zero Cloud Uploads</span>
+        </div>
+        <div class="feature-item">
+          <span class="icon">🚀</span>
+          <span>Ultra-Fast Smart Compression Engine</span>
+        </div>
+        <div class="feature-item">
+          <span class="icon">✨</span>
+          <span>Batch Compress, Merge, OCR & Split</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Mobile Showcase -->
+    <div style="position: relative;">
+      <!-- Floating Badges around Phone -->
+      <div class="floating-badge badge-top-right">
+        <span style="font-size: 22px;">🧙‍♂️</span>
+        <div>
+          <div style="color: #00f2fe; font-size: 11px;">MASCOT APPROVED</div>
+          <div>92% Size Reduced</div>
+        </div>
+      </div>
+
+      <div class="floating-badge badge-bottom-left">
+        <span style="font-size: 20px;">🛡️</span>
+        <div>
+          <div style="color: #00e676; font-size: 11px;">OFFLINE SECURITY</div>
+          <div>Original File Untouched</div>
+        </div>
+      </div>
+
+      <div class="phone-mockup" id="phoneMockup">
+        <!-- Virtual touch cursor -->
+        <div class="virtual-cursor" id="touchCursor"></div>
+
+        <!-- Phone Hardware -->
+        <div class="phone-camera-notch">
+          <div class="camera-lens"></div>
+        </div>
+
+        <div class="phone-status-bar">
+          <span>9:41</span>
+          <span>5G 📶 100% 🔋</span>
+        </div>
+
+        <!-- App Header -->
+        <div class="app-header">
+          <div class="app-logo-box">
+            <div class="app-logo-badge">⚡</div>
+            <div>
+              <div class="app-name-text">PDFchemy</div>
+            </div>
+          </div>
+          <div class="app-tag">OFFLINE PRO</div>
+        </div>
+
+        <!-- App Body Screen -->
+        <div class="phone-screen">
+          <!-- Cute Mascot Box -->
+          <div class="mascot-card" id="mascotBanner">
+            <div class="mascot-avatar">
+              🧙‍♂️
+              <div class="sparkle-dot">✨</div>
+            </div>
+            <div class="mascot-dialogue">
+              <div class="dialogue-bubble" id="mascotText">"Ready to shrink your giant PDF? Let's do some magic!"</div>
+              <div class="dialogue-sub">✨ Tap compress below to start</div>
+            </div>
+          </div>
+
+          <!-- Document Selector -->
+          <div class="doc-picker-box active" id="docCard">
+            <div class="doc-icon-wrap">PDF</div>
+            <div class="doc-details">
+              <div class="doc-name">Annual_Report_2026.pdf</div>
+              <div class="doc-meta">
+                <span class="size-badge-heavy">24.8 MB</span>
+                <span>• 32 Pages</span>
+              </div>
+            </div>
+            <span style="color: #00f2fe; font-size: 18px;">✓</span>
+          </div>
+
+          <!-- Quality Slider -->
+          <div class="control-card">
+            <div class="slider-header">
+              <span class="slider-label"><span>🎚️</span> Target Quality</span>
+              <span class="slider-val" id="qualityDisplay">65% (Recommended)</span>
+            </div>
+
+            <div class="slider-track-wrap" id="sliderArea">
+              <div class="slider-bar-bg">
+                <div class="slider-bar-fill" id="sliderFill" style="width: 65%;"></div>
+              </div>
+              <div class="slider-thumb-custom" id="sliderThumb" style="left: calc(65% - 12px);"></div>
+            </div>
+
+            <div class="preset-chips">
+              <div class="preset-btn" onclick="setQuality(40, 'Low (Maximum Shrink)')">Extreme</div>
+              <div class="preset-btn active" id="presetRec" onclick="setQuality(65, '65% (Recommended)')">Optimal</div>
+              <div class="preset-btn" onclick="setQuality(85, 'High (Print Ready)')">HD Crisp</div>
+            </div>
+          </div>
+
+          <!-- Extra Options -->
+          <div class="control-card" style="padding: 12px 16px; gap: 8px;">
+            <div class="toggle-row" onclick="toggleSwitch('stripMeta')">
+              <div class="toggle-info">
+                <span class="toggle-title">Strip Hidden Metadata</span>
+                <span class="toggle-hint">Removes author, GPS & creation history</span>
+              </div>
+              <div class="cute-switch on" id="stripMeta">
+                <div class="cute-switch-handle"></div>
+              </div>
+            </div>
+            <div class="toggle-row" onclick="toggleSwitch('smartOpt')">
+              <div class="toggle-info">
+                <span class="toggle-title">Smart DPI Resampling</span>
+                <span class="toggle-hint">Perfect text clarity on mobile</span>
+              </div>
+              <div class="cute-switch on" id="smartOpt">
+                <div class="cute-switch-handle"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main CTA Button -->
+          <button class="cta-btn-main" id="compressBtn" onclick="runCompression()">
+            <div class="cta-shine"></div>
+            <span>✨ Shrink PDF Now</span>
+          </button>
+        </div>
+
+        <!-- Processing Alchemy Overlay -->
+        <div class="processing-overlay" id="processOverlay">
+          <div class="alchemy-beaker-animation">
+            <div class="potion-circle"></div>
+            <div class="potion-icon">⚗️</div>
+          </div>
+          <div class="process-title" id="processStatusText">Shrinking Document...</div>
+          <div class="process-subtitle" id="processSubText">Optimizing embedded images & fonts</div>
+          <div class="progress-bar-container">
+            <div class="progress-fill-bar" id="progressBar"></div>
+          </div>
+        </div>
+
+        <!-- Result Celebration Sheet -->
+        <div class="result-sheet" id="resultSheet">
+          <div class="success-badge">🎉 Shrink Magic Completed!</div>
+          
+          <div class="savings-display">
+            <div class="size-box">
+              <div class="size-box-label">Original</div>
+              <div class="size-box-val old">24.8 MB</div>
+            </div>
+            <div class="arrow-icon">➔</div>
+            <div class="size-box">
+              <div class="size-box-label">New Size</div>
+              <div class="size-box-val new">1.9 MB</div>
+            </div>
+          </div>
+
+          <div class="percent-saved-pill">
+            🔥 92% File Size Saved (22.9 MB freed!)
+          </div>
+
+          <div style="font-size: 11px; color: #94a3b8; text-align: center;">
+            ✓ Saved locally to <b>Downloads/PDFchemy</b>
+          </div>
+
+          <div class="result-actions">
+            <button class="btn-secondary" onclick="resetDemo()">🔄 Done</button>
+            <button class="btn-primary-share" onclick="alert('Shared via Android ShareSheet!')">📤 Share PDF</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Confetti Engine
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function fireConfetti() {
+      particles = [];
+      const colors = ['#00f2fe', '#4facfe', '#9b51e0', '#ff5e97', '#00e676', '#ffeb3b'];
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: window.innerWidth / 2 + (Math.random() * 200 - 100),
+          y: window.innerHeight / 2 - 50,
+          vx: (Math.random() - 0.5) * 14,
+          vy: (Math.random() - 0.9) * 18,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10,
+          opacity: 1
+        });
+      }
+      requestAnimationFrame(renderConfetti);
+    }
+
+    function renderConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let activeCount = 0;
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.45; // gravity
+        p.rotation += p.rotSpeed;
+        p.opacity -= 0.007;
+
+        if (p.opacity > 0) {
+          activeCount++;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        }
+      });
+
+      if (activeCount > 0) {
+        requestAnimationFrame(renderConfetti);
+      }
+    }
+
+    // Toggle switch handler
+    function toggleSwitch(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('on');
+    }
+
+    // Slider quality
+    function setQuality(val, label) {
+      document.getElementById('sliderFill').style.width = val + '%';
+      document.getElementById('sliderThumb').style.left = `calc(${val}% - 12px)`;
+      document.getElementById('qualityDisplay').innerText = label;
+      
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    // Compression Flow Simulation
+    function runCompression() {
+      const overlay = document.getElementById('processOverlay');
+      const progressBar = document.getElementById('progressBar');
+      const statusText = document.getElementById('processStatusText');
+      const subText = document.getElementById('processSubText');
+      const mascot = document.getElementById('mascotText');
+
+      mascot.innerText = '"Brewing PDF potion... compressing 32 pages!"';
+      overlay.classList.add('visible');
+      progressBar.style.width = '0%';
+
+      const steps = [
+        { pct: '25%', text: 'Parsing PDF Objects...', sub: 'Scanning 32 high-res raster layers' },
+        { pct: '55%', text: 'Resampling Images...', sub: 'Applying smart lossless compression' },
+        { pct: '85%', text: 'Stripping Bloat & Metadata...', sub: 'Purging tracking & duplicate fonts' },
+        { pct: '100%', text: 'Finalizing PDF Alchemy...', sub: 'Almost ready!' }
+      ];
+
+      let stepIdx = 0;
+      const interval = setInterval(() => {
+        if (stepIdx < steps.length) {
+          progressBar.style.width = steps[stepIdx].pct;
+          statusText.innerText = steps[stepIdx].text;
+          subText.innerText = steps[stepIdx].sub;
+          stepIdx++;
+        } else {
+          clearInterval(interval);
+          setTimeout(() => {
+            overlay.classList.remove('visible');
+            showResult();
+          }, 400);
+        }
+      }, 550);
+    }
+
+    function showResult() {
+      document.getElementById('resultSheet').classList.add('show');
+      document.getElementById('mascotText').innerText = '"Woohoo! Reduced by 92%! Saved 22.9 MB!" 🥳';
+      fireConfetti();
+    }
+
+    function resetDemo() {
+      document.getElementById('resultSheet').classList.remove('show');
+      document.getElementById('mascotText').innerText = '"Ready to shrink your giant PDF? Let\'s do some magic!"';
+    }
+
+    // Automated Guided Story Sequence for browser subagent recording
+    window.startAutoDemo = function() {
+      const cursor = document.getElementById('touchCursor');
+      cursor.style.display = 'block';
+
+      function moveCursorTo(element, callback, duration = 800) {
+        const rect = element.getBoundingClientRect();
+        const mockupRect = document.getElementById('phoneMockup').getBoundingClientRect();
+        const targetX = rect.left - mockupRect.left + rect.width / 2;
+        const targetY = rect.top - mockupRect.top + rect.height / 2;
+
+        cursor.style.left = targetX + 'px';
+        cursor.style.top = targetY + 'px';
+
+        setTimeout(() => {
+          cursor.classList.add('clicking');
+          setTimeout(() => {
+            cursor.classList.remove('clicking');
+            if (callback) callback();
+          }, 300);
+        }, duration);
+      }
+
+      // Step 1: Click on the Document card
+      setTimeout(() => {
+        moveCursorTo(document.getElementById('docCard'), () => {
+          document.getElementById('mascotText').innerText = '"24.8 MB file selected! Let\'s optimize it."';
+          
+          // Step 2: Click preset or slider
+          setTimeout(() => {
+            moveCursorTo(document.getElementById('presetRec'), () => {
+              // Step 3: Click compress CTA
+              setTimeout(() => {
+                moveCursorTo(document.getElementById('compressBtn'), () => {
+                  runCompression();
+                });
+              }, 900);
+            });
+          }, 900);
+        });
+      }, 1000);
+    };
+
+    // Auto-trigger the animated sequence smoothly
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (window.startAutoDemo) {
+          window.startAutoDemo();
+        }
+      }, 600);
+    });
+  </script>
+</body>
+</html>

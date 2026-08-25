@@ -368,4 +368,49 @@
     
     <string name="onboarding_slide4_title">100% privato e offline</string>
     <string name="onboarding_slide4_desc">I tuoi documenti restano sul tuo dispositivo. Zero caricamenti sul cloud, nessun account richiesto: privacy totale.</string>
+    
+    <!-- Image Compressor Strings -->
+    <string name="menu_compress_image">Comprimi immagini</string>
+    <string name="menu_compress_image_desc">Riduci JPG, PNG, WebP</string>
+    <string name="history_compressed_image">Immagine compressa</string>
+    <string name="history_compressed_images_folder">Cartella immagini compresse</string>
+    <string name="image_compress_single">Singola immagine</string>
+    <string name="image_compress_batch">In blocco</string>
+    <string name="image_select_single">Seleziona un\'immagine</string>
+    <string name="image_select_single_desc">JPG, PNG o WebP fino a 100 MB</string>
+    <string name="image_select_batch">Seleziona immagini</string>
+    <string name="image_select_batch_desc">Scegli più immagini da comprimere insieme</string>
+    <string name="image_selected_label">Immagine selezionata</string>
+    <string name="image_batch_selected_count">%1$d immagini selezionate</string>
+    <string name="image_batch_total_size">Dimensione totale: %1$s</string>
+    <string name="image_compress_options">Opzioni di compressione</string>
+    <string name="image_compress_quality">Qualità immagine</string>
+    <string name="preset_extreme">Estrema (40%)</string>
+    <string name="preset_optimal">Ottimale (65%)</string>
+    <string name="preset_crisp">Nitida (85%)</string>
+    <string name="preset_max">Max (100%)</string>
+    <string name="image_output_format">Formato di output</string>
+    <string name="image_max_resolution">Risoluzione massima</string>
+    <string name="res_original">Originale (100%)</string>
+    <string name="image_strip_exif">Rimuovi dati EXIF e posizione</string>
+    <string name="image_strip_exif_desc">Rimuove tag GPS, dati fotocamera e metadati</string>
+    <string name="image_btn_compress">Comprimi immagine</string>
+    <string name="image_btn_compress_batch">Comprimi %1$d immagini</string>
+    <string name="image_result_success">Immagine compressa con successo!</string>
+    <string name="image_result_dimensions">Dimensioni</string>
+    <string name="label_original">Originale</string>
+    <string name="label_compressed">Compresso</string>
+    <string name="image_batch_completed_title">Compressione batch completata!</string>
+    <string name="image_batch_completed_summary">Compresse con successo %1$d di %2$d immagini.\nOriginale: %3$s → Compresso: %4$s (%5$d%% risparmiato).</string>
+    <string name="mode_quality_slider">Cursore Qualità (%)</string>
+    <string name="mode_target_size">Dimensione Obiettivo (MB)</string>
+    <string name="target_size_preset_title">Dimensione Obiettivo</string>
+    <string name="target_custom">Personalizzata</string>
+    <string name="custom_target_mb_label">Dimensione obiettivo in MB</string>
+    <string name="estimator_title">Stimatore di Compressione IA</string>
+    <string name="savings_label">Risparmio</string>
+    <string name="estimated_size_label">Dimensione Stimata</string>
+    <string name="estimated_quality_loss_label">Fedeltà Qualità Visiva</string>
+    <string name="validation_denied_title">La grafica non può essere compressa</string>
+    <string name="validation_warning_title">Avviso Immagine</string>
 </resources>
