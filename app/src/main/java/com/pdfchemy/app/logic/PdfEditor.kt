@@ -28,7 +28,8 @@ enum class EditorTool {
     PEN,
     HIGHLIGHTER,
     TEXT,
-    STAMP
+    STAMP,
+    REDACT
 }
 
 enum class StampType(val text: String, val colorHex: Long) {
@@ -76,10 +77,11 @@ data class PageModification(
     val isDeleted: Boolean = false,
     val drawings: List<DrawingPath> = emptyList(),
     val textAnnotations: List<TextAnnotation> = emptyList(),
-    val stamps: List<StampAnnotation> = emptyList()
+    val stamps: List<StampAnnotation> = emptyList(),
+    val redactions: List<RedactionBox> = emptyList()
 ) {
     val hasChanges: Boolean
-        get() = rotationDegrees != 0 || isDeleted || drawings.isNotEmpty() || textAnnotations.isNotEmpty() || stamps.isNotEmpty()
+        get() = rotationDegrees != 0 || isDeleted || drawings.isNotEmpty() || textAnnotations.isNotEmpty() || stamps.isNotEmpty() || redactions.isNotEmpty()
 }
 
 object PdfEditor {
@@ -185,8 +187,8 @@ object PdfEditor {
                     page.rotation = (currentRotation + mod.rotationDegrees) % 360
                 }
 
-                // Apply annotations overlay if any drawings, texts, or stamps exist
-                if (mod.drawings.isNotEmpty() || mod.textAnnotations.isNotEmpty() || mod.stamps.isNotEmpty()) {
+                // Apply annotations overlay if any drawings, texts, stamps, or redactions exist
+                if (mod.drawings.isNotEmpty() || mod.textAnnotations.isNotEmpty() || mod.stamps.isNotEmpty() || mod.redactions.isNotEmpty()) {
                     val cropBox = page.cropBox ?: page.mediaBox
                     val pageWidthPts = cropBox.width
                     val pageHeightPts = cropBox.height
@@ -338,6 +340,33 @@ object PdfEditor {
             canvas.drawText(text, 0f, (boxHeight / 4f), stampTextPaint)
 
             canvas.restore()
+        }
+
+        // 4. Render Redactions (Solid Black Opaque Blocks)
+        val redactPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.BLACK
+            style = Paint.Style.FILL
+        }
+        val redactTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+            isFakeBoldText = true
+            textAlign = Paint.Align.CENTER
+        }
+
+        for (redaction in mod.redactions) {
+            val norm = redaction.normalizedRect
+            val left = norm.left * targetWidth
+            val top = norm.top * targetHeight
+            val right = norm.right * targetWidth
+            val bottom = norm.bottom * targetHeight
+            val rect = RectF(left, top, right, bottom)
+            canvas.drawRect(rect, redactPaint)
+
+            if (!redaction.overlayLabel.isNullOrBlank() && rect.width() > 50 && rect.height() > 14) {
+                val fontSize = (rect.height() * 0.45f).coerceIn(8f, 20f)
+                redactTextPaint.textSize = fontSize
+                canvas.drawText(redaction.overlayLabel, rect.centerX(), rect.centerY() + (fontSize / 3f), redactTextPaint)
+            }
         }
 
         return bitmap

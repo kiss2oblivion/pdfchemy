@@ -12,6 +12,12 @@ object AppLogger {
         }
     }
 
+    fun w(message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) {
+            Log.w(TAG, message, throwable)
+        }
+    }
+
     fun e(message: String, throwable: Throwable? = null) {
         if (BuildConfig.DEBUG) {
             Log.e(TAG, message, throwable)

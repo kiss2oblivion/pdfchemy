@@ -11,10 +11,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.rounded.FactCheck
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.DocumentScanner
+import androidx.compose.material.icons.rounded.Difference
+import androidx.compose.material.icons.rounded.CleaningServices
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,6 +64,22 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
             ) {
             item {
                 ToolCard(
+                    title = stringResource(R.string.menu_protect_pdf),
+                    subtitle = stringResource(R.string.menu_protect_pdf_desc),
+                    icon = Icons.Default.Lock,
+                    onClick = { onNavigate(Screen.ProtectPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_unlock_pdf),
+                    subtitle = stringResource(R.string.menu_unlock_pdf_desc),
+                    icon = Icons.Default.LockOpen,
+                    onClick = { onNavigate(Screen.UnlockPdf) }
+                )
+            }
+            item {
+                ToolCard(
                     title = stringResource(R.string.menu_inspect_metadata),
                     subtitle = stringResource(R.string.menu_inspect_metadata_desc),
                     icon = Icons.Rounded.Edit,
@@ -87,6 +108,62 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.menu_extract_desc),
                     icon = Icons.Rounded.DocumentScanner,
                     onClick = { onNavigate(Screen.ExtractText) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_compare_pdfs),
+                    subtitle = stringResource(R.string.menu_compare_pdfs_desc),
+                    icon = Icons.Rounded.Difference,
+                    onClick = { onNavigate(Screen.ComparePdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_metadata_sanitizer),
+                    subtitle = stringResource(R.string.menu_metadata_sanitizer_desc),
+                    icon = Icons.Rounded.CleaningServices,
+                    onClick = { onNavigate(Screen.MetadataSanitizer) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_flatten_pdf),
+                    subtitle = stringResource(R.string.menu_flatten_pdf_desc),
+                    icon = Icons.Filled.Lock,
+                    onClick = { onNavigate(Screen.FlattenPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_repair_pdf),
+                    subtitle = stringResource(R.string.menu_repair_pdf_desc),
+                    icon = Icons.Filled.Build,
+                    onClick = { onNavigate(Screen.RepairPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_redaction_studio),
+                    subtitle = stringResource(R.string.menu_redaction_studio_desc),
+                    icon = Icons.Filled.Lock,
+                    onClick = { onNavigate(Screen.Redaction) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_pdfa_validator),
+                    subtitle = stringResource(R.string.menu_pdfa_validator_desc),
+                    icon = Icons.Rounded.FactCheck,
+                    onClick = { onNavigate(Screen.PdfAValidator) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_font_inspector),
+                    subtitle = stringResource(R.string.menu_font_inspector_desc),
+                    icon = Icons.Rounded.Edit,
+                    onClick = { onNavigate(Screen.FontInspector) }
                 )
             }
         }

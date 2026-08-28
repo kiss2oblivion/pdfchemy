@@ -143,7 +143,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         data class BatchProcessing(val current: Int, val total: Int, val currentFileName: String) : UiState()
         data class Success(val title: String, val message: String, val outputUris: List<Uri> = emptyList()) : UiState()
         data class Warning(val title: String, val message: String, val outputUris: List<Uri> = emptyList()) : UiState()
-        data class Error(val message: String) : UiState()
+        data class Error(val message: String, val technicalDetails: String? = null) : UiState()
     }
 
     data class SelectedFile(
@@ -313,7 +313,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 refreshHistory()
                 
             }.onFailure { error ->
-                _uiState.value = UiState.Error(error.message ?: context.getString(R.string.msg_error_unknown))
+                val userFriendlyMessage = when {
+                    error.message?.contains("password", ignoreCase = true) == true || error.message?.contains("encrypt", ignoreCase = true) == true ->
+                        context.getString(R.string.error_user_encrypted)
+                    error.message?.contains("memory", ignoreCase = true) == true || error.message?.contains("dimension", ignoreCase = true) == true || error.message?.contains("bitmap", ignoreCase = true) == true ->
+                        context.getString(R.string.error_user_memory)
+                    error.message?.contains("damaged", ignoreCase = true) == true || error.message?.contains("corrupt", ignoreCase = true) == true || error.message?.contains("structure", ignoreCase = true) == true ->
+                        context.getString(R.string.error_user_corrupt)
+                    error.message?.contains("destination", ignoreCase = true) == true || error.message?.contains("space", ignoreCase = true) == true ->
+                        context.getString(R.string.error_user_storage)
+                    else -> error.message ?: context.getString(R.string.msg_error_unknown)
+                }
+
+                val techDetails = "${error.javaClass.name}: ${error.message}\n" +
+                        (error.cause?.let { "Caused by: ${it.javaClass.name}: ${it.message}\n" } ?: "") +
+                        error.stackTrace.take(8).joinToString("\n") { "  at ${it.className}.${it.methodName}(${it.fileName}:${it.lineNumber})" }
+
+                _uiState.value = UiState.Error(userFriendlyMessage, techDetails)
             }
         }
     }
@@ -614,7 +630,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _currentMetadata.value = metadataResult.getOrNull()
                 _pdfAnalysis.value = analysisResult.getOrNull()
             } else {
-                _uiState.value = UiState.Error("Failed to load metadata or analysis.")
+                _uiState.value = UiState.Error(context.getString(R.string.msg_error_unknown))
             }
             _isAnalyzing.value = false
         }
@@ -764,12 +780,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main) {
                     historyRepository.addHistoryItem(destUri, context.getString(R.string.history_rotated_pdf), context.getString(R.string.history_rotate_pdf))
                     refreshHistory()
-                    _uiState.value = UiState.Success("Success", "PDF rotated successfully", listOf(destUri))
+                    _uiState.value = UiState.Success(context.getString(R.string.success_title), context.getString(R.string.success_doc_saved), listOf(destUri))
                 }
             } catch (e: Exception) {
                 AppLogger.e("Exception in MainViewModel", e)
                 withContext(Dispatchers.Main) {
-                    _uiState.value = UiState.Error(e.message ?: "Rotation failed")
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
                 }
             }
         }
@@ -784,15 +800,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (success) {
                         historyRepository.addHistoryItem(destUri, context.getString(R.string.history_extracted_text), context.getString(R.string.history_pdf_to_text))
                         refreshHistory()
-                        _uiState.value = UiState.Success("Success", "Text extracted successfully", listOf(destUri))
+                        _uiState.value = UiState.Success(context.getString(R.string.success_title), context.getString(R.string.success_doc_saved), listOf(destUri))
                     } else {
-                        _uiState.value = UiState.Error("Could not extract text")
+                        _uiState.value = UiState.Error(context.getString(R.string.msg_error_unknown))
                     }
                 }
             } catch (e: Exception) {
                 AppLogger.e("Exception in MainViewModel", e)
                 withContext(Dispatchers.Main) {
-                    _uiState.value = UiState.Error(e.message ?: "Extraction failed")
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
                 }
             }
         }
@@ -1032,6 +1048,439 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun protectPdf(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        userPassword: String,
+        ownerPassword: String = userPassword,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                com.pdfchemy.app.logic.PdfManipulator.protectPdf(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    userPassword = userPassword,
+                    ownerPassword = ownerPassword
+                )
+                withContext(Dispatchers.Main) {
+                    historyRepository.addHistoryItem(
+                        destUri,
+                        context.getString(R.string.history_protected_pdf),
+                        context.getString(R.string.menu_protect_pdf)
+                    )
+                    refreshHistory()
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_protect_success),
+                        context.getString(R.string.desc_protect_success),
+                        listOf(destUri)
+                    )
+                    onComplete(true)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun unlockPdf(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        password: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                com.pdfchemy.app.logic.PdfManipulator.unlockPdf(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    password = password
+                )
+                withContext(Dispatchers.Main) {
+                    historyRepository.addHistoryItem(
+                        destUri,
+                        context.getString(R.string.history_unlocked_pdf),
+                        context.getString(R.string.menu_unlock_pdf)
+                    )
+                    refreshHistory()
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_unlock_success),
+                        context.getString(R.string.desc_unlock_success),
+                        listOf(destUri)
+                    )
+                    onComplete(true)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.error_invalid_password))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun convertPdfToImages(
+        context: Context,
+        sourceUri: Uri,
+        outputDirectory: androidx.documentfile.provider.DocumentFile,
+        baseName: String,
+        formatName: String = "JPEG",
+        quality: Int = 90,
+        targetWidth: Int = 1440,
+        onComplete: (List<Uri>) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val uris = com.pdfchemy.app.logic.PdfManipulator.convertPdfToImages(
+                    context = context,
+                    sourceUri = sourceUri,
+                    outputDirectory = outputDirectory,
+                    baseName = baseName,
+                    formatName = formatName,
+                    quality = quality,
+                    targetWidth = targetWidth
+                )
+                withContext(Dispatchers.Main) {
+                    if (uris.isNotEmpty()) {
+                        historyRepository.addHistoryItem(
+                            outputDirectory.uri,
+                            context.getString(R.string.history_pdf_to_images_folder),
+                            context.getString(R.string.menu_pdf_to_images)
+                        )
+                        refreshHistory()
+                    }
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_pdf_to_images_success),
+                        context.getString(R.string.desc_pdf_to_images_success, uris.size),
+                        uris
+                    )
+                    onComplete(uris)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(emptyList())
+                }
+            }
+        }
+    }
+
+    fun fillAndSaveForm(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        fieldValues: Map<String, String>,
+        flatten: Boolean = false,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val success = com.pdfchemy.app.logic.AcroFormEngine.fillAndSaveForm(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    fieldValues = fieldValues,
+                    flattenForm = flatten
+                )
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        historyRepository.addHistoryItem(
+                            destUri,
+                            context.getString(R.string.history_filled_form),
+                            context.getString(R.string.menu_fill_form)
+                        )
+                        refreshHistory()
+                        _uiState.value = UiState.Success(
+                            context.getString(R.string.title_form_save_success),
+                            context.getString(R.string.desc_form_save_success),
+                            listOf(destUri)
+                        )
+                    } else {
+                        _uiState.value = UiState.Error(context.getString(R.string.error_form_save_failed))
+                    }
+                    onComplete(success)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun createSearchablePdf(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        onProgress: (current: Int, total: Int) -> Unit = { _, _ -> },
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val success = com.pdfchemy.app.logic.PdfOcrEngine.createSearchablePdf(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    onProgress = { current, total ->
+                        viewModelScope.launch(Dispatchers.Main) {
+                            onProgress(current, total)
+                        }
+                    }
+                )
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        historyRepository.addHistoryItem(
+                            destUri,
+                            context.getString(R.string.history_searchable_ocr_pdf),
+                            context.getString(R.string.menu_ocr_pdf)
+                        )
+                        refreshHistory()
+                        _uiState.value = UiState.Success(
+                            context.getString(R.string.title_ocr_success),
+                            context.getString(R.string.desc_ocr_success),
+                            listOf(destUri)
+                        )
+                    } else {
+                        _uiState.value = UiState.Error(context.getString(R.string.error_ocr_failed))
+                    }
+                    onComplete(success)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun applyRedactions(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        redactions: List<com.pdfchemy.app.logic.RedactionBox>,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val success = com.pdfchemy.app.logic.PdfRedactor.applyRedactions(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    redactions = redactions
+                )
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        historyRepository.addHistoryItem(
+                            destUri,
+                            context.getString(R.string.history_redacted_pdf),
+                            context.getString(R.string.menu_redact_pdf)
+                        )
+                        refreshHistory()
+                        _uiState.value = UiState.Success(
+                            context.getString(R.string.title_redact_success),
+                            context.getString(R.string.desc_redact_success),
+                            listOf(destUri)
+                        )
+                    } else {
+                        _uiState.value = UiState.Error(context.getString(R.string.error_redact_failed))
+                    }
+                    onComplete(success)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun applySignatures(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        signatures: List<com.pdfchemy.app.logic.PlacedSignature>,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            try {
+                val success = com.pdfchemy.app.logic.SignatureEngine.applySignatures(
+                    context = context,
+                    sourceUri = sourceUri,
+                    destUri = destUri,
+                    signatures = signatures
+                )
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        historyRepository.addHistoryItem(
+                            destUri,
+                            context.getString(R.string.history_signed_pdf),
+                            context.getString(R.string.menu_sign_pdf)
+                        )
+                        refreshHistory()
+                        _uiState.value = UiState.Success(
+                            context.getString(R.string.title_sign_success),
+                            context.getString(R.string.desc_sign_success),
+                            listOf(destUri)
+                        )
+                    } else {
+                        _uiState.value = UiState.Error(context.getString(R.string.error_sign_failed))
+                    }
+                    onComplete(success)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun exportPdfToOffice(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        format: com.pdfchemy.app.logic.OfficeFormat,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            val result = when (format) {
+                com.pdfchemy.app.logic.OfficeFormat.WORD -> com.pdfchemy.app.logic.OfficeExportEngine.exportToWord(context, sourceUri, destUri)
+                com.pdfchemy.app.logic.OfficeFormat.EXCEL -> com.pdfchemy.app.logic.OfficeExportEngine.exportToExcel(context, sourceUri, destUri)
+                com.pdfchemy.app.logic.OfficeFormat.POWERPOINT -> com.pdfchemy.app.logic.OfficeExportEngine.exportToPowerPoint(context, sourceUri, destUri)
+            }
+            withContext(Dispatchers.Main) {
+                result.onSuccess { report ->
+                    historyRepository.addHistoryItem(
+                        destUri,
+                        report.format.displayName,
+                        context.getString(R.string.desc_office_export_success, report.pageCount)
+                    )
+                    refreshHistory()
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_office_export_success),
+                        context.getString(R.string.desc_office_export_success, report.pageCount),
+                        listOf(destUri)
+                    )
+                    onComplete(true)
+                }.onFailure { e ->
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun replaceEmbeddedImage(
+        context: Context,
+        sourcePdfUri: Uri,
+        destPdfUri: Uri,
+        pageIndex: Int,
+        resourceName: String,
+        replacementBitmap: Bitmap,
+        isLossless: Boolean = true,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            val result = com.pdfchemy.app.logic.PdfImageReplacerEngine.replaceEmbeddedImage(
+                context,
+                sourcePdfUri,
+                destPdfUri,
+                pageIndex,
+                resourceName,
+                replacementBitmap,
+                isLossless
+            )
+            withContext(Dispatchers.Main) {
+                result.onSuccess {
+                    refreshHistory()
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_image_replace_success),
+                        context.getString(R.string.desc_image_replace_success),
+                        listOf(destPdfUri)
+                    )
+                    onComplete(true)
+                }.onFailure { e ->
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun replaceTextOccurrences(
+        context: Context,
+        sourcePdfUri: Uri,
+        destPdfUri: Uri,
+        findText: String,
+        replaceText: String,
+        matchCase: Boolean,
+        onComplete: (Boolean) -> Unit
+    ) {
+        _uiState.value = UiState.Processing
+        viewModelScope.launch {
+            val result = com.pdfchemy.app.logic.PdfFindAndReplaceEngine.replaceAll(
+                context,
+                sourcePdfUri,
+                destPdfUri,
+                findText,
+                replaceText,
+                matchCase
+            )
+            withContext(Dispatchers.Main) {
+                result.onSuccess { count ->
+                    refreshHistory()
+                    _uiState.value = UiState.Success(
+                        context.getString(R.string.title_find_replace_success),
+                        context.getString(R.string.desc_find_replace_success, count),
+                        listOf(destPdfUri)
+                    )
+                    onComplete(true)
+                }.onFailure { e ->
+                    _uiState.value = UiState.Error(e.message ?: context.getString(R.string.msg_error_unknown))
+                    onComplete(false)
+                }
+            }
+        }
+    }
+
+    fun notifySuccess(title: String, message: String, outputUri: Uri) {
+        historyRepository.addHistoryItem(outputUri, title, message)
+        refreshHistory()
+        _uiState.value = UiState.Success(title, message, listOf(outputUri))
+    }
+
+    fun notifyError(message: String, technicalDetails: String? = null) {
+        _uiState.value = UiState.Error(message, technicalDetails)
+    }
+
+    fun showSuccessToast(title: String, message: String) {
+        _uiState.value = UiState.Success(title, message, emptyList())
+    }
+
+    fun showErrorToast(title: String, message: String, technicalDetails: String? = null) {
+        _uiState.value = UiState.Error(if (message.isBlank()) title else "$title: $message", technicalDetails)
     }
 }
 

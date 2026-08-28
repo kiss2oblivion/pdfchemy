@@ -85,8 +85,10 @@ fun PdfEditorScreen(
     var strokeWidth by remember { mutableFloatStateOf(6f) }
     var selectedStampType by remember { mutableStateOf(StampType.APPROVED) }
 
-    // Active In-Progress Stroke
+    // Active In-Progress Stroke & Redaction
     var currentStrokePoints by remember { mutableStateOf<List<DrawingPoint>>(emptyList()) }
+    var redactDragStart by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+    var redactDragCurrent by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
 
     // Dialogs & Sheets
     var showTextDialog by remember { mutableStateOf(false) }
@@ -340,6 +342,40 @@ fun PdfEditorScreen(
                                             }
                                         }
                                     }
+                                    EditorTool.REDACT -> {
+                                        detectDragGestures(
+                                            onDragStart = { offset ->
+                                                redactDragStart = offset
+                                                redactDragCurrent = offset
+                                            },
+                                            onDrag = { change, _ ->
+                                                change.consume()
+                                                redactDragCurrent = change.position
+                                            },
+                                            onDragEnd = {
+                                                val start = redactDragStart
+                                                val end = redactDragCurrent
+                                                if (start != null && end != null && canvasSize.width > 0 && canvasSize.height > 0) {
+                                                    val leftNorm = (minOf(start.x, end.x) / canvasSize.width).coerceIn(0f, 1f)
+                                                    val topNorm = (minOf(start.y, end.y) / canvasSize.height).coerceIn(0f, 1f)
+                                                    val rightNorm = (maxOf(start.x, end.x) / canvasSize.width).coerceIn(0f, 1f)
+                                                    val bottomNorm = (maxOf(start.y, end.y) / canvasSize.height).coerceIn(0f, 1f)
+
+                                                    if (rightNorm - leftNorm > 0.02f && bottomNorm - topNorm > 0.01f) {
+                                                        val newRedaction = com.pdfchemy.app.logic.RedactionBox(
+                                                            pageIndex = currentPageIndex,
+                                                            normalizedRect = android.graphics.RectF(leftNorm, topNorm, rightNorm, bottomNorm),
+                                                            overlayLabel = "REDACTED"
+                                                        )
+                                                        val mod = pageModifications[currentPageIndex] ?: PageModification(pageIndex = currentPageIndex)
+                                                        pageModifications[currentPageIndex] = mod.copy(redactions = mod.redactions + newRedaction)
+                                                    }
+                                                }
+                                                redactDragStart = null
+                                                redactDragCurrent = null
+                                            }
+                                        )
+                                    }
                                     EditorTool.VIEW -> { /* View mode allows page inspection */ }
                                 }
                             }
@@ -352,7 +388,7 @@ fun PdfEditorScreen(
                             contentScale = ContentScale.Fit
                         )
 
-                        // 2. Render Overlay Annotations (Drawings, Texts, Stamps)
+                        // 2. Render Overlay Annotations (Drawings, Texts, Stamps, Redactions)
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             // Render Saved Drawings
                             for (drawing in currentMod.drawings) {
@@ -367,6 +403,31 @@ fun PdfEditorScreen(
                                     isHighlighter = activeTool == EditorTool.HIGHLIGHTER
                                 )
                                 drawPathStroke(tempDrawing, size.width, size.height)
+                            }
+
+                            // Render Saved Redactions
+                            for (redaction in currentMod.redactions) {
+                                val norm = redaction.normalizedRect
+                                drawRect(
+                                    color = Color.Black,
+                                    topLeft = androidx.compose.ui.geometry.Offset(norm.left * size.width, norm.top * size.height),
+                                    size = androidx.compose.ui.geometry.Size((norm.right - norm.left) * size.width, (norm.bottom - norm.top) * size.height)
+                                )
+                            }
+
+                            // Render In-Progress Redaction Box
+                            if (activeTool == EditorTool.REDACT && redactDragStart != null && redactDragCurrent != null) {
+                                val start = redactDragStart!!
+                                val end = redactDragCurrent!!
+                                val left = minOf(start.x, end.x)
+                                val top = minOf(start.y, end.y)
+                                val width = kotlin.math.abs(end.x - start.x)
+                                val height = kotlin.math.abs(end.y - start.y)
+                                drawRect(
+                                    color = Color.Black.copy(alpha = 0.75f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                                    size = androidx.compose.ui.geometry.Size(width, height)
+                                )
                             }
                         }
 
@@ -713,6 +774,12 @@ fun EditorBottomBar(
                     label = stringResource(R.string.tool_stamp),
                     selected = activeTool == EditorTool.STAMP,
                     onClick = { onToolSelect(EditorTool.STAMP) }
+                )
+                EditorToolButton(
+                    icon = Icons.Rounded.Security,
+                    label = stringResource(R.string.tool_redact),
+                    selected = activeTool == EditorTool.REDACT,
+                    onClick = { onToolSelect(EditorTool.REDACT) }
                 )
 
                 // Color Picker Quick Dot
