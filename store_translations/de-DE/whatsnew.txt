@@ -1,0 +1,7 @@
+Neu in v2.0.0 (Großes Update):
+• PDF-Sicherheit: 256-Bit-AES-Verschlüsselung & Entsperren geschützter PDFs.
+• Interaktiver Editor & Reader: Signieren, hervorheben, Texte & Stempel einfügen.
+• E-Book & Comic Suite: PDF in EPUB (für Kindle/Kobo) & CBZ-Comics umwandeln.
+• Profi-Tools: PDF-Vergleich (Diff), Broschürendruck, N-Up-Layout & Zuschnitt.
+• Bildkomprimierer: Fotos auf exakte Zielgrößen (z.B. 2 MB) reduzieren.
+• 100% Offline: 20 Sprachen, keine Cloud-Uploads.

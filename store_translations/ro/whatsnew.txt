@@ -1,0 +1,7 @@
+Noutăți în v2.0.0 (Actualizare Majoră):
+• Securitate PDF: Criptare AES pe 256 biți și deblocare documente protejate.
+• Editor & Reader Interactiv: Semnează, adnotează, evidențiază, adaugă text și ștampile.
+• Suită E-Book & Benzi Desenate: Convertește PDF în EPUB (Kindle/Kobo) și arhive CBZ.
+• Instrumente avansate: Comparare PDF (Diff), broșuri, aranjare N-Up și decupare.
+• Compresor Imagini: Comprimă la o dimensiune exactă (ex. 2 MB).
+• 100% Offline: 20 limbi, zero cloud.

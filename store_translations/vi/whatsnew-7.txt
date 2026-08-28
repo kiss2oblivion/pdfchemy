@@ -1,0 +1,7 @@
+Tính năng mới trong v2.0.0 (Cập nhật lớn):
+• Bảo mật PDF: Mã hóa AES 256-bit và mở khóa tài liệu được bảo vệ bằng mật khẩu.
+• Trình chỉnh sửa & Đọc tương tác: Ký tên, đánh dấu, chèn văn bản và con dấu.
+• Bộ công cụ E-Book & Truyện tranh: Chuyển PDF sang EPUB (Kindle/Kobo) & CBZ.
+• Công cụ nâng cao: So sánh PDF (Diff), in sách nhỏ, bố cục N-Up và cắt lề.
+• Nén hình ảnh: Nén chính xác theo dung lượng mục tiêu (ví dụ 2MB).
+• 100% Ngoại tuyến: 20 ngôn ngữ, bảo mật tuyệt đối.

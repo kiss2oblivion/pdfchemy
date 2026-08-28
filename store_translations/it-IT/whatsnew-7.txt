@@ -1,0 +1,7 @@
+Novità nella v2.0.0 (Grande Aggiornamento):
+• Sicurezza PDF: Crittografia AES a 256 bit e sblocco di PDF protetti.
+• Editor & Lettore interattivo: Firma, annota, evidenzia, inserisci testi e timbri.
+• Suite E-Book e Fumetti: Converti PDF in EPUB (Kindle/Kobo) e archivi CBZ.
+• Strumenti avanzati: Confronto PDF (Diff), opuscoli, layout N-Up e ritaglio.
+• Compressore Immagini: Riduci a dimensioni target esatte (es. 2 MB).
+• 100% Offline: 20 lingue supportate, zero cloud.

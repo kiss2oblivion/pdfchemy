@@ -1,0 +1,7 @@
+Nowości w wersji 2.0.0 (Duża aktualizacja):
+• Bezpieczeństwo PDF: 256-bitowe szyfrowanie AES i odblokowywanie dokumentów.
+• Interaktywny edytor i czytnik: Podpis odręczny, zakreślacz, teksty i pieczątki.
+• Pakiet E-Book i Komiksy: Konwersja PDF do EPUB (Kindle/Kobo) oraz archiwów CBZ.
+• Zaawansowane narzędzia: Porównywanie PDF (Diff), broszury, układ N-Up i kadrowanie.
+• Kompresor zdjęć: Zmniejszanie do dokładnego rozmiaru (np. 2 MB).
+• 100% Offline: 20 języków, pełna prywatność.
