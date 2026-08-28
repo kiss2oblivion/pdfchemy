@@ -595,7 +595,7 @@ fun MainApp(
                 AlertDialog(
                     onDismissRequest = {
                         if (activity != null) {
-                            AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
+                            AdManager.showInterstitialIfReady(activity, isPremium, ignoreCooldown = true) { viewModel.resetState() }
                         } else {
                             viewModel.resetState()
                         }
@@ -605,7 +605,7 @@ fun MainApp(
                     confirmButton = {
                         TextButton(onClick = {
                             if (activity != null) {
-                                AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
+                                AdManager.showInterstitialIfReady(activity, isPremium, ignoreCooldown = true) { viewModel.resetState() }
                             } else {
                                 viewModel.resetState()
                             }
@@ -1890,14 +1890,10 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                             pdfAnalysis = pdfAnalysis,
                             viewModel = viewModel,
                             onSaveSingle = { 
-                                AdManager.showInterstitialIfReady(context as android.app.Activity, isPremium) {
-                                    savePdfLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(sourceUri, context.getString(R.string.compressed_prefix))) 
-                                }
+                                savePdfLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(sourceUri, context.getString(R.string.compressed_prefix))) 
                             },
                             onSaveBatch = { 
-                                AdManager.showInterstitialIfReady(context as android.app.Activity, isPremium) {
-                                    selectDirectoryLauncher.launch(null) 
-                                }
+                                selectDirectoryLauncher.launch(null) 
                             }
                         )
                     }
