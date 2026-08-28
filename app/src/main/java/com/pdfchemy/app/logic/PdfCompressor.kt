@@ -12,6 +12,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import com.pdfchemy.app.utils.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -158,6 +159,7 @@ object PdfCompressor {
             }
             
             var imagesProcessed = 0
+            var imagesSkipped = 0
             val maxDimension = if (quality < 0.2f) 800f else if (quality < 0.4f) 1200f else if (quality < 0.6f) 1800f else 3000f
 
             for (page in doc.pages) {
@@ -165,14 +167,29 @@ object PdfCompressor {
                 val processedNames = mutableSetOf<String>()
 
                 for (name in resources.xObjectNames) {
-                    val xObject = try { resources.getXObject(name) } catch (e: Exception) { null }
+                    val xObject = try { resources.getXObject(name) } catch (e: Throwable) { null }
 
                     if (xObject is PDImageXObject && !processedNames.contains(name.name)) {
                         var originalBitmap: Bitmap? = null
                         var scaledBitmap: Bitmap? = null
                         var grayscaleBitmap: Bitmap? = null
                         try {
-                            originalBitmap = xObject.image
+                            originalBitmap = try {
+                                xObject.image
+                            } catch (oom: OutOfMemoryError) {
+                                AppLogger.e("PdfCompressor: OOM while decoding image '${name.name}', keeping original", oom)
+                                null
+                            } catch (e: Throwable) {
+                                AppLogger.w("PdfCompressor: Failed to decode embedded image '${name.name}' (${e.message}), keeping original", e)
+                                null
+                            }
+
+                            if (originalBitmap == null || originalBitmap.width <= 0 || originalBitmap.height <= 0) {
+                                imagesSkipped++
+                                processedNames.add(name.name)
+                                continue
+                            }
+
                             var bitmap = originalBitmap
                             
                             if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
@@ -197,19 +214,25 @@ object PdfCompressor {
                             resources.put(name, compressedImage)
                             processedNames.add(name.name)
                             imagesProcessed++
-                        } catch (e: OutOfMemoryError) {
-                            System.err.println("OOM while compressing image: ${name.name}")
+                        } catch (oom: OutOfMemoryError) {
+                            AppLogger.e("PdfCompressor: OutOfMemoryError while compressing image '${name.name}', preserving original", oom)
+                            imagesSkipped++
+                            processedNames.add(name.name)
+                        } catch (e: Throwable) {
+                            AppLogger.w("PdfCompressor: Non-fatal error while re-encoding image '${name.name}': ${e.message}, preserving original", e)
+                            imagesSkipped++
+                            processedNames.add(name.name)
                         } finally {
-                            grayscaleBitmap?.recycle()
-                            if (scaledBitmap != null && scaledBitmap !== originalBitmap) scaledBitmap.recycle()
-                            originalBitmap?.recycle()
+                            try { grayscaleBitmap?.recycle() } catch (_: Throwable) {}
+                            try { if (scaledBitmap != null && scaledBitmap !== originalBitmap) scaledBitmap.recycle() } catch (_: Throwable) {}
+                            try { originalBitmap?.recycle() } catch (_: Throwable) {}
                         }
                     }
                 }
             }
 
             outputStream = contentResolver.openOutputStream(destUri)
-                ?: return@withContext Result.failure(Exception("Failed to open destination for saving."))
+                ?: return@withContext Result.failure(Exception("Cannot write to the chosen destination. Please verify storage permissions and available space."))
             
             doc.save(outputStream)
             
@@ -219,12 +242,26 @@ object PdfCompressor {
                 hasSignatures = hasSignatures
             ))
 
-        } catch (e: Exception) {
-            Result.failure(e)
+        } catch (oom: OutOfMemoryError) {
+            AppLogger.e("PdfCompressor: Out of memory during PDF compression", oom)
+            Result.failure(Exception("The PDF contains large high-resolution graphics that exceeded device memory. Try choosing a higher compression preset or enabling Grayscale mode.", oom))
+        } catch (e: Throwable) {
+            AppLogger.e("PdfCompressor: Error during PDF compression", e)
+            val friendlyMsg = when {
+                e.message?.contains("password", ignoreCase = true) == true || e.message?.contains("encrypt", ignoreCase = true) == true ->
+                    "This PDF is password-protected or encrypted. Please unlock it in PDF Security before compressing."
+                e.message?.contains("bitmap", ignoreCase = true) == true || e.message?.contains("memory", ignoreCase = true) == true || e.message?.contains("dimension", ignoreCase = true) == true ->
+                    "Unable to re-encode one or more high-resolution graphics. Try using Grayscale mode or a lighter compression preset."
+                e.message?.contains("cannot open", ignoreCase = true) == true || e.message?.contains("no longer available", ignoreCase = true) == true ->
+                    "The selected file could not be read from storage. Please select the file again."
+                else ->
+                    e.localizedMessage?.takeIf { it.isNotBlank() && it.length > 5 } ?: "An unexpected error occurred while processing the PDF structure. You can try running 'Repair PDF' first."
+            }
+            Result.failure(Exception(friendlyMsg, e))
         } finally {
-            document?.close()
-            inputStream?.close()
-            outputStream?.close()
+            try { document?.close() } catch (_: Throwable) {}
+            try { inputStream?.close() } catch (_: Throwable) {}
+            try { outputStream?.close() } catch (_: Throwable) {}
         }
     }
 

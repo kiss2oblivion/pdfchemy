@@ -68,9 +68,41 @@ import com.pdfchemy.app.ui.ImagesToPdfScreen
 import com.pdfchemy.app.ui.ImageCompressorScreen
 import com.pdfchemy.app.ui.RotatePdfScreen
 import com.pdfchemy.app.ui.ExtractTextScreen
+import com.pdfchemy.app.ui.ProtectPdfScreen
+import com.pdfchemy.app.ui.UnlockPdfScreen
+import com.pdfchemy.app.ui.PdfToImagesScreen
+import com.pdfchemy.app.ui.FillFormScreen
+import com.pdfchemy.app.ui.OcrPdfScreen
+import com.pdfchemy.app.ui.ReflowReaderScreen
+import com.pdfchemy.app.ui.ScanPdfScreen
+import com.pdfchemy.app.ui.SignPdfScreen
+import com.pdfchemy.app.ui.PageOrganizerScreen
+import com.pdfchemy.app.ui.WatermarkScreen
+import com.pdfchemy.app.ui.PageNumberScreen
+import com.pdfchemy.app.ui.PageLayoutScreen
+import com.pdfchemy.app.ui.PdfCompareScreen
 import com.pdfchemy.app.ui.textconverter.TextConverterViewModel
 import com.pdfchemy.app.ui.textconverter.TextConverterScreen
 import com.pdfchemy.app.ui.PdfEditorScreen
+import com.pdfchemy.app.ui.ImageReplacerScreen
+import com.pdfchemy.app.ui.FindAndReplaceScreen
+import com.pdfchemy.app.ui.OfficeExportScreen
+import com.pdfchemy.app.ui.PageCropperScreen
+import com.pdfchemy.app.ui.MetadataSanitizerScreen
+import com.pdfchemy.app.ui.MarkdownStudioScreen
+import com.pdfchemy.app.ui.EbookConverterScreen
+import com.pdfchemy.app.ui.FlattenPdfScreen
+import com.pdfchemy.app.ui.BookletScreen
+import com.pdfchemy.app.ui.RepairPdfScreen
+import com.pdfchemy.app.ui.GrayscaleOptimizerScreen
+import com.pdfchemy.app.ui.HeaderFooterScreen
+import com.pdfchemy.app.ui.BookmarkEditorScreen
+import com.pdfchemy.app.ui.RedactionScreen
+import com.pdfchemy.app.ui.AttachmentManagerScreen
+import com.pdfchemy.app.ui.LinearizePdfScreen
+import com.pdfchemy.app.ui.NUpScreen
+import com.pdfchemy.app.ui.PdfAValidatorScreen
+import com.pdfchemy.app.ui.FontInspectorScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
@@ -105,6 +137,9 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.MobileAds
 import com.pdfchemy.app.billing.AdManager
+import com.pdfchemy.app.ui.OfficeExportScreen
+import com.pdfchemy.app.ui.ImageReplacerScreen
+import com.pdfchemy.app.ui.FindAndReplaceScreen
 
 // --- Color Palette ---
 val md_theme_light_primary = Color(0xFF0072B2)
@@ -260,7 +295,9 @@ class MainActivity : AppCompatActivity() {
         if (!isScreenshotRun) {
             val consentInformation = UserMessagingPlatform.getConsentInformation(this)
             if (consentInformation.canRequestAds()) {
-                MobileAds.initialize(this) { }
+                MobileAds.initialize(this) {
+                    AdManager.loadInterstitial(this)
+                }
             }
 
             val debugSettings = ConsentDebugSettings.Builder(this)
@@ -284,12 +321,19 @@ class MainActivity : AppCompatActivity() {
                             Log.w("UMP", "${loadAndShowError.errorCode}: ${loadAndShowError.message}")
                         }
                         if (consentInformation.canRequestAds()) {
-                            MobileAds.initialize(this) { }
+                            MobileAds.initialize(this) {
+                                AdManager.loadInterstitial(this)
+                            }
                         }
                     }
                 },
                 { requestConsentError ->
                     Log.w("UMP", "${requestConsentError.errorCode}: ${requestConsentError.message}")
+                    if (consentInformation.canRequestAds()) {
+                        MobileAds.initialize(this) {
+                            AdManager.loadInterstitial(this)
+                        }
+                    }
                 }
             )
         }
@@ -465,6 +509,38 @@ fun MainApp(
             Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
             Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.PdfToImages -> PdfToImagesScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.FillForm -> FillFormScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.OcrPdf -> OcrPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.ScanPdf -> ScanPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.SignPdf -> SignPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.PageOrganizer -> PageOrganizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.Watermark -> WatermarkScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.ComparePdf -> PdfCompareScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.ReflowReader -> ReflowReaderScreen { currentScreen = Screen.OrganizeCategory }
+            Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.MetadataSanitizer -> MetadataSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.MarkdownStudio -> MarkdownStudioScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.EbookConverter -> EbookConverterScreen(viewModel) { currentScreen = Screen.CreateCategory }
+            Screen.FlattenPdf -> FlattenPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.Booklet -> BookletScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.RepairPdf -> RepairPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.GrayscaleOptimizer -> GrayscaleOptimizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.HeaderFooter -> HeaderFooterScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.BookmarkEditor -> BookmarkEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.AttachmentManager -> AttachmentManagerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.LinearizePdf -> LinearizePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.NUp -> NUpScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+            is Screen.OfficeExport -> OfficeExportScreen((currentScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
             Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
         }
 
@@ -570,12 +646,97 @@ fun MainApp(
                 )
             }
             is MainViewModel.UiState.Error -> {
+                var showDiagnostics by remember { mutableStateOf(false) }
                 AlertDialog(
                     onDismissRequest = { viewModel.resetState() },
-                    title = { Text(stringResource(R.string.error)) },
-                    text = { Text(state.message) },
+                    icon = { Icon(Icons.Rounded.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text(stringResource(R.string.error), fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            if (!state.technicalDetails.isNullOrBlank()) {
+                                OutlinedCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    onClick = { showDiagnostics = !showDiagnostics }
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.Rounded.BugReport,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = stringResource(R.string.error_developer_diagnostics),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                            Icon(
+                                                if (showDiagnostics) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        if (showDiagnostics) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                            ) {
+                                                Column(modifier = Modifier.padding(8.dp)) {
+                                                    Text(
+                                                        text = state.technicalDetails,
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                            fontSize = 11.sp
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    TextButton(
+                                                        onClick = {
+                                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                            val clip = android.content.ClipData.newPlainText("PDFchemy Error Trace", state.technicalDetails)
+                                                            clipboard?.setPrimaryClip(clip)
+                                                            Toast.makeText(context, context.getString(R.string.error_diagnostics_copied), Toast.LENGTH_SHORT).show()
+                                                        },
+                                                        modifier = Modifier.align(Alignment.End)
+                                                    ) {
+                                                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(stringResource(R.string.error_copy_diagnostics), style = MaterialTheme.typography.labelSmall)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     confirmButton = {
-                        TextButton(onClick = { viewModel.resetState() }) {
+                        Button(onClick = { viewModel.resetState() }) {
                             Text(stringResource(R.string.ok))
                         }
                     }
@@ -644,6 +805,38 @@ sealed class Screen {
     object ImagesToPdf : Screen()
     object RotatePdf : Screen()
     object ExtractText : Screen()
+    object ProtectPdf : Screen()
+    object UnlockPdf : Screen()
+    object PdfToImages : Screen()
+    object FillForm : Screen()
+    object OcrPdf : Screen()
+    object ScanPdf : Screen()
+    object SignPdf : Screen()
+    object PageOrganizer : Screen()
+    object Watermark : Screen()
+    object PageNumber : Screen()
+    object PageLayout : Screen()
+    object ComparePdf : Screen()
+    object ReflowReader : Screen()
+    object ImageReplacer : Screen()
+    object FindAndReplaceText : Screen()
+    object CropPdf : Screen()
+    object MetadataSanitizer : Screen()
+    object MarkdownStudio : Screen()
+    object EbookConverter : Screen()
+    object FlattenPdf : Screen()
+    object Booklet : Screen()
+    object RepairPdf : Screen()
+    object GrayscaleOptimizer : Screen()
+    object HeaderFooter : Screen()
+    object BookmarkEditor : Screen()
+    object Redaction : Screen()
+    object AttachmentManager : Screen()
+    object LinearizePdf : Screen()
+    object NUp : Screen()
+    object PdfAValidator : Screen()
+    object FontInspector : Screen()
+    data class OfficeExport(val initialFormat: com.pdfchemy.app.logic.OfficeFormat = com.pdfchemy.app.logic.OfficeFormat.WORD) : Screen()
     object Premium : Screen()
 }
 
@@ -1250,6 +1443,78 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     onClick = { onNavigate(Screen.TextConverter) }
                 )
             }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_pdf_to_images),
+                    subtitle = stringResource(R.string.menu_pdf_to_images_desc),
+                    icon = Icons.Rounded.Image,
+                    onClick = { onNavigate(Screen.PdfToImages) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_fill_form),
+                    subtitle = stringResource(R.string.menu_fill_form_desc),
+                    icon = Icons.Rounded.DynamicForm,
+                    onClick = { onNavigate(Screen.FillForm) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_ocr_pdf),
+                    subtitle = stringResource(R.string.menu_ocr_pdf_desc),
+                    icon = Icons.Rounded.DocumentScanner,
+                    onClick = { onNavigate(Screen.OcrPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_pdf_to_word),
+                    subtitle = stringResource(R.string.menu_pdf_to_word_desc),
+                    icon = Icons.Rounded.Article,
+                    onClick = { onNavigate(Screen.OfficeExport(com.pdfchemy.app.logic.OfficeFormat.WORD)) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_pdf_to_excel),
+                    subtitle = stringResource(R.string.menu_pdf_to_excel_desc),
+                    icon = Icons.Rounded.TableChart,
+                    onClick = { onNavigate(Screen.OfficeExport(com.pdfchemy.app.logic.OfficeFormat.EXCEL)) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_pdf_to_pptx),
+                    subtitle = stringResource(R.string.menu_pdf_to_pptx_desc),
+                    icon = Icons.Rounded.Slideshow,
+                    onClick = { onNavigate(Screen.OfficeExport(com.pdfchemy.app.logic.OfficeFormat.POWERPOINT)) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_scan_document),
+                    subtitle = stringResource(R.string.menu_scan_document_desc),
+                    icon = Icons.Rounded.CameraAlt,
+                    onClick = { onNavigate(Screen.ScanPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_markdown_studio),
+                    subtitle = stringResource(R.string.menu_markdown_studio_desc),
+                    icon = Icons.Rounded.EditNote,
+                    onClick = { onNavigate(Screen.MarkdownStudio) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_ebook_suite),
+                    subtitle = stringResource(R.string.menu_ebook_suite_desc),
+                    icon = Icons.Rounded.AutoStories,
+                    onClick = { onNavigate(Screen.EbookConverter) }
+                )
+            }
         }
         }
     }
@@ -1625,12 +1890,12 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                             pdfAnalysis = pdfAnalysis,
                             viewModel = viewModel,
                             onSaveSingle = { 
-                                com.pdfchemy.app.ads.AdManager.showAd(context as android.app.Activity, isPremium) {
+                                AdManager.showInterstitialIfReady(context as android.app.Activity, isPremium) {
                                     savePdfLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(sourceUri, context.getString(R.string.compressed_prefix))) 
                                 }
                             },
                             onSaveBatch = { 
-                                com.pdfchemy.app.ads.AdManager.showAd(context as android.app.Activity, isPremium) {
+                                AdManager.showInterstitialIfReady(context as android.app.Activity, isPremium) {
                                     selectDirectoryLauncher.launch(null) 
                                 }
                             }
@@ -2463,14 +2728,26 @@ fun SettingsScreen(
                             val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag() ?: "en"
                             val languages = mapOf(
                                 "en" to "English",
-                                "pt" to "Português (Portugal)",
-                                "pt-BR" to "Português (Brasil)",
-                                "it" to "Italiano",
                                 "es" to "Español",
-                                "fr" to "Français",
-                                "de" to "Deutsch",
+                                "pt-BR" to "Português (Brasil)",
+                                "pt" to "Português (Portugal)",
                                 "in" to "Bahasa Indonesia",
-                                "ro" to "Română"
+                                "de" to "Deutsch",
+                                "fr" to "Français",
+                                "it" to "Italiano",
+                                "ro" to "Română",
+                                "hi" to "हिन्दी (Hindi)",
+                                "ja" to "日本語 (Japanese)",
+                                "ko" to "한국어 (Korean)",
+                                "ar" to "العربية (Arabic)",
+                                "ru" to "Русский (Russian)",
+                                "tr" to "Türkçe (Turkish)",
+                                "vi" to "Tiếng Việt (Vietnamese)",
+                                "th" to "ไทย (Thai)",
+                                "pl" to "Polski (Polish)",
+                                "zh-CN" to "简体中文 (Simplified Chinese)",
+                                "zh-TW" to "繁體中文 (Traditional Chinese)",
+                                "nl" to "Nederlands (Dutch)"
                             )
                             
                             Row(

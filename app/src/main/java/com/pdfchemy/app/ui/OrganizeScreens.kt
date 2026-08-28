@@ -26,10 +26,18 @@ import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Merge
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.RotateRight
 import androidx.compose.material.icons.rounded.UploadFile
+import androidx.compose.material.icons.rounded.ViewModule
+import androidx.compose.material.icons.rounded.Draw
+import androidx.compose.material.icons.rounded.BrandingWatermark
+import androidx.compose.material.icons.rounded.Numbers
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Crop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -124,6 +132,134 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.menu_rotate_pages_desc),
                     icon = Icons.Rounded.RotateRight,
                     onClick = { onNavigate(Screen.RotatePdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_reflow_reader),
+                    subtitle = stringResource(R.string.menu_reflow_reader_desc),
+                    icon = Icons.Rounded.MenuBook,
+                    onClick = { onNavigate(Screen.ReflowReader) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_page_organizer),
+                    subtitle = stringResource(R.string.menu_page_organizer_desc),
+                    icon = Icons.Rounded.ViewModule,
+                    onClick = { onNavigate(Screen.PageOrganizer) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_sign_pdf),
+                    subtitle = stringResource(R.string.menu_sign_pdf_desc),
+                    icon = Icons.Rounded.Draw,
+                    onClick = { onNavigate(Screen.SignPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_watermark_pdf),
+                    subtitle = stringResource(R.string.menu_watermark_pdf_desc),
+                    icon = Icons.Rounded.BrandingWatermark,
+                    onClick = { onNavigate(Screen.Watermark) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_page_number_pdf),
+                    subtitle = stringResource(R.string.menu_page_number_pdf_desc),
+                    icon = Icons.Rounded.Numbers,
+                    onClick = { onNavigate(Screen.PageNumber) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_page_layout),
+                    subtitle = stringResource(R.string.menu_page_layout_desc),
+                    icon = Icons.Rounded.Dashboard,
+                    onClick = { onNavigate(Screen.PageLayout) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_replace_image),
+                    subtitle = stringResource(R.string.menu_replace_image_desc),
+                    icon = Icons.Rounded.Image,
+                    onClick = { onNavigate(Screen.ImageReplacer) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_find_replace),
+                    subtitle = stringResource(R.string.menu_find_replace_desc),
+                    icon = Icons.Rounded.Search,
+                    onClick = { onNavigate(Screen.FindAndReplaceText) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_crop_pdf),
+                    subtitle = stringResource(R.string.menu_crop_pdf_desc),
+                    icon = Icons.Rounded.Crop,
+                    onClick = { onNavigate(Screen.CropPdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_booklet_creator),
+                    subtitle = stringResource(R.string.menu_booklet_creator_desc),
+                    icon = Icons.Rounded.MenuBook,
+                    onClick = { onNavigate(Screen.Booklet) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_grayscale_optimizer),
+                    subtitle = stringResource(R.string.menu_grayscale_optimizer_desc),
+                    icon = Icons.Rounded.Draw,
+                    onClick = { onNavigate(Screen.GrayscaleOptimizer) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_header_footer_stamping),
+                    subtitle = stringResource(R.string.menu_header_footer_stamping_desc),
+                    icon = Icons.Rounded.Numbers,
+                    onClick = { onNavigate(Screen.HeaderFooter) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_bookmark_editor),
+                    subtitle = stringResource(R.string.menu_bookmark_editor_desc),
+                    icon = Icons.Rounded.MenuBook,
+                    onClick = { onNavigate(Screen.BookmarkEditor) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_attachment_manager),
+                    subtitle = stringResource(R.string.menu_attachment_manager_desc),
+                    icon = Icons.Rounded.UploadFile,
+                    onClick = { onNavigate(Screen.AttachmentManager) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_fast_web_view),
+                    subtitle = stringResource(R.string.menu_fast_web_view_desc),
+                    icon = Icons.Rounded.Dashboard,
+                    onClick = { onNavigate(Screen.LinearizePdf) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_nup_handouts),
+                    subtitle = stringResource(R.string.menu_nup_handouts_desc),
+                    icon = Icons.Rounded.ViewModule,
+                    onClick = { onNavigate(Screen.NUp) }
                 )
             }
         }

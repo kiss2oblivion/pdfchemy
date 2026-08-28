@@ -28,6 +28,26 @@ object FileUtils {
         return result
     }
 
+    fun getFileSize(context: Context, uri: Uri): Long {
+        if (uri.scheme == "content") {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (index != -1) {
+                        return cursor.getLong(index)
+                    }
+                }
+            }
+        }
+        if (uri.scheme == "file") {
+            val path = uri.path
+            if (path != null) {
+                return java.io.File(path).length()
+            }
+        }
+        return 0L
+    }
+
     fun formatFileSize(bytes: Long): String {
         if (bytes <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB")

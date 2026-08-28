@@ -1,0 +1,443 @@
+package com.pdfchemy.app.ui
+
+import android.app.Activity
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import com.pdfchemy.app.R
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPage
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+
+enum class ScanFilterMode {
+    ORIGINAL,
+    MAGIC_COLOR,
+    BLACK_AND_WHITE,
+    GRAYSCALE
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScanPdfScreen(
+    viewModel: MainViewModel,
+    onBack: () -> Unit
+) {
+    androidx.activity.compose.BackHandler { onBack() }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var scannedBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+    var selectedIndex by remember { mutableIntStateOf(0) }
+    var currentFilter by remember { mutableStateOf(ScanFilterMode.MAGIC_COLOR) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    // GMS Document Scanner Launcher
+    val scannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            val pdfUri = scanResult?.pdf?.uri
+            val pageUris = scanResult?.pages?.mapNotNull { it.imageUri } ?: emptyList()
+
+            if (pageUris.isNotEmpty()) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val bmps = pageUris.mapNotNull { uri ->
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            BitmapFactory.decodeStream(stream)
+                        }
+                    }
+                    withContext(Dispatchers.Main) {
+                        if (bmps.isNotEmpty()) {
+                            scannedBitmaps = bmps
+                            selectedIndex = 0
+                        }
+                    }
+                }
+            } else if (pdfUri != null) {
+                // If GMS directly provided PDF
+                coroutineScope.launch {
+                    val destFile = File(context.cacheDir, "scan_${System.currentTimeMillis()}.pdf")
+                    context.contentResolver.openInputStream(pdfUri)?.use { input ->
+                        destFile.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    val uri = Uri.fromFile(destFile)
+                    viewModel.notifySuccess(
+                        context.getString(R.string.title_scan_success),
+                        context.getString(R.string.desc_scan_success),
+                        uri
+                    )
+                    onBack()
+                }
+            }
+        }
+    }
+
+    // Photo Gallery Fallback Launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            coroutineScope.launch(Dispatchers.IO) {
+                val bmps = uris.mapNotNull { uri ->
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    scannedBitmaps = bmps
+                    selectedIndex = 0
+                }
+            }
+        }
+    }
+
+    // Export PDF Launcher
+    val savePdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { destUri ->
+        if (destUri != null && scannedBitmaps.isNotEmpty()) {
+            isProcessing = true
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val doc = PDDocument()
+                    for (rawBmp in scannedBitmaps) {
+                        val filteredBmp = applyScanFilter(rawBmp, currentFilter)
+                        val pageRect = PDRectangle(filteredBmp.width.toFloat(), filteredBmp.height.toFloat())
+                        val page = PDPage(pageRect)
+                        doc.addPage(page)
+
+                        PDPageContentStream(doc, page).use { cs ->
+                            val pdImage = JPEGFactory.createFromImage(doc, filteredBmp, 0.88f)
+                            cs.drawImage(pdImage, 0f, 0f, pageRect.width, pageRect.height)
+                        }
+                        if (filteredBmp != rawBmp) {
+                            filteredBmp.recycle()
+                        }
+                    }
+
+                    context.contentResolver.openOutputStream(destUri)?.use { out ->
+                        doc.save(out)
+                    }
+                    doc.close()
+
+                    withContext(Dispatchers.Main) {
+                        isProcessing = false
+                        viewModel.notifySuccess(
+                            context.getString(R.string.title_scan_success),
+                            context.getString(R.string.desc_scan_success),
+                            destUri
+                        )
+                        onBack()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        isProcessing = false
+                        viewModel.notifyError(context.getString(R.string.error_scan_failed))
+                    }
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.menu_scan_document), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (scannedBitmaps.isEmpty()) {
+                // Empty state / Scanner launch options
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(88.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.DocumentScanner,
+                                contentDescription = null,
+                                modifier = Modifier.size(46.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = stringResource(R.string.scan_camera_headline),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            text = stringResource(R.string.scan_camera_subtitle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = {
+                                val options = GmsDocumentScannerOptions.Builder()
+                                    .setGalleryImportAllowed(true)
+                                    .setPageLimit(100)
+                                    .setResultFormats(
+                                        GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
+                                        GmsDocumentScannerOptions.RESULT_FORMAT_PDF
+                                    )
+                                    .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                                    .build()
+
+                                val client = GmsDocumentScanning.getClient(options)
+                                client.getStartScanIntent(context as Activity)
+                                    .addOnSuccessListener { intentSender ->
+                                        scannerLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+                                    }
+                                    .addOnFailureListener {
+                                        // Fallback to image picker if GMS is unavailable
+                                        imagePickerLauncher.launch("image/*")
+                                    }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(Icons.Rounded.CameraAlt, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_start_camera_scan), fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.action_import_from_gallery))
+                        }
+                    }
+                }
+            } else {
+                // Scanned Pages Preview & Filter Controls
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.Black.copy(alpha = 0.05f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val currentBmp = scannedBitmaps.getOrNull(selectedIndex)
+                    if (currentBmp != null) {
+                        val previewFiltered = remember(currentBmp, currentFilter) {
+                            applyScanFilter(currentBmp, currentFilter)
+                        }
+                        Image(
+                            bitmap = previewFiltered.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                // Page Thumbnails Row
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    itemsIndexed(scannedBitmaps) { idx, bmp ->
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp, 84.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(
+                                    width = if (selectedIndex == idx) 3.dp else 1.dp,
+                                    color = if (selectedIndex == idx) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { selectedIndex = idx }
+                        ) {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+
+                // Filter Chips Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    ScanFilterMode.values().forEach { mode ->
+                        FilterChip(
+                            selected = currentFilter == mode,
+                            onClick = { currentFilter = mode },
+                            label = {
+                                Text(
+                                    when (mode) {
+                                        ScanFilterMode.ORIGINAL -> stringResource(R.string.filter_original)
+                                        ScanFilterMode.MAGIC_COLOR -> stringResource(R.string.filter_magic_color)
+                                        ScanFilterMode.BLACK_AND_WHITE -> stringResource(R.string.filter_bw)
+                                        ScanFilterMode.GRAYSCALE -> stringResource(R.string.filter_grayscale)
+                                    },
+                                    fontSize = 12.sp
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = { savePdfLauncher.launch("scanned_document_${System.currentTimeMillis()}.pdf") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    enabled = !isProcessing
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                    } else {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.action_save_as_pdf, scannedBitmaps.size), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun applyScanFilter(src: Bitmap, filter: ScanFilterMode): Bitmap {
+    return when (filter) {
+        ScanFilterMode.ORIGINAL -> src
+        ScanFilterMode.GRAYSCALE -> {
+            val bmp = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            val paint = Paint()
+            val cm = ColorMatrix().apply { setSaturation(0f) }
+            paint.colorFilter = ColorMatrixColorFilter(cm)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+            bmp
+        }
+        ScanFilterMode.MAGIC_COLOR -> {
+            val bmp = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            val paint = Paint()
+            val cm = ColorMatrix(
+                floatArrayOf(
+                    1.2f, 0f, 0f, 0f, -10f,
+                    0f, 1.2f, 0f, 0f, -10f,
+                    0f, 0f, 1.2f, 0f, -10f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            paint.colorFilter = ColorMatrixColorFilter(cm)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+            bmp
+        }
+        ScanFilterMode.BLACK_AND_WHITE -> {
+            val bmp = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            val paint = Paint()
+            val cm = ColorMatrix(
+                floatArrayOf(
+                    1.5f, 1.5f, 1.5f, 0f, -160f,
+                    1.5f, 1.5f, 1.5f, 0f, -160f,
+                    1.5f, 1.5f, 1.5f, 0f, -160f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            paint.colorFilter = ColorMatrixColorFilter(cm)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+            bmp
+        }
+    }
+}
