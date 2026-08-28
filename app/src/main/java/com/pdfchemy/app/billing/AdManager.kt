@@ -15,7 +15,7 @@ import com.pdfchemy.app.BuildConfig
 object AdManager {
     private var interstitialAd: InterstitialAd? = null
     private var lastAdShownTime: Long = 0
-    private const val COOLDOWN_MILLIS = 60_000L // 60 seconds cooldown
+    private const val COOLDOWN_MILLIS = 10_000L // 10 seconds cooldown
     fun loadInterstitial(context: Context) {
         if (interstitialAd != null) return // Already loaded
 
@@ -38,14 +38,19 @@ object AdManager {
         )
     }
 
-    fun showInterstitialIfReady(activity: Activity, isPremium: Boolean, onAdDismissed: () -> Unit) {
+    fun showInterstitialIfReady(
+        activity: Activity,
+        isPremium: Boolean,
+        ignoreCooldown: Boolean = false,
+        onAdDismissed: () -> Unit
+    ) {
         if (isPremium) {
             onAdDismissed()
             return
         }
 
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastAdShownTime < COOLDOWN_MILLIS) {
+        if (!ignoreCooldown && (currentTime - lastAdShownTime < COOLDOWN_MILLIS)) {
             AppLogger.d("Ad cooldown active. Not showing ad.")
             onAdDismissed()
             return
