@@ -595,7 +595,7 @@ fun MainApp(
                 AlertDialog(
                     onDismissRequest = {
                         if (activity != null) {
-                            AdManager.showInterstitialIfReady(activity, isPremium, ignoreCooldown = true) { viewModel.resetState() }
+                            AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
                         } else {
                             viewModel.resetState()
                         }
@@ -605,7 +605,7 @@ fun MainApp(
                     confirmButton = {
                         TextButton(onClick = {
                             if (activity != null) {
-                                AdManager.showInterstitialIfReady(activity, isPremium, ignoreCooldown = true) { viewModel.resetState() }
+                                AdManager.showInterstitialIfReady(activity, isPremium) { viewModel.resetState() }
                             } else {
                                 viewModel.resetState()
                             }
