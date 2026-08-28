@@ -1,0 +1,7 @@
+Nieuw in v2.0.0 (Grote Update):
+• PDF-beveiliging: 256-bits AES-encryptie & ontgrendelen van beveiligde PDF's.
+• Interactieve Editor & Reader: Ondertekenen, markeren, tekst & stempels toevoegen.
+• E-Book & Comic Suite: PDF's converteren naar EPUB (Kindle/Kobo) & CBZ.
+• Geavanceerde tools: PDF-vergelijking (Diff), boekjes maken, N-Up & bijsnijden.
+• Afbeeldingscompressor: Verkleinen naar exacte doelgrootte (bijv. 2 MB).
+• 100% Offline: 20 talen, geen uploads.

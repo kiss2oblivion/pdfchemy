@@ -1,0 +1,7 @@
+Yang Baru di v2.0.0 (Pembaruan Besar):
+• Keamanan PDF: Lindungi dokumen dengan enkripsi AES 256-bit & buka kunci PDF.
+• Editor & Pembaca Interaktif: Tanda tangan, anotasi, sorotan, teks & stempel.
+• Suite E-Book & Komik: Konversi PDF ke EPUB (Kindle/Kobo) & arsip CBZ.
+• Alat Canggih: Perbandingan PDF (Diff), cetak buklet, tata letak N-Up & potong lidi.
+• Kompresor Gambar: Kompres ke ukuran target pasti (mis. 2MB).
+• 100% Offline: 20 bahasa didukung, privasi total.

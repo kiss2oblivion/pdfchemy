@@ -1,0 +1,7 @@
+v2.0.0 Yenilikleri (Büyük Güncelleme):
+• PDF Güvenliği: 256-bit AES şifreleme ve korumalı PDF'lerin kilidini açma.
+• Etkileşimli Düzenleyici & Okuyucu: İmzalayın, vurgulayın, metin ve kaşe ekleyin.
+• E-Kitap ve Çizgi Roman: PDF'leri EPUB (Kindle/Kobo için) ve CBZ'ye dönüştürün.
+• Gelişmiş Araçlar: PDF Karşılaştırma (Diff), kitapçık, N-Up düzeni ve kırpma.
+• Görsel Sıkıştırıcı: Tam hedef boyuta (örn. 2 MB) göre sıkıştırma.
+• %100 Çevrimdışı: 20 dil desteği, sıfır bulut.
