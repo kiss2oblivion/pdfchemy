@@ -98,8 +98,6 @@ fun PdfEditorScreen(
 
     var showStampPicker by remember { mutableStateOf(false) }
     var showColorPicker by remember { mutableStateOf(false) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    var exportedPdfUri by remember { mutableStateOf<Uri?>(null) }
 
     // Load initial PDF bounds / page count
     LaunchedEffect(selectedPdfUri) {
@@ -144,8 +142,11 @@ fun PdfEditorScreen(
                 modifications = pageModifications
             ) { success ->
                 if (success) {
-                    exportedPdfUri = destUri
-                    showSuccessDialog = true
+                    viewModel.notifySuccess(
+                        context.getString(R.string.editor_export_success_title),
+                        context.getString(R.string.editor_export_success_desc),
+                        destUri
+                    )
                 }
             }
         }
@@ -621,33 +622,6 @@ fun PdfEditorScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    }
-
-    // --- EXPORT SUCCESS DIALOG ---
-    if (showSuccessDialog && exportedPdfUri != null) {
-        AlertDialog(
-            onDismissRequest = { showSuccessDialog = false },
-            icon = { Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp)) },
-            title = { Text(stringResource(R.string.editor_export_success_title)) },
-            text = { Text(stringResource(R.string.editor_export_success_desc)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showSuccessDialog = false
-                        ShareUtil.shareFile(context, exportedPdfUri!!, "application/pdf")
-                    }
-                ) {
-                    Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.share))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSuccessDialog = false }) {
-                    Text(stringResource(R.string.ok))
-                }
-            }
-        )
     }
 }
 

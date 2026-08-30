@@ -373,9 +373,15 @@ fun MetadataSanitizerScreen(
                         .fillMaxWidth()
                         .height(52.dp),
                     colors = if (isWipeAction) {
-                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     } else {
-                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
                     },
                     enabled = !isProcessing
                 ) {

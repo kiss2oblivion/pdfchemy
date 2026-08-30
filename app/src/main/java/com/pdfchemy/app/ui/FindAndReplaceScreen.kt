@@ -333,7 +333,10 @@ fun FindAndReplaceScreen(
                                 val suggestedName = "replaced_$baseName"
                                 savePdfLauncher.launch(suggestedName)
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
                             Icon(Icons.Rounded.DoneAll, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))

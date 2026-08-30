@@ -133,7 +133,10 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         cameraLauncher.launch(uri)
                     },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
                     Icon(Icons.Rounded.PhotoCamera, contentDescription = "Take Photo")
                     Spacer(modifier = Modifier.width(8.dp))

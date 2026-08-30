@@ -74,6 +74,7 @@ object AdManager {
 
                 override fun onAdShowedFullScreenContent() {
                     AppLogger.d("Ad showed fullscreen content.")
+                    lastAdShownTime = System.currentTimeMillis()
                     interstitialAd = null
                 }
             }

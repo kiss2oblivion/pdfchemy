@@ -262,7 +262,10 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Button(
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
                     Text(stringResource(R.string.select_different_pdf))
                 }
@@ -376,7 +379,10 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Button(
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
                     Text(stringResource(R.string.select_different_pdf))
                 }
@@ -389,13 +395,20 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     Button(
                         onClick = { sourceUri?.let { viewModel.clearMetadataOverwrite(context, it) } },
                         modifier = Modifier.weight(1f).height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        )
                     ) {
                         Text(stringResource(R.string.overwrite_original), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                     Button(
                         onClick = { sourceUri?.let { createDocLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(it, "stripped")) } },
-                        modifier = Modifier.weight(1f).height(56.dp)
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Text(stringResource(R.string.save_as_new), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
