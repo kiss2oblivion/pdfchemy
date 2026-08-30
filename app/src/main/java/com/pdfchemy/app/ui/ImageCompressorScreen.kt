@@ -542,7 +542,10 @@ fun ImageCompressorScreen(
                             .fillMaxWidth()
                             .height(54.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Icon(Icons.Rounded.Compress, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -973,7 +976,10 @@ fun SingleResultCard(
                     onClick = onShare,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
                     Icon(Icons.Rounded.Share, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))

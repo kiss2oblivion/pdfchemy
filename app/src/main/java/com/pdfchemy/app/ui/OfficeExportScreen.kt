@@ -281,7 +281,8 @@ fun OfficeExportScreen(
                         OfficeFormat.WORD -> Color(0xFF2B579A)
                         OfficeFormat.EXCEL -> Color(0xFF217346)
                         OfficeFormat.POWERPOINT -> Color(0xFFD24726)
-                    }
+                    },
+                    contentColor = Color.White
                 )
             ) {
                 if (isProcessing) {

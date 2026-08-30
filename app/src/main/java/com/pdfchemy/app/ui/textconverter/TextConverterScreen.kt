@@ -26,7 +26,11 @@ import com.pdfchemy.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
+fun TextConverterScreen(
+    viewModel: TextConverterViewModel,
+    mainViewModel: com.pdfchemy.app.ui.MainViewModel? = null,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val inputText by viewModel.inputText.collectAsState()
     val inputFormat by viewModel.inputFormat.collectAsState()
@@ -56,11 +60,19 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
     LaunchedEffect(uiState) {
         when (val state = uiState) {
             is TextConverterViewModel.UiState.Success -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                if (mainViewModel != null) {
+                    mainViewModel.showSuccessToast(state.message, "")
+                } else {
+                    Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                }
                 viewModel.dismissMessage()
             }
             is TextConverterViewModel.UiState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                if (mainViewModel != null) {
+                    mainViewModel.showErrorToast(context.getString(R.string.error), state.message)
+                } else {
+                    Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                }
                 viewModel.dismissMessage()
             }
             else -> {}
@@ -179,7 +191,10 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                     Button(
                         onClick = { pickFileLauncher.launch(arrayOf("*/*")) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
                     ) {
                         Icon(Icons.Rounded.UploadFile, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -195,7 +210,11 @@ fun TextConverterScreen(viewModel: TextConverterViewModel, onBack: () -> Unit) {
                                 saveFileLauncher.launch(filename)
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
                         Icon(Icons.Rounded.Save, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))

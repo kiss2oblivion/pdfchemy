@@ -23,8 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -161,13 +164,15 @@ val md_theme_light_onSurface = Color(0xFF1B1B1F)
 val md_theme_light_surfaceVariant = Color(0xFFE1E2E8)
 val md_theme_light_onSurfaceVariant = Color(0xFF44474E)
 val md_theme_light_outline = Color(0xFF74777F)
+val md_theme_light_error = Color(0xFFBA1A1A)
+val md_theme_light_onError = Color(0xFFFFFFFF)
 
 val md_theme_dark_primary = Color(0xFF00E5FF) // Neon Cyan
 val md_theme_dark_onPrimary = Color(0xFF00363D)
 val md_theme_dark_primaryContainer = Color(0xFF004F58)
 val md_theme_dark_onPrimaryContainer = Color(0xFF99F5FF)
 val md_theme_dark_secondary = Color(0xFFD500F9) // Magic Purple
-val md_theme_dark_onSecondary = Color(0xFF4A0059)
+val md_theme_dark_onSecondary = Color(0xFFFFFFFF) // High contrast white
 val md_theme_dark_secondaryContainer = Color(0xFF7B0094)
 val md_theme_dark_onSecondaryContainer = Color(0xFFF4B3FF)
 val md_theme_dark_tertiary = Color(0xFFFFEA00) // Glowing Gold
@@ -181,6 +186,8 @@ val md_theme_dark_onSurface = Color(0xFFE3E2E6)
 val md_theme_dark_surfaceVariant = Color(0xFF282836)
 val md_theme_dark_onSurfaceVariant = Color(0xFFC4C6D0)
 val md_theme_dark_outline = Color(0xFF8E9099)
+val md_theme_dark_error = Color(0xFFFF5449)
+val md_theme_dark_onError = Color(0xFFFFFFFF)
 
 val LightColors = lightColorScheme(
     primary = md_theme_light_primary,
@@ -201,7 +208,9 @@ val LightColors = lightColorScheme(
     onSurface = md_theme_light_onSurface,
     surfaceVariant = md_theme_light_surfaceVariant,
     onSurfaceVariant = md_theme_light_onSurfaceVariant,
-    outline = md_theme_light_outline
+    outline = md_theme_light_outline,
+    error = md_theme_light_error,
+    onError = md_theme_light_onError
 )
 
 val DarkColors = darkColorScheme(
@@ -223,7 +232,9 @@ val DarkColors = darkColorScheme(
     onSurface = md_theme_dark_onSurface,
     surfaceVariant = md_theme_dark_surfaceVariant,
     onSurfaceVariant = md_theme_dark_onSurfaceVariant,
-    outline = md_theme_dark_outline
+    outline = md_theme_dark_outline,
+    error = md_theme_dark_error,
+    onError = md_theme_dark_onError
 )
 
 private val defaultTypography = Typography()
@@ -274,11 +285,44 @@ fun playFeedback(view: android.view.View, isHaptic: Boolean, isSfx: Boolean) {
 
 class MainActivity : AppCompatActivity() {
 
+    private val incomingPdfUriState = MutableStateFlow<Uri?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingIntent(intent)
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        val uri = extractPdfUri(intent)
+        if (uri != null) {
+            incomingPdfUriState.value = uri
+        }
+    }
+
+    private fun extractPdfUri(intent: Intent?): Uri? {
+        if (intent == null) return null
+        val action = intent.action
+        if (Intent.ACTION_VIEW == action) {
+            return intent.data
+        } else if (Intent.ACTION_SEND == action) {
+            val streamUri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            }
+            return streamUri ?: intent.data
+        }
+        return null
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
+        handleIncomingIntent(intent)
         
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val isScreenshotRun = intent.getBooleanExtra("isScreenshotRun", false)
@@ -384,6 +428,7 @@ class MainActivity : AppCompatActivity() {
 
                 MainApp(
                     windowWidthSizeClass = windowSizeClass.widthSizeClass,
+                    incomingPdfUriState = incomingPdfUriState,
                     isDarkTheme = useDark,
                     themeMode = themeMode,
                     hasConsented = hasConsented,
@@ -439,6 +484,7 @@ fun MainApp(
     windowWidthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     viewModel: MainViewModel = viewModel(),
     textConverterViewModel: TextConverterViewModel = viewModel(),
+    incomingPdfUriState: MutableStateFlow<Uri?>? = null,
     isDarkTheme: Boolean = false,
     themeMode: String = "SYSTEM",
     hasConsented: Boolean = false,
@@ -449,6 +495,14 @@ fun MainApp(
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    val incomingPdfUri by (incomingPdfUriState?.collectAsState() ?: remember { mutableStateOf<Uri?>(null) })
+    LaunchedEffect(incomingPdfUri) {
+        incomingPdfUri?.let { uri ->
+            currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+            incomingPdfUriState?.value = null
+        }
+    }
     
     LaunchedEffect(isScreenshotRun) {
         if (isScreenshotRun) {
@@ -489,7 +543,7 @@ fun MainApp(
             Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
             Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
             Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.TextConverter -> TextConverterScreen(textConverterViewModel) { currentScreen = Screen.CreateCategory }
+            Screen.TextConverter -> TextConverterScreen(textConverterViewModel, viewModel) { currentScreen = Screen.CreateCategory }
             Screen.Settings -> SettingsScreen(
                 viewModel = viewModel,
                 themeMode = themeMode,
@@ -498,7 +552,12 @@ fun MainApp(
             ) { currentScreen = Screen.Home }
             Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
             Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.PdfEditor -> PdfEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+            is Screen.PdfEditor -> {
+                val editorScreen = currentScreen as Screen.PdfEditor
+                PdfEditorScreen(viewModel, editorScreen.initialPdfUri) {
+                    currentScreen = if (editorScreen.initialPdfUri != null) Screen.Home else Screen.OrganizeCategory
+                }
+            }
             Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
@@ -787,7 +846,7 @@ sealed class Screen {
     object CompressPdf : Screen()
     object BatchCompressPdf : Screen()
     object ImageCompressor : Screen()
-    object PdfEditor : Screen()
+    data class PdfEditor(val initialPdfUri: Uri? = null) : Screen()
     object TextToPdf : Screen()
     object TextConverter : Screen()
     object Settings : Screen()
@@ -2467,7 +2526,10 @@ fun RightPanel(
     Button(
         onClick = { if (selectedTab == 0) onSaveSingle() else onSaveBatch() },
         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        )
     ) {
         Icon(
             imageVector = Icons.Default.Check,
@@ -2533,7 +2595,10 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Button(
                     onClick = { pickTextLauncher.launch(arrayOf("text/plain")) },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
                     Icon(Icons.Rounded.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -2548,7 +2613,11 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             savePdfLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(null, "converted_text"))
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Icon(Icons.Rounded.Save, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -2612,8 +2681,49 @@ fun SettingsScreen(
     val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsState()
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
+    var showDefaultPdfDialog by remember { mutableStateOf(false) }
     var showRefundPolicyDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    if (showDefaultPdfDialog) {
+        AlertDialog(
+            onDismissRequest = { showDefaultPdfDialog = false },
+            title = { Text(stringResource(R.string.settings_default_pdf_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_default_pdf_dialog_body)) },
+            confirmButton = {
+                Button(onClick = {
+                    showDefaultPdfDialog = false
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                            val intent = Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+                            context.startActivity(intent)
+                        } else {
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        }
+                    } catch (e: Exception) {
+                        try {
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        } catch (ex: Exception) {
+                            // Ignored
+                        }
+                    }
+                }) {
+                    Text(stringResource(R.string.settings_open_android_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDefaultPdfDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 
     if (showClearHistoryDialog) {
         AlertDialog(
@@ -2823,6 +2933,29 @@ fun SettingsScreen(
                                 )
                             }
                             
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            // Default PDF Viewer Setting
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showDefaultPdfDialog = true }
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_default_pdf_app), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_default_pdf_app_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                             TextButton(

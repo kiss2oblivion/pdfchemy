@@ -342,7 +342,10 @@ fun RedactionScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 enabled = !isProcessing && selectedPdfUri != null && foundBoxes.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             ) {
                 if (isProcessing) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onError)

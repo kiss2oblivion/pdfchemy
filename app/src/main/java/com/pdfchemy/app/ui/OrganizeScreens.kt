@@ -91,7 +91,7 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     title = stringResource(R.string.menu_edit_pdf),
                     subtitle = stringResource(R.string.menu_edit_pdf_desc),
                     icon = Icons.Filled.Edit,
-                    onClick = { onNavigate(Screen.PdfEditor) }
+                    onClick = { onNavigate(Screen.PdfEditor()) }
                 )
             }
             item {

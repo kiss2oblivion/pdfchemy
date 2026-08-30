@@ -44,6 +44,11 @@
 <string name="settings_clear_history">Clear Recent History</string>
 <string name="settings_clear_history_confirm">Are you sure you want to clear your recent files history?</string>
 <string name="settings_history_cleared">History cleared</string>
+<string name="settings_default_pdf_app">Default PDF Viewer</string>
+<string name="settings_default_pdf_app_desc">Set PdfChemy as your default app to open PDF files</string>
+<string name="settings_default_pdf_dialog_title">Set Default PDF Viewer</string>
+<string name="settings_default_pdf_dialog_body">To make PdfChemy your default PDF viewer:\n\n1. Open any PDF file from your file manager or downloads.\n2. When prompted with \"Open with\", select PdfChemy.\n3. Choose \"Always\" to open PDF documents with PdfChemy automatically.\n\nYou can also configure default app associations in Android Settings.</string>
+<string name="settings_open_android_settings">Open System Settings</string>
 <string name="compress_title">Compress PDF</string>
 <string name="compress_single">Single File</string>
 <string name="compress_batch">Batch Compression</string>
