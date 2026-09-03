@@ -1324,8 +1324,6 @@ fun CategoryCard(
         label = "scaleAnim"
     )
     val view = androidx.compose.ui.platform.LocalView.current
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     LaunchedEffect(isPressed) {
         if (isPressed) {
@@ -1333,15 +1331,9 @@ fun CategoryCard(
         }
     }
 
-    val cardModifier = if (isLandscape) {
-        modifier.scale(scale)
-    } else {
-        modifier.height(160.dp).scale(scale)
-    }
-
     Card(
         onClick = onClick,
-        modifier = cardModifier,
+        modifier = modifier.scale(scale),
         interactionSource = interactionSource,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -1364,86 +1356,44 @@ fun CategoryCard(
                 shape = RoundedCornerShape(24.dp)
             )
         ) {
-            if (isLandscape) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = title,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(
-                        modifier = Modifier.weight(1.5f),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Start
-                        )
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Start,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = title,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall.copy(lineHeight = 15.sp),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
