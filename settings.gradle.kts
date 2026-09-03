@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Shrinkpdf"
 include(":app")
+include(":desktop")
