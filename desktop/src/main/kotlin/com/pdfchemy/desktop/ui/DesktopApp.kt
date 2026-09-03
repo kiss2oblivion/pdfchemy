@@ -422,7 +422,7 @@ private fun HomeView(
                             onClick = {
                                 try {
                                     if (java.awt.Desktop.isDesktopSupported()) {
-                                        java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/cucosandrei/pdfchemy/issues/new"))
+                                        java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/kiss2oblivion/pdfchemy/issues/new"))
                                     }
                                 } catch (_: Exception) {}
                             },
@@ -1644,7 +1644,7 @@ private fun EdgeCaseCallout() {
                 onClick = {
                     try {
                         if (java.awt.Desktop.isDesktopSupported()) {
-                            java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/cucosandrei/pdfchemy/issues/new"))
+                            java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/kiss2oblivion/pdfchemy/issues/new"))
                         }
                     } catch (_: Exception) {}
                 },
@@ -1738,7 +1738,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
-                        onClick = { openBrowser("https://github.com/cucosandrei/pdfchemy/issues/new") },
+                        onClick = { openBrowser("https://github.com/kiss2oblivion/pdfchemy/issues/new") },
                         modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(10.dp)
                     ) {

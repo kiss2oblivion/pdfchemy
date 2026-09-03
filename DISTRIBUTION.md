@@ -37,7 +37,7 @@ winget install PDFchemy.PDFchemy
    ```
 2. Submit the release MSI:
    ```powershell
-   wingetcreate submit https://github.com/cucosandrei/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi
+   wingetcreate submit https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi
    ```
    *`wingetcreate` automatically downloads the MSI, calculates the SHA256 hash, parses version metadata, and creates a Pull Request directly against Microsoft's `microsoft/winget-pkgs` repository.*
 
@@ -52,11 +52,11 @@ Microsoft Store allows developers to publish standard Win32 desktop apps (`.msi`
 3. Name: `PDFchemy Tools`.
 4. Distribution method: Choose **Desktop application (Win32)**.
 5. Installer URL:
-   `https://github.com/cucosandrei/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi`
+   `https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi`
 6. Silent install parameters: `/qn /norestart`.
 7. Category: **Productivity > Document Management**.
 8. Price: **Free**.
-9. Privacy Policy: `https://github.com/cucosandrei/pdfchemy/blob/main/README.md`.
+9. Privacy Policy: `https://github.com/kiss2oblivion/pdfchemy/blob/main/README.md`.
 10. Submit for Certification (takes 24–48 hours).
 
 ---
