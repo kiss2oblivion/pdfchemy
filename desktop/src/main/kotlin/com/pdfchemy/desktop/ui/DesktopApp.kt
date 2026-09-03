@@ -451,6 +451,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
+    var lastSavedFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(file) {
@@ -464,11 +465,10 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                     withContext(Dispatchers.Main) {
                         pageItems = specs
                     }
-                    for (i in 0 until count) {
-                        val bimg = DesktopPdfEngine.renderThumbnail(file, i, targetWidth = 240)
+                    DesktopPdfEngine.renderAllThumbnails(file, targetWidth = 240) { pageIdx, bimg ->
                         val bitmap = bimg.toComposeImageBitmap()
-                        withContext(Dispatchers.Main) {
-                            thumbnails[i] = bitmap
+                        scope.launch(Dispatchers.Main) {
+                            thumbnails[pageIdx] = bitmap
                         }
                     }
                 } catch (e: Exception) {
@@ -505,6 +505,19 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
             if (file != null && pageItems.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            val count = DesktopPdfEngine.getPageCount(file)
+                            withContext(Dispatchers.Main) {
+                                pageItems = (0 until count).map { PageItemSpec(originalPageIndex = it, rotation = 0) }
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Rounded.Undo, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Reset")
+                    }
+
+                    OutlinedButton(onClick = {
                         pageItems = pageItems.map { it.copy(rotation = (it.rotation + 90) % 360) }
                     }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -519,6 +532,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                 try {
                                     DesktopPdfEngine.saveReorderedPdf(file, outFile, pageItems)
                                     withContext(Dispatchers.Main) {
+                                        lastSavedFile = outFile
                                         statusText = "Document organized and saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
@@ -550,11 +564,24 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF00E676).copy(alpha = 0.15f)
-                    ) {
-                        Text("100% Local • Zero Leaks", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (lastSavedFile != null && lastSavedFile!!.exists()) {
+                            OutlinedButton(
+                                onClick = { openFileInExplorer(lastSavedFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00E676).copy(alpha = 0.15f)
+                        ) {
+                            Text("100% Local • Zero Leaks", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -755,6 +782,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
     var isProcessing by remember { mutableStateOf(false) }
     var progressText by remember { mutableStateOf("") }
     var resultText by remember { mutableStateOf<String?>(null) }
+    var lastCompressedFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -888,33 +916,6 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                 Text(progressText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
 
-            if (resultText != null) {
-                Surface(
-                    color = if (resultText!!.startsWith("Success")) Color(0xFF00E676).copy(alpha = 0.15f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            resultText!!,
-                            modifier = Modifier.weight(1f),
-                            color = if (resultText!!.startsWith("Success")) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF00E676).copy(alpha = 0.2f)
-                        ) {
-                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
             Button(
                 onClick = {
                     val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_compressed.pdf") ?: return@Button
@@ -935,6 +936,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                             val savedPct = ((file.length() - newSize).toFloat() / file.length() * 100).toInt()
                             withContext(Dispatchers.Main) {
                                 isProcessing = false
+                                lastCompressedFile = outFile
                                 resultText = "Success! Compressed from ${formatFileSize(file.length())} to ${formatFileSize(newSize)} ($savedPct% saved).\nSaved to: ${outFile.absolutePath}"
                             }
                         } catch (e: Exception) {
@@ -953,6 +955,46 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Start Smart Compression", fontWeight = FontWeight.Bold)
             }
+
+            if (resultText != null) {
+                Surface(
+                    color = if (resultText!!.startsWith("Success")) Color(0xFF00E676).copy(alpha = 0.15f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            resultText!!,
+                            modifier = Modifier.weight(1f),
+                            color = if (resultText!!.startsWith("Success")) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (lastCompressedFile != null && lastCompressedFile!!.exists()) {
+                                OutlinedButton(
+                                    onClick = { openFileInExplorer(lastCompressedFile!!) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF00E676).copy(alpha = 0.2f)
+                            ) {
+                                Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Edge Case Guarantee Callout
@@ -966,6 +1008,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
 @Composable
 private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     var statusText by remember { mutableStateOf<String?>(null) }
+    var lastConvertedTarget by remember { mutableStateOf<File?>(null) }
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
     val scope = rememberCoroutineScope()
 
@@ -1030,6 +1073,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                                     try {
                                         DesktopPdfEngine.imagesToPdf(selectedImages, outFile)
                                         withContext(Dispatchers.Main) {
+                                            lastConvertedTarget = outFile
                                             statusText = "Images compiled into PDF:\n${outFile.absolutePath}"
                                         }
                                     } catch (e: Exception) {
@@ -1072,6 +1116,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                             try {
                                 val files = DesktopPdfEngine.extractPagesToImages(file, folder, format = "png", dpi = 150f)
                                 withContext(Dispatchers.Main) {
+                                    lastConvertedTarget = folder
                                     statusText = "Extracted ${files.size} pages as PNG images to:\n${folder.absolutePath}"
                                 }
                             } catch (e: Exception) {
@@ -1113,6 +1158,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                                 val text = DesktopPdfEngine.extractText(file)
                                 txtFile.writeText(text)
                                 withContext(Dispatchers.Main) {
+                                    lastConvertedTarget = txtFile
                                     statusText = "Extracted text written to:\n${txtFile.absolutePath}"
                                 }
                             } catch (e: Exception) {
@@ -1144,11 +1190,24 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF00E676).copy(alpha = 0.2f)
-                    ) {
-                        Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (lastConvertedTarget != null && lastConvertedTarget!!.exists()) {
+                            OutlinedButton(
+                                onClick = { openFileInExplorer(lastConvertedTarget!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00E676).copy(alpha = 0.2f)
+                        ) {
+                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -1168,6 +1227,7 @@ private fun BatchQueueView() {
     var isProcessing by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
     var statusText by remember { mutableStateOf<String?>(null) }
+    var lastBatchTarget by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -1244,6 +1304,7 @@ private fun BatchQueueView() {
                                         }
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false
+                                            lastBatchTarget = outDir
                                             statusText = "Batch compression complete! ${queueFiles.size} files saved to:\n${outDir.absolutePath}"
                                         }
                                     } catch (e: Exception) {
@@ -1272,6 +1333,7 @@ private fun BatchQueueView() {
                                         DesktopPdfEngine.mergePdfs(queueFiles, outFile)
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false
+                                            lastBatchTarget = outFile
                                             statusText = "Successfully merged ${queueFiles.size} files into:\n${outFile.absolutePath}"
                                         }
                                     } catch (e: Exception) {
@@ -1307,11 +1369,24 @@ private fun BatchQueueView() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF00E676).copy(alpha = 0.2f)
-                    ) {
-                        Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (lastBatchTarget != null && lastBatchTarget!!.exists()) {
+                            OutlinedButton(
+                                onClick = { openFileInExplorer(lastBatchTarget!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00E676).copy(alpha = 0.2f)
+                        ) {
+                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -1412,6 +1487,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
 private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var password by remember { mutableStateOf("") }
     var statusText by remember { mutableStateOf<String?>(null) }
+    var lastSecurityFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -1450,6 +1526,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 try {
                                     DesktopPdfEngine.encryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
+                                        lastSecurityFile = outFile
                                         statusText = "Document encrypted and saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
@@ -1478,6 +1555,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 try {
                                     DesktopPdfEngine.decryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
+                                        lastSecurityFile = outFile
                                         statusText = "Password removed! Saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
@@ -1504,7 +1582,32 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (lastSecurityFile != null && lastSecurityFile!!.exists()) {
+                            OutlinedButton(
+                                onClick = { openFileInExplorer(lastSecurityFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00E676).copy(alpha = 0.2f)
+                        ) {
+                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
 
@@ -1685,3 +1788,16 @@ private fun formatFileSize(bytes: Long): String {
     val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, 3)
     return DecimalFormat("#,##0.#").format(bytes / Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups]
 }
+
+private fun openFileInExplorer(target: File) {
+    try {
+        if (java.awt.Desktop.isDesktopSupported()) {
+            val desktop = java.awt.Desktop.getDesktop()
+            val fileToOpen = if (target.isDirectory) target else target.parentFile ?: target
+            if (fileToOpen.exists()) {
+                desktop.open(fileToOpen)
+            }
+        }
+    } catch (_: Exception) {}
+}
+
