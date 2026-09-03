@@ -132,6 +132,7 @@ dependencies {
     // 5. Google Play Billing Library
     implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("androidx.compose.material3:material3-window-size-class")
+    implementation("androidx.window:window:1.2.0")
 
     // Text Conversion Libraries
     implementation("org.jsoup:jsoup:1.17.2")

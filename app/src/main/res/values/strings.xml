@@ -989,4 +989,8 @@
 <string name="msg_circuit_breaker_paused">Processing safely paused to prevent phone freezing. Completed work saved.</string>
 <string name="reader_dual_page_spread">Two-Page Spread</string>
 <string name="reader_single_page">Single Page</string>
+<string name="flip_tabletop_mode">Tabletop Mode</string>
+<string name="flip_fullscreen_mode">Full Screen Mode</string>
+<string name="flip_tabletop_mode_desc">Hands-free mode: Document displayed on top, desk controls on bottom</string>
+<string name="flip_tabletop_active_badge">Flex Mode</string>
 </resources>

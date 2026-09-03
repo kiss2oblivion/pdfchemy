@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -70,6 +71,10 @@ fun ReflowReaderScreen(
 
     val configuration = LocalConfiguration.current
     val isWideScreen = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE || configuration.screenWidthDp >= 600
+
+    val postureInfo = com.pdfchemy.app.logic.rememberDevicePosture()
+    var forceTabletopMode by remember { mutableStateOf(false) }
+    val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
 
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
@@ -168,6 +173,13 @@ fun ReflowReaderScreen(
                                 Icon(Icons.Rounded.MenuBook, contentDescription = "Table of Contents", tint = selectedTheme.text)
                             }
                         }
+                        IconButton(onClick = { forceTabletopMode = !forceTabletopMode }) {
+                            Icon(
+                                imageVector = if (isTabletopMode) Icons.Rounded.LaptopMac else Icons.Rounded.PhoneAndroid,
+                                contentDescription = stringResource(if (isTabletopMode) R.string.flip_fullscreen_mode else R.string.flip_tabletop_mode),
+                                tint = if (isTabletopMode) MaterialTheme.colorScheme.primary else selectedTheme.text
+                            )
+                        }
                         IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf", "application/epub+zip", "application/zip", "application/octet-stream")) }) {
                             Icon(Icons.Rounded.FolderOpen, contentDescription = "Open Document", tint = selectedTheme.text)
                         }
@@ -175,7 +187,7 @@ fun ReflowReaderScreen(
                 )
             },
             bottomBar = {
-                if (selectedPdfUri != null && reflowSections.isNotEmpty()) {
+                if (selectedPdfUri != null && reflowSections.isNotEmpty() && !isTabletopMode) {
                     Surface(
                         color = selectedTheme.bg,
                         tonalElevation = 6.dp,
@@ -308,6 +320,171 @@ fun ReflowReaderScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                        }
+                    }
+                } else if (isTabletopMode) {
+                    // Tabletop Mode for Flip phones: Reading on top, Desk Controls on bottom
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Top Reading Viewport (above hinge)
+                        Box(
+                            modifier = Modifier
+                                .weight(1.15f)
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .widthIn(max = 680.dp)
+                                    .fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                items(reflowSections) { section ->
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            color = selectedTheme.text.copy(alpha = 0.08f),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "PAGE ${section.pageNumber}",
+                                                color = selectedTheme.text.copy(alpha = 0.6f),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        section.paragraphs.forEach { p ->
+                                            Text(
+                                                text = p,
+                                                color = selectedTheme.text,
+                                                fontSize = fontSizeSp.sp,
+                                                lineHeight = (fontSizeSp * 1.55f).sp,
+                                                fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
+                                                textAlign = TextAlign.Start
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Horizontal Hinge Divider
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(selectedTheme.text.copy(alpha = 0.08f))
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                )
+                                Text(
+                                    text = stringResource(R.string.flip_tabletop_active_badge),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Text(
+                                text = "${fontSizeSp.toInt()}sp • ${selectedTheme.label}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = selectedTheme.text.copy(alpha = 0.7f)
+                            )
+                        }
+
+                        // Bottom Desk Controller
+                        Surface(
+                            modifier = Modifier
+                                .weight(0.85f)
+                                .fillMaxWidth(),
+                            color = selectedTheme.bg
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.SpaceEvenly,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Theme Selector
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        ReaderTheme.values().forEach { theme ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .background(theme.bg, CircleShape)
+                                                    .clickable {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        selectedTheme = theme
+                                                    }
+                                                    .border(
+                                                        width = if (selectedTheme == theme) 2.dp else 1.dp,
+                                                        color = if (selectedTheme == theme) MaterialTheme.colorScheme.primary else selectedTheme.text.copy(alpha = 0.2f),
+                                                        shape = CircleShape
+                                                    )
+                                                    .padding(2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (selectedTheme == theme) {
+                                                    Icon(
+                                                        Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(20.dp),
+                                                        tint = theme.text
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Font Sizing Controls
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    FilledTonalButton(
+                                        onClick = { fontSizeSp = (fontSizeSp - 2).coerceAtLeast(12f) },
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("A-", fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text("${fontSizeSp.toInt()} sp", color = selectedTheme.text, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    FilledTonalButton(
+                                        onClick = { fontSizeSp = (fontSizeSp + 2).coerceAtMost(32f) },
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("A+", fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    OutlinedButton(
+                                        onClick = { useSerifFont = !useSerifFont },
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                    ) {
+                                        Text(if (useSerifFont) "Serif" else "Sans", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                            }
                         }
                     }
                 } else if (isWideScreen) {
