@@ -4,14 +4,23 @@ import org.apache.pdfbox.multipdf.PDFMergerUtility
 import org.apache.pdfbox.multipdf.Splitter
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
+import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileOutputStream
 import javax.imageio.ImageIO
+
+data class PageItemSpec(
+    val originalPageIndex: Int,
+    val rotation: Int = 0
+)
 
 object DesktopPdfEngine {
 
@@ -38,6 +47,37 @@ object DesktopPdfEngine {
         return PDDocument.load(file).use { document ->
             val renderer = PDFRenderer(document)
             renderer.renderImageWithDPI(pageIndex, dpi)
+        }
+    }
+
+    /**
+     * Renders a quick, downscaled thumbnail for high-performance visual grid rendering.
+     */
+    fun renderThumbnail(file: File, pageIndex: Int, targetWidth: Int = 260): BufferedImage {
+        return PDDocument.load(file).use { document ->
+            val renderer = PDFRenderer(document)
+            // 72 DPI is base PDF resolution (approx 595x842 for A4). Scale factor calculates optimal rendering DPI.
+            val dpi = (targetWidth.toFloat() / 595f * 72f).coerceIn(36f, 100f)
+            renderer.renderImageWithDPI(pageIndex, dpi)
+        }
+    }
+
+    /**
+     * Saves a reordered, rotated, or pruned document from a list of PageItemSpecs.
+     */
+    fun saveReorderedPdf(inputFile: File, outputFile: File, pageSpecs: List<PageItemSpec>) {
+        PDDocument.load(inputFile).use { sourceDoc ->
+            val outDoc = PDDocument()
+            for (spec in pageSpecs) {
+                if (spec.originalPageIndex in 0 until sourceDoc.numberOfPages) {
+                    val page = sourceDoc.getPage(spec.originalPageIndex)
+                    // Create an imported page copy to prevent reference conflicts
+                    val imported = outDoc.importPage(page)
+                    imported.rotation = (page.rotation + spec.rotation) % 360
+                }
+            }
+            outDoc.save(outputFile)
+            outDoc.close()
         }
     }
 
@@ -93,7 +133,6 @@ object DesktopPdfEngine {
      */
     fun deletePages(inputFile: File, outputFile: File, pagesToDelete: Set<Int>) {
         PDDocument.load(inputFile).use { document ->
-            // Delete from highest index down to avoid shifting
             pagesToDelete.sortedDescending().forEach { index ->
                 if (index in 0 until document.numberOfPages) {
                     document.removePage(index)
@@ -127,7 +166,7 @@ object DesktopPdfEngine {
     }
 
     /**
-     * Compresses PDF by re-encoding pages at target DPI and JPEG quality.
+     * Compresses PDF with preset DPI and JPEG quality.
      */
     fun compressPdf(
         inputFile: File,
@@ -146,7 +185,6 @@ object DesktopPdfEngine {
                 val renderedImage = renderer.renderImageWithDPI(i, targetDpi)
                 val tempJpg = File.createTempFile("compress_page_$i", ".jpg")
                 try {
-                    // Write compressed JPEG
                     val writers = ImageIO.getImageWritersByFormatName("jpg")
                     if (writers.hasNext()) {
                         val writer = writers.next()
@@ -163,10 +201,9 @@ object DesktopPdfEngine {
                         ImageIO.write(renderedImage, "jpg", tempJpg)
                     }
 
-                    // Create new page in compressed document
-                    val newPage = PDPage(org.apache.pdfbox.pdmodel.common.PDRectangle(renderedImage.width.toFloat(), renderedImage.height.toFloat()))
+                    val newPage = PDPage(PDRectangle(renderedImage.width.toFloat(), renderedImage.height.toFloat()))
                     compressedDoc.addPage(newPage)
-                    val pdImage = org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject.createFromFileByExtension(tempJpg, compressedDoc)
+                    val pdImage = PDImageXObject.createFromFileByExtension(tempJpg, compressedDoc)
                     org.apache.pdfbox.pdmodel.PDPageContentStream(compressedDoc, newPage).use { stream ->
                         stream.drawImage(pdImage, 0f, 0f, renderedImage.width.toFloat(), renderedImage.height.toFloat())
                     }
@@ -179,5 +216,97 @@ object DesktopPdfEngine {
             compressedDoc.close()
         }
         return outputFile.length()
+    }
+
+    /**
+     * Smart Target Size Optimizer: Iteratively tunes DPI and quality to guarantee output size under targetBytes.
+     */
+    fun compressToTargetSize(
+        inputFile: File,
+        outputFile: File,
+        targetBytes: Long,
+        onProgress: (String) -> Unit = {}
+    ): Long {
+        val originalSize = inputFile.length()
+        if (originalSize <= targetBytes) {
+            inputFile.copyTo(outputFile, overwrite = true)
+            return outputFile.length()
+        }
+
+        val totalPages = getPageCount(inputFile).coerceAtLeast(1)
+        val budgetPerPage = targetBytes / totalPages
+
+        // Calculate initial heuristic
+        val (initialDpi, initialQuality) = when {
+            budgetPerPage < 40_000 -> 90f to 0.40f
+            budgetPerPage < 100_000 -> 120f to 0.55f
+            budgetPerPage < 250_000 -> 140f to 0.65f
+            else -> 160f to 0.75f
+        }
+
+        onProgress("Optimizing compression profile for ${targetBytes / 1024 / 1024} MB target...")
+        var resultSize = compressPdf(inputFile, outputFile, initialDpi, initialQuality)
+
+        // If still exceeding target, perform an aggressive tightening pass
+        if (resultSize > targetBytes) {
+            onProgress("Refining compression threshold...")
+            val ratio = targetBytes.toFloat() / resultSize.toFloat()
+            val tighterDpi = (initialDpi * ratio).coerceIn(72f, 130f)
+            val tighterQuality = (initialQuality * ratio).coerceIn(0.30f, 0.60f)
+            resultSize = compressPdf(inputFile, outputFile, tighterDpi, tighterQuality)
+        }
+
+        return resultSize
+    }
+
+    /**
+     * Extracts all pages as standalone high-resolution images (PNG or JPG).
+     */
+    fun extractPagesToImages(
+        inputFile: File,
+        outputFolder: File,
+        format: String = "png",
+        dpi: Float = 150f,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ): List<File> {
+        outputFolder.mkdirs()
+        val extractedFiles = mutableListOf<File>()
+        PDDocument.load(inputFile).use { doc ->
+            val renderer = PDFRenderer(doc)
+            val total = doc.numberOfPages
+            for (i in 0 until total) {
+                onProgress(i + 1, total)
+                val img = renderer.renderImageWithDPI(i, dpi)
+                val outFile = File(outputFolder, "${inputFile.nameWithoutExtension}_page_${i + 1}.$format")
+                ImageIO.write(img, format, outFile)
+                extractedFiles.add(outFile)
+            }
+        }
+        return extractedFiles
+    }
+
+    /**
+     * Converts a collection of images (PNG, JPG, BMP) into a single master PDF document.
+     */
+    fun imagesToPdf(
+        imageFiles: List<File>,
+        outputFile: File,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ) {
+        val doc = PDDocument()
+        imageFiles.forEachIndexed { index, imgFile ->
+            onProgress(index + 1, imageFiles.size)
+            val bimg = ImageIO.read(imgFile)
+            if (bimg != null) {
+                val page = PDPage(PDRectangle(bimg.width.toFloat(), bimg.height.toFloat()))
+                doc.addPage(page)
+                val pdImage = LosslessFactory.createFromImage(doc, bimg)
+                org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page).use { stream ->
+                    stream.drawImage(pdImage, 0f, 0f, bimg.width.toFloat(), bimg.height.toFloat())
+                }
+            }
+        }
+        doc.save(outputFile)
+        doc.close()
     }
 }
