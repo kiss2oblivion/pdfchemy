@@ -532,88 +532,117 @@ fun MainApp(
             Box(modifier = Modifier.weight(1f)) {
             
 
-        when (currentScreen) {
-            Screen.Home -> HomeScreen(
-                windowWidthSizeClass = windowWidthSizeClass,
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = {
-                    val nextMode = when (themeMode) {
-                        "SYSTEM" -> "LIGHT"
-                        "LIGHT" -> "DARK"
-                        else -> "SYSTEM"
-                    }
-                    onChangeThemeMode(nextMode)
-                },
-                onNavigate = { screen -> currentScreen = screen },
-                viewModel = viewModel
-            )
-            Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
-            Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
-            Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
-            Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.TextConverter -> TextConverterScreen(textConverterViewModel, viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.Settings -> SettingsScreen(
-                viewModel = viewModel,
-                themeMode = themeMode,
-                onChangeThemeMode = onChangeThemeMode,
-                onOpenTour = onOpenTour
-            ) { currentScreen = Screen.Home }
-            Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            is Screen.PdfEditor -> {
-                val editorScreen = currentScreen as Screen.PdfEditor
-                PdfEditorScreen(viewModel, editorScreen.initialPdfUri) {
-                    currentScreen = if (editorScreen.initialPdfUri != null) Screen.Home else Screen.OrganizeCategory
+        AnimatedContent(
+            targetState = currentScreen,
+            transitionSpec = {
+                if (targetState == Screen.Home) {
+                    (slideInHorizontally(
+                        initialOffsetX = { -it / 6 },
+                        animationSpec = tween(260, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(260))).togetherWith(
+                        slideOutHorizontally(
+                            targetOffsetX = { it / 4 },
+                            animationSpec = tween(220, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(180))
+                    )
+                } else {
+                    (slideInHorizontally(
+                        initialOffsetX = { it / 4 },
+                        animationSpec = tween(260, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(260))).togetherWith(
+                        slideOutHorizontally(
+                            targetOffsetX = { -it / 6 },
+                            animationSpec = tween(220, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(180))
+                    )
                 }
+            },
+            label = "screenTransition",
+            modifier = Modifier.fillMaxSize()
+        ) { targetScreen ->
+            when (targetScreen) {
+                Screen.Home -> HomeScreen(
+                    windowWidthSizeClass = windowWidthSizeClass,
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = {
+                        val nextMode = when (themeMode) {
+                            "SYSTEM" -> "LIGHT"
+                            "LIGHT" -> "DARK"
+                            else -> "SYSTEM"
+                        }
+                        onChangeThemeMode(nextMode)
+                    },
+                    onNavigate = { screen -> currentScreen = screen },
+                    viewModel = viewModel
+                )
+                Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+                Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+                Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
+                Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.TextConverter -> TextConverterScreen(textConverterViewModel, viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.Settings -> SettingsScreen(
+                    viewModel = viewModel,
+                    themeMode = themeMode,
+                    onChangeThemeMode = onChangeThemeMode,
+                    onOpenTour = onOpenTour
+                ) { currentScreen = Screen.Home }
+                Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                is Screen.PdfEditor -> {
+                    val editorScreen = targetScreen as Screen.PdfEditor
+                    PdfEditorScreen(viewModel, editorScreen.initialPdfUri) {
+                        currentScreen = if (editorScreen.initialPdfUri != null) Screen.Home else Screen.OrganizeCategory
+                    }
+                }
+                Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
+                Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.PdfToImages -> PdfToImagesScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.FillForm -> FillFormScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.OcrPdf -> OcrPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.ScanPdf -> ScanPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.SignPdf -> SignPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.PageOrganizer -> PageOrganizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.Watermark -> WatermarkScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.ComparePdf -> PdfCompareScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                is Screen.ReflowReader -> {
+                    val reflowScreen = targetScreen as Screen.ReflowReader
+                    ReflowReaderScreen(initialUri = reflowScreen.initialUri) { currentScreen = Screen.OrganizeCategory }
+                }
+                Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.MetadataSanitizer -> MetadataSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.MarkdownStudio -> MarkdownStudioScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.EbookConverter -> EbookConverterScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.FlattenPdf -> FlattenPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.Booklet -> BookletScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.RepairPdf -> RepairPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.GrayscaleOptimizer -> GrayscaleOptimizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.HeaderFooter -> HeaderFooterScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.BookmarkEditor -> BookmarkEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.AttachmentManager -> AttachmentManagerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.LinearizePdf -> LinearizePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.NUp -> NUpScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                is Screen.OfficeExport -> OfficeExportScreen((targetScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
             }
-            Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-            Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
-            Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.PdfToImages -> PdfToImagesScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.FillForm -> FillFormScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.OcrPdf -> OcrPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.ScanPdf -> ScanPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.SignPdf -> SignPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.PageOrganizer -> PageOrganizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.Watermark -> WatermarkScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.ComparePdf -> PdfCompareScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            is Screen.ReflowReader -> {
-                val reflowScreen = currentScreen as Screen.ReflowReader
-                ReflowReaderScreen(initialUri = reflowScreen.initialUri) { currentScreen = Screen.OrganizeCategory }
-            }
-            Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.MetadataSanitizer -> MetadataSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.MarkdownStudio -> MarkdownStudioScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.EbookConverter -> EbookConverterScreen(viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.FlattenPdf -> FlattenPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.Booklet -> BookletScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.RepairPdf -> RepairPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.GrayscaleOptimizer -> GrayscaleOptimizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.HeaderFooter -> HeaderFooterScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.BookmarkEditor -> BookmarkEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.AttachmentManager -> AttachmentManagerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.LinearizePdf -> LinearizePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.NUp -> NUpScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-            Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            is Screen.OfficeExport -> OfficeExportScreen((currentScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
-            Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
         }
 
         if (uiState is MainViewModel.UiState.Processing || uiState is MainViewModel.UiState.BatchProcessing) {
@@ -1062,37 +1091,38 @@ fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseCo
 fun AnimatedMeshBackground() {
     val infiniteTransition = rememberInfiniteTransition(label = "mesh")
     val color1 by infiniteTransition.animateColor(
-        initialValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-        targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+        initialValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+        targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
         animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
+            animation = tween(8000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "color1"
     )
     val color2 by infiniteTransition.animateColor(
-        initialValue = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f),
-        targetValue = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+        initialValue = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f),
+        targetValue = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
         animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = LinearEasing),
+            animation = tween(10000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "color2"
     )
 
-    Canvas(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    val bgColor = MaterialTheme.colorScheme.background
+    Canvas(modifier = Modifier.fillMaxSize().background(bgColor)) {
         drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(color1, Color.Transparent),
                 center = Offset(size.width * 0.2f, size.height * 0.2f),
-                radius = size.width * 0.8f
+                radius = size.width * 0.85f
             )
         )
         drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(color2, Color.Transparent),
                 center = Offset(size.width * 0.8f, size.height * 0.8f),
-                radius = size.width * 0.8f
+                radius = size.width * 0.85f
             )
         )
     }
@@ -1106,54 +1136,43 @@ fun HomeScreen(
     onNavigate: (Screen) -> Unit,
     viewModel: MainViewModel
 ) {
-    // --- Safe entrance animation ---
-    // Content is ALWAYS composed. Animation only affects visual properties (alpha, translation)
-    // via graphicsLayer so the layout tree is never empty.
-    val headerAlpha = remember { Animatable(0f) }
-    val headerOffsetY = remember { Animatable(30f) }
-    val cardsAlpha = remember { Animatable(0f) }
-    val cardsOffsetY = remember { Animatable(30f) }
+    // Only run the entrance stagger once on initial cold launch
+    val hasEnteredHome = rememberSaveable { mutableStateOf(false) }
+    val initialAlpha = if (hasEnteredHome.value) 1f else 0f
+    val initialOffset = if (hasEnteredHome.value) 0f else 24f
+
+    val headerAlpha = remember { Animatable(initialAlpha) }
+    val headerOffsetY = remember { Animatable(initialOffset) }
+    val cardsAlpha = remember { Animatable(initialAlpha) }
+    val cardsOffsetY = remember { Animatable(initialOffset) }
 
     // Refresh recent activity on entry
     LaunchedEffect(Unit) {
         viewModel.refreshHistory()
     }
 
-    // Run the entrance animation
+    // Run the entrance animation only on first entry
     LaunchedEffect(Unit) {
-        try {
-            // Header fades in first
-            launch {
-                headerAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
+        if (!hasEnteredHome.value) {
+            try {
+                launch {
+                    headerAlpha.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+                }
+                launch {
+                    headerOffsetY.animateTo(0f, tween(320, easing = FastOutSlowInEasing))
+                }
+                launch {
+                    delay(80)
+                    cardsAlpha.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+                }
+                launch {
+                    delay(80)
+                    cardsOffsetY.animateTo(0f, tween(320, easing = FastOutSlowInEasing))
+                }
+            } finally {
+                hasEnteredHome.value = true
             }
-            launch {
-                headerOffsetY.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
-            }
-            // Cards follow with a short delay
-            launch {
-                delay(200)
-                cardsAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
-            }
-            launch {
-                delay(200)
-                cardsOffsetY.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
-            }
-        } catch (_: Exception) {
-            // Safety: if animation fails for any reason, snap to fully visible
-            headerAlpha.snapTo(1f)
-            headerOffsetY.snapTo(0f)
-            cardsAlpha.snapTo(1f)
-            cardsOffsetY.snapTo(0f)
         }
-    }
-
-    // Safety timeout: force everything visible after 2 seconds no matter what
-    LaunchedEffect(Unit) {
-        delay(2000)
-        if (headerAlpha.value < 1f) headerAlpha.snapTo(1f)
-        if (headerOffsetY.value != 0f) headerOffsetY.snapTo(0f)
-        if (cardsAlpha.value < 1f) cardsAlpha.snapTo(1f)
-        if (cardsOffsetY.value != 0f) cardsOffsetY.snapTo(0f)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -1327,8 +1346,8 @@ fun CategoryCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scaleAnim"
     )
     val view = androidx.compose.ui.platform.LocalView.current
@@ -1771,8 +1790,8 @@ fun ToolCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "scaleAnim"
     )
     val view = androidx.compose.ui.platform.LocalView.current
