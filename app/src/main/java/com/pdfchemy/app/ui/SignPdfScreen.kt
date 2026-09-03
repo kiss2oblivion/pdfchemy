@@ -81,6 +81,10 @@ fun SignPdfScreen(
     var includeDateStamp by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
+    val postureInfo = com.pdfchemy.app.logic.rememberDevicePosture()
+    var forceTabletopMode by remember { mutableStateOf(false) }
+    val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
+
     // Load saved signatures
     LaunchedEffect(Unit) {
         savedSignatures = SignatureEngine.loadSignatures(context)
@@ -152,6 +156,15 @@ fun SignPdfScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { forceTabletopMode = !forceTabletopMode }) {
+                        Icon(
+                            imageVector = if (isTabletopMode) Icons.Rounded.LaptopMac else Icons.Rounded.PhoneAndroid,
+                            contentDescription = stringResource(if (isTabletopMode) R.string.flip_fullscreen_mode else R.string.flip_tabletop_mode),
+                            tint = if (isTabletopMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -273,6 +286,33 @@ fun SignPdfScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                if (isTabletopMode) {
+                    // Tabletop Hinge Divider
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 14.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                            Text(
+                                text = stringResource(R.string.flip_tabletop_active_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = "${currentPageIndex + 1} / $totalPages",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 

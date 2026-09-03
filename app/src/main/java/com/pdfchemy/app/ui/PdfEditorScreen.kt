@@ -82,6 +82,10 @@ fun PdfEditorScreen(
     val isWideScreen = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE || configuration.screenWidthDp >= 600
     var isDualPageMode by remember(isWideScreen) { mutableStateOf(isWideScreen) }
 
+    val postureInfo = com.pdfchemy.app.logic.rememberDevicePosture()
+    var forceTabletopMode by remember { mutableStateOf(false) }
+    val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
+
     DisposableEffect(Unit) {
         onDispose {
             currentPageBitmap?.recycle()
@@ -249,6 +253,15 @@ fun PdfEditorScreen(
                             }
                         }
 
+                        // Flip Model Tabletop / Desk Mode Toggle
+                        IconButton(onClick = { forceTabletopMode = !forceTabletopMode }) {
+                            Icon(
+                                imageVector = if (isTabletopMode) Icons.Rounded.LaptopMac else Icons.Rounded.PhoneAndroid,
+                                contentDescription = stringResource(if (isTabletopMode) R.string.flip_fullscreen_mode else R.string.flip_tabletop_mode),
+                                tint = if (isTabletopMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         // Save Modified PDF
                         FilledTonalButton(
                             onClick = {
@@ -266,7 +279,7 @@ fun PdfEditorScreen(
             )
         },
         bottomBar = {
-            if (selectedPdfUri != null && totalPages > 0) {
+            if (selectedPdfUri != null && totalPages > 0 && !isTabletopMode) {
                 val pageLabel = if (isDualPageMode && secondaryPageBitmap != null) {
                     "${currentPageIndex + 1}-${currentPageIndex + 2} / $totalPages"
                 } else {
@@ -359,6 +372,92 @@ fun PdfEditorScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else if (isTabletopMode && currentPageBitmap != null) {
+                // Tabletop / Flex Mode (Flip Clamshell resting at 90 degrees on desk)
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Top Half: Document Preview at eye level above the horizontal hinge
+                    Box(
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(currentPageBitmap!!.width.toFloat() / currentPageBitmap!!.height.toFloat())
+                                .shadow(8.dp, RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White)
+                        ) {
+                            Image(
+                                bitmap = currentPageBitmap!!.asImageBitmap(),
+                                contentDescription = "Page ${currentPageIndex + 1}",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+
+                    // Horizontal Hinge Divider & Posture Indicator
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            )
+                            Text(
+                                text = stringResource(R.string.flip_tabletop_active_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = "${currentPageIndex + 1} / $totalPages",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Bottom Half: Desk Controller Station Flat on Table
+                    Box(
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EditorBottomBar(
+                            activeTool = activeTool,
+                            onToolSelect = { tool ->
+                                activeTool = tool
+                                if (tool == EditorTool.STAMP) showStampPicker = true
+                            },
+                            selectedColor = selectedColor,
+                            onColorClick = { showColorPicker = true },
+                            currentPage = currentPageIndex,
+                            totalPages = totalPages,
+                            onPrevPage = { if (currentPageIndex > 0) currentPageIndex-- },
+                            onNextPage = { if (currentPageIndex < totalPages - 1) currentPageIndex++ }
+                        )
+                    }
                 }
             } else if (isDualPageMode && secondaryPageBitmap != null) {
                 // Two-Page Book Spread (Fold & Tablet)
