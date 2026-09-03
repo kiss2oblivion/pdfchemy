@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# PDFchemy Universal Standalone AppImage Builder
+set -e
+
+echo "==================================================="
+echo "Building PDFchemy Universal Linux AppImage"
+echo "==================================================="
+
+APP_DIR="build/AppDir"
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR/usr/bin"
+mkdir -p "$APP_DIR/usr/lib/pdfchemy"
+mkdir -p "$APP_DIR/usr/share/applications"
+mkdir -p "$APP_DIR/usr/share/icons/hicolor/512x512/apps"
+
+# 1. Build Compose Desktop raw binary distribution
+./gradlew :desktop:createDistributable
+
+# 2. Copy application files into AppDir
+cp -r desktop/build/compose/binaries/main/app/* "$APP_DIR/usr/lib/pdfchemy/"
+ln -s "/usr/lib/pdfchemy/bin/pdfchemy" "$APP_DIR/usr/bin/pdfchemy"
+
+# 3. Desktop Entry and Icons
+cp desktop/src/main/resources/linux/com.pdfchemy.PDFchemy.desktop "$APP_DIR/usr/share/applications/pdfchemy.desktop"
+cp desktop/src/main/resources/icons/linux/icon.png "$APP_DIR/usr/share/icons/hicolor/512x512/apps/pdfchemy.png"
+cp desktop/src/main/resources/linux/com.pdfchemy.PDFchemy.desktop "$APP_DIR/pdfchemy.desktop"
+cp desktop/src/main/resources/icons/linux/icon.png "$APP_DIR/pdfchemy.png"
+
+# 4. AppRun Entry Script
+cat << 'EOF' > "$APP_DIR/AppRun"
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "${0}")")"
+exec "${HERE}/usr/lib/pdfchemy/bin/pdfchemy" "$@"
+EOF
+chmod +x "$APP_DIR/AppRun"
+
+# 5. Download appimagetool if not present
+if [ ! -f "appimagetool-x86_64.AppImage" ]; then
+    echo "Downloading appimagetool..."
+    wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+    chmod +x appimagetool-x86_64.AppImage
+fi
+
+# 6. Generate final AppImage
+ARCH=x86_64 ./appimagetool-x86_64.AppImage "$APP_DIR" "PDFchemy-x86_64.AppImage"
+
+echo "==================================================="
+echo "SUCCESS! Standalone AppImage created:"
+echo "  $(pwd)/PDFchemy-x86_64.AppImage"
+echo "==================================================="
