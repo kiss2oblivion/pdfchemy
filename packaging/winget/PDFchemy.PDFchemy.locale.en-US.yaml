@@ -4,12 +4,12 @@ PackageIdentifier: PDFchemy.PDFchemy
 PackageVersion: 1.0.0
 PackageLocale: en-US
 Publisher: Andrei Ioan Cucos
-PublisherUrl: https://github.com/cucosandrei/pdfchemy
-PublisherSupportUrl: https://github.com/cucosandrei/pdfchemy/issues
-PrivacyUrl: https://github.com/cucosandrei/pdfchemy/blob/master/PRIVACY.md
+PublisherUrl: https://github.com/kiss2oblivion/pdfchemy
+PublisherSupportUrl: https://github.com/kiss2oblivion/pdfchemy/issues
+PrivacyUrl: https://github.com/kiss2oblivion/pdfchemy/blob/master/PRIVACY.md
 Author: Andrei Ioan Cucos
 PackageName: PDFchemy Tools
-PackageUrl: https://github.com/cucosandrei/pdfchemy
+PackageUrl: https://github.com/kiss2oblivion/pdfchemy
 License: Proprietary
 Copyright: Copyright (c) 2026 Andrei Ioan Cucos. All rights reserved.
 ShortDescription: 100% local-first, privacy-focused offline PDF and document utility.

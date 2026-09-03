@@ -37,9 +37,9 @@
     <category>Publishing</category>
   </categories>
   <developer_name>Andrei Ioan Cucos</developer_name>
-  <url type="homepage">https://github.com/cucosandrei/pdfchemy</url>
-  <url type="bugtracker">https://github.com/cucosandrei/pdfchemy/issues</url>
-  <url type="vcs-browser">https://github.com/cucosandrei/pdfchemy</url>
+  <url type="homepage">https://github.com/kiss2oblivion/pdfchemy</url>
+  <url type="bugtracker">https://github.com/kiss2oblivion/pdfchemy/issues</url>
+  <url type="vcs-browser">https://github.com/kiss2oblivion/pdfchemy</url>
   <content_rating type="oars-1.1" />
   <releases>
     <release version="1.0.0" date="2026-09-04">

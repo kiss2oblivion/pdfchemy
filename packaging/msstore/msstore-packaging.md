@@ -18,10 +18,10 @@ Microsoft allows publishing existing Win32 `.exe` or `.msi` installers directly 
    * When asked for package type, select **Desktop app (Win32)**.
 4. **Provide Installer URL:**
    * Enter the GitHub Release URL of the `.msi` or `.exe` installer:
-     `https://github.com/cucosandrei/pdfchemy/releases/download/v1.0.0/PDFchemy-1.0.0.msi`
+     `https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-1.0.0.msi`
    * Silent install command: `/qn` (for MSI) or `/VERYSILENT` (for Inno/standard EXE).
 5. **Add Store Listing & Privacy Details:**
-   * Privacy policy URL: `https://github.com/cucosandrei/pdfchemy/blob/main/PRIVACY.md`
+   * Privacy policy URL: `https://github.com/kiss2oblivion/pdfchemy/blob/main/PRIVACY.md`
    * Category: **Productivity** / **Document Management**
    * Pricing: **Free**
 6. **Submit for Certification:**
