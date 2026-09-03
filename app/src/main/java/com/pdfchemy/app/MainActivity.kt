@@ -505,6 +505,8 @@ fun MainApp(
             val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase() ?: ""
             if (name.endsWith(".epub")) {
                 currentScreen = Screen.ReflowReader(initialUri = uri)
+            } else if (name.endsWith(".cbz") || name.endsWith(".cbr")) {
+                currentScreen = Screen.EbookConverter
             } else {
                 currentScreen = Screen.PdfEditor(initialPdfUri = uri)
             }
