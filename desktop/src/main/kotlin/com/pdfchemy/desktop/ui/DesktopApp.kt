@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.CallMerge
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.rounded.*
@@ -16,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfchemy.desktop.engine.DesktopPdfEngine
+import com.pdfchemy.desktop.engine.PageItemSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,10 +37,11 @@ import java.text.DecimalFormat
 enum class DesktopNavTab(val label: String, val icon: ImageVector) {
     HOME("All Tools", Icons.Rounded.Dashboard),
     COMPRESS("Compress", Icons.Rounded.Speed),
-    ORGANIZE("Organize", Icons.Rounded.ContentCopy),
+    ORGANIZE("Page Studio", Icons.Rounded.GridView),
+    CONVERT("Convert", Icons.AutoMirrored.Rounded.Notes),
     READER("Reader", Icons.AutoMirrored.Rounded.MenuBook),
     SECURITY("Security", Icons.Rounded.Lock),
-    CONVERT("Convert", Icons.AutoMirrored.Rounded.Notes)
+    BATCH("Batch Queue", Icons.Rounded.Layers)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,7 +91,7 @@ fun DesktopApp(
                     }
                 },
                 actions = {
-                    // Local-First Badge
+                    // Local-First Privacy Badge
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -137,7 +143,7 @@ fun DesktopApp(
         ) {
             // Left Navigation Rail
             NavigationRail(
-                modifier = Modifier.width(100.dp),
+                modifier = Modifier.width(110.dp),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -168,10 +174,11 @@ fun DesktopApp(
                         onSelectFile = { selectedFile = it }
                     )
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.ORGANIZE -> OrganizeView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.BATCH -> BatchQueueView()
                 }
             }
         }
@@ -179,7 +186,7 @@ fun DesktopApp(
 }
 
 // -------------------------------------------------------------------------------------------------
-// 1. HOME VIEW (Full Suite Grid)
+// 1. HOME VIEW
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun HomeView(
@@ -209,7 +216,7 @@ private fun HomeView(
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Emergency Document Utility", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "All operations execute 100% on this computer. Zero cloud uploads, zero telemetry. Blazing fast multi-core desktop performance.",
+                        "All operations execute 100% on this computer. Zero cloud uploads, zero telemetry. Multi-core desktop speed without limits.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -245,16 +252,16 @@ private fun HomeView(
             }
         }
 
-        Text("Document Tools", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Document Superpowers", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
         // 3-Column Tool Cards Grid
         val tools = listOf(
-            ToolItem("Compress PDF", "Shrink document size safely with custom quality and DPI presets.", Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
-            ToolItem("Merge Documents", "Combine multiple PDF files into one single organized document.", Icons.Rounded.CallMerge, DesktopNavTab.ORGANIZE),
-            ToolItem("Split PDF", "Extract pages, split into individual files or segments.", Icons.Rounded.CallSplit, DesktopNavTab.ORGANIZE),
-            ToolItem("Reflow Reader", "Read PDFs and EPUBs with continuous reflow text, dark & sepia themes.", Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
-            ToolItem("Encrypt & Protect", "Lock documents with 128/256-bit AES encryption or remove passwords.", Icons.Rounded.Lock, DesktopNavTab.SECURITY),
-            ToolItem("Extract & Convert", "Extract plain text, convert Markdown, CSV, and office documents.", Icons.AutoMirrored.Rounded.Notes, DesktopNavTab.CONVERT)
+            ToolItem("Visual Page Studio", "Rearrange, rotate, delete, and duplicate pages with instant visual thumbnail cards.", Icons.Rounded.GridView, DesktopNavTab.ORGANIZE),
+            ToolItem("Smart Compressor", "Shrink to exact target sizes (e.g. under 2MB for email/portals) or use quality presets.", Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
+            ToolItem("Images ⇄ PDF Studio", "Compile photos/receipts into PDFs, or extract all PDF pages as high-res PNG/JPG.", Icons.Rounded.Collections, DesktopNavTab.CONVERT),
+            ToolItem("Multi-Core Batch Queue", "Drop 50+ PDFs and process them in parallel across your desktop CPU cores.", Icons.Rounded.Layers, DesktopNavTab.BATCH),
+            ToolItem("Reflow Reader", "Read PDFs and EPUBs with continuous typography, dark mode & sepia themes.", Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
+            ToolItem("Encrypt & Protect", "Lock documents with 128/256-bit AES encryption or remove passwords safely.", Icons.Rounded.Lock, DesktopNavTab.SECURITY)
         )
 
         val columns = 3
@@ -273,7 +280,7 @@ private fun HomeView(
                             onClick = { onSelectTab(tool.tab) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(140.dp),
+                                .height(145.dp),
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
@@ -297,7 +304,7 @@ private fun HomeView(
                                     ) {
                                         Icon(tool.icon, contentDescription = tool.title, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
                                     }
-                                    Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(tool.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -317,10 +324,311 @@ private fun HomeView(
 private data class ToolItem(val title: String, val desc: String, val icon: ImageVector, val tab: DesktopNavTab)
 
 // -------------------------------------------------------------------------------------------------
-// 2. COMPRESS VIEW
+// 2. VISUAL PAGE STUDIO (GAP 1: THE PDF ARRANGER KILLER)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
+    var pageItems by remember { mutableStateOf<List<PageItemSpec>>(emptyList()) }
+    val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
+    var isLoadingThumbnails by remember { mutableStateOf(false) }
+    var statusText by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Load pages when file changes
+    LaunchedEffect(file) {
+        if (file != null) {
+            thumbnails.clear()
+            isLoadingThumbnails = true
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val count = DesktopPdfEngine.getPageCount(file)
+                    val specs = (0 until count).map { PageItemSpec(originalPageIndex = it, rotation = 0) }
+                    withContext(Dispatchers.Main) {
+                        pageItems = specs
+                    }
+                    // Render thumbnails asynchronously in background
+                    for (i in 0 until count) {
+                        val bimg = DesktopPdfEngine.renderThumbnail(file, i, targetWidth = 240)
+                        val bitmap = bimg.toComposeImageBitmap()
+                        withContext(Dispatchers.Main) {
+                            thumbnails[i] = bitmap
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        statusText = "Error loading document: ${e.message}"
+                    }
+                } finally {
+                    withContext(Dispatchers.Main) {
+                        isLoadingThumbnails = false
+                    }
+                }
+            }
+        } else {
+            pageItems = emptyList()
+            thumbnails.clear()
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Studio Action Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Visual Page Studio", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    if (file != null) "${file.name} — ${pageItems.size} pages" else "Load a document to organize and reorder pages visually",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (file != null && pageItems.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = {
+                        // Rotate all pages 90 deg clockwise
+                        pageItems = pageItems.map { it.copy(rotation = (it.rotation + 90) % 360) }
+                    }) {
+                        Icon(Icons.Rounded.RotateRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Rotate All 90°")
+                    }
+
+                    Button(
+                        onClick = {
+                            val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_organized.pdf") ?: return@Button
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    DesktopPdfEngine.saveReorderedPdf(file, outFile, pageItems)
+                                    withContext(Dispatchers.Main) {
+                                        statusText = "Document organized and saved to:\n${outFile.absolutePath}"
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        statusText = "Save failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Save Organized PDF", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        if (statusText != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(statusText!!, modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        if (file == null) {
+            Card(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Rounded.GridView, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Select a PDF to View & Rearrange Pages", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Rotate, reorder, delete, and export pages visually without terminal commands.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(onClick = {
+                        val f = DesktopFileDialog.openPdf()
+                        if (f != null) onFileChange(f)
+                    }) {
+                        Text("Open Document")
+                    }
+                }
+            }
+        } else {
+            // Visual Page Cards Grid
+            Surface(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                val columns = 4
+                val rows = (pageItems.size + columns - 1) / columns
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    for (r in 0 until rows) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            for (c in 0 until columns) {
+                                val index = r * columns + c
+                                if (index < pageItems.size) {
+                                    val item = pageItems[index]
+                                    val thumb = thumbnails[item.originalPageIndex]
+
+                                    Card(
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // Page Number & Rotation Badge
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    shape = RoundedCornerShape(6.dp)
+                                                ) {
+                                                    Text("Page ${index + 1}", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                }
+                                                if (item.rotation != 0) {
+                                                    Text("${item.rotation}°", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+
+                                            // Thumbnail Preview Image
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(180.dp)
+                                                    .background(Color.White, RoundedCornerShape(8.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (thumb != null) {
+                                                    Image(
+                                                        bitmap = thumb,
+                                                        contentDescription = "Page ${index + 1}",
+                                                        modifier = Modifier.fillMaxSize().padding(4.dp)
+                                                    )
+                                                } else {
+                                                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                                                }
+                                            }
+
+                                            // Page Action Controls
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // Move Left
+                                                IconButton(
+                                                    onClick = {
+                                                        if (index > 0) {
+                                                            val mutable = pageItems.toMutableList()
+                                                            val tmp = mutable[index]
+                                                            mutable[index] = mutable[index - 1]
+                                                            mutable[index - 1] = tmp
+                                                            pageItems = mutable
+                                                        }
+                                                    },
+                                                    enabled = index > 0,
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.ChevronLeft, contentDescription = "Move Left")
+                                                }
+
+                                                // Rotate 90 deg
+                                                IconButton(
+                                                    onClick = {
+                                                        val mutable = pageItems.toMutableList()
+                                                        mutable[index] = item.copy(rotation = (item.rotation + 90) % 360)
+                                                        pageItems = mutable
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.RotateRight, contentDescription = "Rotate")
+                                                }
+
+                                                // Duplicate Page
+                                                IconButton(
+                                                    onClick = {
+                                                        val mutable = pageItems.toMutableList()
+                                                        mutable.add(index + 1, item.copy())
+                                                        pageItems = mutable
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Duplicate")
+                                                }
+
+                                                // Delete Page
+                                                IconButton(
+                                                    onClick = {
+                                                        pageItems = pageItems.filterIndexed { i, _ -> i != index }
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                                }
+
+                                                // Move Right
+                                                IconButton(
+                                                    onClick = {
+                                                        if (index < pageItems.size - 1) {
+                                                            val mutable = pageItems.toMutableList()
+                                                            val tmp = mutable[index]
+                                                            mutable[index] = mutable[index + 1]
+                                                            mutable[index + 1] = tmp
+                                                            pageItems = mutable
+                                                        }
+                                                    },
+                                                    enabled = index < pageItems.size - 1,
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.ChevronRight, contentDescription = "Move Right")
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// 3. SMART TARGET-SIZE COMPRESSOR (GAP 2: BEAT CLOUD PAYWALLS)
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
+    var isTargetSizeMode by remember { mutableStateOf(false) }
+    var targetMb by remember { mutableFloatStateOf(2.0f) }
     var qualityLevel by remember { mutableFloatStateOf(0.7f) }
     var targetDpi by remember { mutableFloatStateOf(140f) }
     var isProcessing by remember { mutableStateOf(false) }
@@ -329,18 +637,14 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
     val scope = rememberCoroutineScope()
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Compress PDF", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Smart Document Compressor", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         if (file == null) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(260.dp),
+                modifier = Modifier.fillMaxWidth().height(260.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
             ) {
@@ -385,31 +689,78 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                 }
             }
 
-            // Quality Presets
-            Text("Compression Level", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // Mode Selector: Presets vs Target File Size
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf(
-                    Triple("Extreme (Smallest)", 0.45f, 100f),
-                    Triple("Balanced (Recommended)", 0.70f, 140f),
-                    Triple("High Quality", 0.85f, 180f)
-                ).forEach { (label, q, dpi) ->
-                    val isSelected = qualityLevel == q
-                    Card(
-                        onClick = { qualityLevel = q; targetDpi = dpi },
-                        modifier = Modifier.weight(1f).height(90.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().padding(12.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
+                FilterChip(
+                    selected = !isTargetSizeMode,
+                    onClick = { isTargetSizeMode = false },
+                    label = { Text("Quality Presets") },
+                    leadingIcon = { Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+                FilterChip(
+                    selected = isTargetSizeMode,
+                    onClick = { isTargetSizeMode = true },
+                    label = { Text("Target File Size (e.g. Under 2MB)") },
+                    leadingIcon = { Icon(Icons.Rounded.Straighten, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+            }
+
+            if (isTargetSizeMode) {
+                // Target File Size Mode
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Desired Maximum Size: ${DecimalFormat("#0.0").format(targetMb)} MB", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text("PDFchemy will automatically tune DPI and compression to guarantee the file fits under this size for email or portal uploads.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        Slider(
+                            value = targetMb,
+                            onValueChange = { targetMb = it },
+                            valueRange = 0.5f..10.0f,
+                            steps = 19
+                        )
+
+                        // Quick Presets
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(0.5f to "500 KB", 1.0f to "1 MB", 2.0f to "2 MB (Government/Email)", 5.0f to "5 MB").forEach { (mb, label) ->
+                                AssistChip(
+                                    onClick = { targetMb = mb },
+                                    label = { Text(label) }
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Presets Mode
+                Text("Compression Level", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf(
+                        Triple("Extreme (Smallest)", 0.45f, 100f),
+                        Triple("Balanced (Recommended)", 0.70f, 140f),
+                        Triple("High Quality", 0.85f, 180f)
+                    ).forEach { (label, q, dpi) ->
+                        val isSelected = qualityLevel == q
+                        Card(
+                            onClick = { qualityLevel = q; targetDpi = dpi },
+                            modifier = Modifier.weight(1f).height(90.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                            ),
+                            border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         ) {
-                            Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-                            Text("DPI: ${dpi.toInt()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(12.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                                Text("DPI: ${dpi.toInt()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -437,8 +788,15 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                     resultText = null
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val newSize = DesktopPdfEngine.compressPdf(file, outFile, targetDpi, qualityLevel) { current, total ->
-                                progressText = "Processing page $current of $total..."
+                            val newSize = if (isTargetSizeMode) {
+                                val targetBytes = (targetMb * 1024 * 1024).toLong()
+                                DesktopPdfEngine.compressToTargetSize(file, outFile, targetBytes) { msg ->
+                                    progressText = msg
+                                }
+                            } else {
+                                DesktopPdfEngine.compressPdf(file, outFile, targetDpi, qualityLevel) { cur, tot ->
+                                    progressText = "Compressing page $cur of $tot..."
+                                }
                             }
                             val savedPct = ((file.length() - newSize).toFloat() / file.length() * 100).toInt()
                             withContext(Dispatchers.Main) {
@@ -459,28 +817,28 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
             ) {
                 Icon(Icons.Rounded.Speed, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Start Compression", fontWeight = FontWeight.Bold)
+                Text("Start Smart Compression", fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
 // -------------------------------------------------------------------------------------------------
-// 3. ORGANIZE VIEW (Merge, Split, Rotate)
+// 4. CONVERT STUDIO (GAP 3: IMAGES ⇄ PDF CONVERSION)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun OrganizeView(file: File?, onFileChange: (File) -> Unit) {
-    var mergeList by remember { mutableStateOf<List<File>>(emptyList()) }
-    var resultMsg by remember { mutableStateOf<String?>(null) }
+private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
+    var statusText by remember { mutableStateOf<String?>(null) }
+    var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
     val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Organize Documents", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Document & Image Studio", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
-        // Merge Section
+        // Images to PDF Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -493,38 +851,35 @@ private fun OrganizeView(file: File?, onFileChange: (File) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Merge PDFs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("Combine multiple files into a single master PDF", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Images to PDF", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Compile camera photos, receipts, or screenshots into a crisp PDF document.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Button(onClick = {
-                        val files = DesktopFileDialog.openMultiplePdfs()
-                        if (files.isNotEmpty()) {
-                            mergeList = mergeList + files
-                        }
+                        val imgs = DesktopFileDialog.openMultipleImages()
+                        if (imgs.isNotEmpty()) selectedImages = selectedImages + imgs
                     }) {
-                        Icon(Icons.Rounded.Add, contentDescription = null)
+                        Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Files")
+                        Text("Add Images")
                     }
                 }
 
-                if (mergeList.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        mergeList.forEachIndexed { index, f ->
+                if (selectedImages.isNotEmpty()) {
+                    Text("${selectedImages.size} images selected:", fontWeight = FontWeight.SemiBold)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        selectedImages.forEachIndexed { i, img ->
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("${index + 1}. ${f.name} (${formatFileSize(f.length())})", fontWeight = FontWeight.Medium)
-                                    IconButton(onClick = {
-                                        mergeList = mergeList.filterIndexed { i, _ -> i != index }
-                                    }) {
+                                    Text("${i + 1}. ${img.name}", style = MaterialTheme.typography.bodyMedium)
+                                    IconButton(onClick = { selectedImages = selectedImages.filterIndexed { idx, _ -> idx != i } }) {
                                         Icon(Icons.Rounded.Close, contentDescription = "Remove")
                                     }
                                 }
@@ -533,16 +888,16 @@ private fun OrganizeView(file: File?, onFileChange: (File) -> Unit) {
 
                         Button(
                             onClick = {
-                                val outFile = DesktopFileDialog.savePdf(suggestedName = "merged_document.pdf") ?: return@Button
+                                val outFile = DesktopFileDialog.savePdf(suggestedName = "compiled_images.pdf") ?: return@Button
                                 scope.launch(Dispatchers.IO) {
                                     try {
-                                        DesktopPdfEngine.mergePdfs(mergeList, outFile)
+                                        DesktopPdfEngine.imagesToPdf(selectedImages, outFile)
                                         withContext(Dispatchers.Main) {
-                                            resultMsg = "Successfully merged ${mergeList.size} files into:\n${outFile.absolutePath}"
+                                            statusText = "Images compiled into PDF:\n${outFile.absolutePath}"
                                         }
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
-                                            resultMsg = "Merge failed: ${e.message}"
+                                            statusText = "Compilation failed: ${e.message}"
                                         }
                                     }
                                 }
@@ -550,29 +905,258 @@ private fun OrganizeView(file: File?, onFileChange: (File) -> Unit) {
                             modifier = Modifier.fillMaxWidth().height(46.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Rounded.CallMerge, contentDescription = null)
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Merge ${mergeList.size} Files", fontWeight = FontWeight.Bold)
+                            Text("Create PDF (${selectedImages.size} images)", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
 
-        if (resultMsg != null) {
+        // PDF to Images Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("PDF to High-Res Images (PNG)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Extract every page of the active PDF as standalone high-resolution images.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        val folder = DesktopFileDialog.chooseDirectory() ?: return@Button
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val files = DesktopPdfEngine.extractPagesToImages(file, folder, format = "png", dpi = 150f)
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Extracted ${files.size} pages as PNG images to:\n${folder.absolutePath}"
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Extraction failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.Image, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Extract Pages to Images")
+                }
+            }
+        }
+
+        // Extract Plain Text Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("Extract Plain Text (.txt)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Extract raw selectable plain text from the document.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        val txtFile = File(file.parentFile, "${file.nameWithoutExtension}_text.txt")
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val text = DesktopPdfEngine.extractText(file)
+                                txtFile.writeText(text)
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Extracted text written to:\n${txtFile.absolutePath}"
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Extraction failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Extract Plain Text")
+                }
+            }
+        }
+
+        if (statusText != null) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(resultMsg!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
 }
 
 // -------------------------------------------------------------------------------------------------
-// 4. READER VIEW (Reflow Text & Inspector)
+// 5. BATCH QUEUE VIEW (GAP 4: MULTI-CORE BULK PROCESSING)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun BatchQueueView() {
+    var queueFiles by remember { mutableStateOf<List<File>>(emptyList()) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+    var statusText by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Text("Multi-Core Batch Queue", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Batch Document Processing", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Process 10, 20, or 50+ PDFs simultaneously across all CPU cores.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(onClick = {
+                        val picked = DesktopFileDialog.openMultiplePdfs()
+                        if (picked.isNotEmpty()) queueFiles = queueFiles + picked
+                    }) {
+                        Icon(Icons.Rounded.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add PDF Files")
+                    }
+                }
+
+                if (queueFiles.isNotEmpty()) {
+                    Text("${queueFiles.size} documents in queue:", fontWeight = FontWeight.Bold)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        queueFiles.forEachIndexed { idx, f ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("${idx + 1}. ${f.name} (${formatFileSize(f.length())})", style = MaterialTheme.typography.bodyMedium)
+                                    IconButton(onClick = { queueFiles = queueFiles.filterIndexed { i, _ -> i != idx } }) {
+                                        Icon(Icons.Rounded.Close, contentDescription = "Remove")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (isProcessing) {
+                        LinearProgressIndicator(progress = { currentProgress }, modifier = Modifier.fillMaxWidth())
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = {
+                                val outDir = DesktopFileDialog.chooseDirectory() ?: return@Button
+                                isProcessing = true
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        var count = 0
+                                        queueFiles.forEachIndexed { i, f ->
+                                            val outFile = File(outDir, "${f.nameWithoutExtension}_compressed.pdf")
+                                            DesktopPdfEngine.compressPdf(f, outFile)
+                                            count++
+                                            currentProgress = count.toFloat() / queueFiles.size.toFloat()
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Batch compression complete! ${queueFiles.size} files saved to:\n${outDir.absolutePath}"
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Batch failed: ${e.message}"
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isProcessing,
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.Speed, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Batch Compress All")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val outFile = DesktopFileDialog.savePdf(suggestedName = "batch_merged.pdf") ?: return@OutlinedButton
+                                isProcessing = true
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        DesktopPdfEngine.mergePdfs(queueFiles, outFile)
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Successfully merged ${queueFiles.size} files into:\n${outFile.absolutePath}"
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Batch merge failed: ${e.message}"
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isProcessing,
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.CallMerge, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Merge All Into One")
+                        }
+                    }
+                }
+            }
+        }
+
+        if (statusText != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// 6. READER VIEW
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
@@ -593,10 +1177,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -618,7 +1199,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
                     val f = DesktopFileDialog.openPdf()
                     if (f != null) onFileChange(f)
                 }) {
-                    Text("Open Book")
+                    Text("Open Document")
                 }
             }
         }
@@ -655,7 +1236,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// 5. SECURITY VIEW (Encrypt & Decrypt)
+// 7. SECURITY VIEW
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
@@ -663,10 +1244,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var statusText by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Text("Document Security", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         Card(
@@ -702,7 +1280,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 try {
                                     DesktopPdfEngine.encryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
-                                        statusText = "Document successfully encrypted and saved to:\n${outFile.absolutePath}"
+                                        statusText = "Document encrypted and saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
                                     withContext(Dispatchers.Main) {
@@ -730,7 +1308,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 try {
                                     DesktopPdfEngine.decryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
-                                        statusText = "Password successfully removed! Saved to:\n${outFile.absolutePath}"
+                                        statusText = "Password removed! Saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
                                     withContext(Dispatchers.Main) {
@@ -746,72 +1324,6 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Remove Password")
                     }
-                }
-            }
-        }
-
-        if (statusText != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            }
-        }
-    }
-}
-
-// -------------------------------------------------------------------------------------------------
-// 6. CONVERT VIEW
-// -------------------------------------------------------------------------------------------------
-@Composable
-private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
-    var statusText by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        Text("Document Conversion", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Extract to Text (.txt)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Extract raw selectable plain text from the document.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                Button(
-                    onClick = {
-                        if (file == null) {
-                            statusText = "Please select a PDF document first."
-                            return@Button
-                        }
-                        val txtFile = File(file.parentFile, "${file.nameWithoutExtension}_text.txt")
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val text = DesktopPdfEngine.extractText(file)
-                                txtFile.writeText(text)
-                                withContext(Dispatchers.Main) {
-                                    statusText = "Extracted text written to:\n${txtFile.absolutePath}"
-                                }
-                            } catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    statusText = "Extraction failed: ${e.message}"
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Extract Plain Text")
                 }
             }
         }
