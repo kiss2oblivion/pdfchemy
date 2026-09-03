@@ -2,6 +2,7 @@ package com.pdfchemy.desktop
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import com.pdfchemy.desktop.ui.DesktopApp
@@ -29,6 +30,7 @@ fun main(args: Array<String>) = application {
         onCloseRequest = ::exitApplication,
         state = windowState,
         title = "PDFchemy Tools — Local-First Offline PDF Utility",
+        icon = painterResource("icons/linux/icon.png"),
         onKeyEvent = { keyEvent ->
             if (keyEvent.type == KeyEventType.KeyDown) {
                 // Ctrl+O (or Cmd+O) to Open File

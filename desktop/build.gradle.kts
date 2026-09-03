@@ -56,6 +56,7 @@ compose.desktop {
                 shortcut = true
                 dirChooser = true
                 perUserInstall = false
+                iconFile.set(project.file("src/main/resources/icons/windows/icon.ico"))
             }
         }
     }
