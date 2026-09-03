@@ -56,9 +56,31 @@ object DesktopPdfEngine {
     fun renderThumbnail(file: File, pageIndex: Int, targetWidth: Int = 260): BufferedImage {
         return PDDocument.load(file).use { document ->
             val renderer = PDFRenderer(document)
-            // 72 DPI is base PDF resolution (approx 595x842 for A4). Scale factor calculates optimal rendering DPI.
-            val dpi = (targetWidth.toFloat() / 595f * 72f).coerceIn(36f, 100f)
+            val page = document.getPage(pageIndex)
+            val cropBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
+            val dpi = (targetWidth.toFloat() / cropBox.width * 72f).coerceIn(36f, 100f)
             renderer.renderImageWithDPI(pageIndex, dpi)
+        }
+    }
+
+    /**
+     * Renders all thumbnails in a single document pass for buttery smooth performance.
+     */
+    fun renderAllThumbnails(
+        file: File,
+        targetWidth: Int = 260,
+        onThumbnailRendered: (pageIndex: Int, BufferedImage) -> Unit
+    ) {
+        PDDocument.load(file).use { document ->
+            val renderer = PDFRenderer(document)
+            val count = document.numberOfPages
+            for (i in 0 until count) {
+                val page = document.getPage(i)
+                val cropBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
+                val dpi = (targetWidth.toFloat() / cropBox.width * 72f).coerceIn(36f, 100f)
+                val img = renderer.renderImageWithDPI(i, dpi)
+                onThumbnailRendered(i, img)
+            }
         }
     }
 
@@ -201,11 +223,14 @@ object DesktopPdfEngine {
                         ImageIO.write(renderedImage, "jpg", tempJpg)
                     }
 
-                    val newPage = PDPage(PDRectangle(renderedImage.width.toFloat(), renderedImage.height.toFloat()))
+                    val origPage = document.getPage(i)
+                    val origBox = origPage.cropBox ?: origPage.mediaBox ?: PDRectangle.A4
+                    val newPage = PDPage(PDRectangle(origBox.width, origBox.height))
+                    newPage.rotation = origPage.rotation
                     compressedDoc.addPage(newPage)
                     val pdImage = PDImageXObject.createFromFileByExtension(tempJpg, compressedDoc)
                     org.apache.pdfbox.pdmodel.PDPageContentStream(compressedDoc, newPage).use { stream ->
-                        stream.drawImage(pdImage, 0f, 0f, renderedImage.width.toFloat(), renderedImage.height.toFloat())
+                        stream.drawImage(pdImage, 0f, 0f, origBox.width, origBox.height)
                     }
                 } finally {
                     tempJpg.delete()
@@ -296,13 +321,30 @@ object DesktopPdfEngine {
         val doc = PDDocument()
         imageFiles.forEachIndexed { index, imgFile ->
             onProgress(index + 1, imageFiles.size)
-            val bimg = ImageIO.read(imgFile)
-            if (bimg != null) {
-                val page = PDPage(PDRectangle(bimg.width.toFloat(), bimg.height.toFloat()))
+            val lower = imgFile.name.lowercase()
+            val pdImage = if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                try {
+                    PDImageXObject.createFromFileByExtension(imgFile, doc)
+                } catch (_: Exception) {
+                    val bimg = ImageIO.read(imgFile)
+                    if (bimg != null) JPEGFactory.createFromImage(doc, bimg, 0.88f) else null
+                }
+            } else {
+                val bimg = ImageIO.read(imgFile)
+                if (bimg != null) {
+                    JPEGFactory.createFromImage(doc, bimg, 0.88f)
+                } else null
+            }
+
+            if (pdImage != null) {
+                // Scale to standard document points (150 DPI baseline)
+                val targetDpi = 150f
+                val ptWidth = (pdImage.width.toFloat() * 72f / targetDpi).coerceAtLeast(100f)
+                val ptHeight = (pdImage.height.toFloat() * 72f / targetDpi).coerceAtLeast(100f)
+                val page = PDPage(PDRectangle(ptWidth, ptHeight))
                 doc.addPage(page)
-                val pdImage = LosslessFactory.createFromImage(doc, bimg)
                 org.apache.pdfbox.pdmodel.PDPageContentStream(doc, page).use { stream ->
-                    stream.drawImage(pdImage, 0f, 0f, bimg.width.toFloat(), bimg.height.toFloat())
+                    stream.drawImage(pdImage, 0f, 0f, ptWidth, ptHeight)
                 }
             }
         }
