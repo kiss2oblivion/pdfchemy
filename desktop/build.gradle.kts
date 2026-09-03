@@ -56,6 +56,7 @@ compose.desktop {
                 menuGroup = "PDFchemy"
                 upgradeUuid = "8a2f07d2-a7d0-4cb5-8d59-2fce4d15f129"
                 shortcut = true
+                iconFile.set(project.file("src/main/resources/icons/windows/icon.ico"))
             }
 
             linux {
@@ -63,6 +64,7 @@ compose.desktop {
                 packageName = "pdfchemy"
                 appCategory = "Office;Utility;"
                 menuGroup = "Office"
+                iconFile.set(project.file("src/main/resources/icons/linux/icon.png"))
             }
         }
     }
