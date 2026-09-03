@@ -23,7 +23,17 @@ data class ReflowSection(
 
 object PdfOutlineReader {
 
+    private fun isEpub(context: Context, uri: Uri): Boolean {
+        val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: uri.lastPathSegment ?: ""
+        if (name.endsWith(".epub", ignoreCase = true)) return true
+        val type = try { context.contentResolver.getType(uri) } catch (_: Exception) { null }
+        return type?.contains("epub", ignoreCase = true) == true
+    }
+
     suspend fun extractOutline(context: Context, sourceUri: Uri): List<OutlineBookmark> = withContext(Dispatchers.IO) {
+        if (isEpub(context, sourceUri)) {
+            return@withContext extractEpubOutline(context, sourceUri)
+        }
         val list = mutableListOf<OutlineBookmark>()
         var doc: PDDocument? = null
         try {
@@ -77,6 +87,9 @@ object PdfOutlineReader {
     }
 
     suspend fun extractReflowContent(context: Context, sourceUri: Uri): List<ReflowSection> = withContext(Dispatchers.IO) {
+        if (isEpub(context, sourceUri)) {
+            return@withContext extractEpubReflowContent(context, sourceUri)
+        }
         val sections = mutableListOf<ReflowSection>()
         var doc: PDDocument? = null
         try {
@@ -114,5 +127,106 @@ object PdfOutlineReader {
             doc?.close()
         }
         sections
+    }
+
+    private fun extractEpubChapters(context: Context, sourceUri: Uri): List<Pair<String, List<String>>> {
+        val chapters = mutableListOf<Pair<String, List<String>>>()
+        var tempFile: java.io.File? = null
+        try {
+            tempFile = java.io.File(context.cacheDir, "epub_read_${System.currentTimeMillis()}.epub")
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                java.io.FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+            } ?: return emptyList()
+
+            val zip = java.util.zip.ZipFile(tempFile)
+            var opfPath = "OEBPS/content.opf"
+            val containerEntry = zip.getEntry("META-INF/container.xml")
+            if (containerEntry != null) {
+                val containerText = zip.getInputStream(containerEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val match = Regex("""full-path\s*=\s*["']([^"']+)["']""").find(containerText)
+                if (match != null) opfPath = match.groupValues[1]
+            }
+
+            val opfEntry = zip.getEntry(opfPath)
+            val opfDir = if (opfPath.contains('/')) opfPath.substringBeforeLast('/') + "/" else ""
+            val spineItems = mutableListOf<String>()
+
+            if (opfEntry != null) {
+                val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val itemMap = mutableMapOf<String, String>()
+                val itemRegex = Regex("""<item\s+[^>]*id\s*=\s*["']([^"']+)["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+                for (m in itemRegex.findAll(opfText)) {
+                    itemMap[m.groupValues[1]] = opfDir + m.groupValues[2]
+                }
+                val itemRegex2 = Regex("""<item\s+[^>]*href\s*=\s*["']([^"']+)["'][^>]*id\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+                for (m in itemRegex2.findAll(opfText)) {
+                    itemMap[m.groupValues[2]] = opfDir + m.groupValues[1]
+                }
+
+                val itemrefRegex = Regex("""<itemref\s+[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+                for (m in itemrefRegex.findAll(opfText)) {
+                    val resolved = itemMap[m.groupValues[1]]
+                    if (resolved != null && (resolved.endsWith(".xhtml", true) || resolved.endsWith(".html", true) || resolved.endsWith(".htm", true))) {
+                        if (!resolved.contains("nav.xhtml", true)) {
+                            spineItems.add(resolved)
+                        }
+                    }
+                }
+            }
+
+            if (spineItems.isEmpty()) {
+                val allHtml = zip.entries().toList().filter { 
+                    it.name.endsWith(".xhtml", true) || it.name.endsWith(".html", true) 
+                }.filter { !it.name.contains("nav.xhtml", true) }.sortedBy { it.name }
+                for (entry in allHtml) spineItems.add(entry.name)
+            }
+
+            for ((idx, path) in spineItems.withIndex()) {
+                val entry = zip.getEntry(path) ?: continue
+                val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                
+                val titleMatch = Regex("""<(?:h[1-3]|title)[^>]*>([^<]+)</(?:h[1-3]|title)>""", RegexOption.IGNORE_CASE).find(html)
+                val chapTitle = titleMatch?.groupValues?.get(1)?.trim() ?: "Chapter ${idx + 1}"
+
+                var clean = html.replace(Regex("""<head.*?</head>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+                clean = clean.replace(Regex("""<style.*?</style>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+                clean = clean.replace(Regex("""<script.*?</script>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+                clean = clean.replace(Regex("""<(p|h[1-6]|div|li)[^>]*>""", RegexOption.IGNORE_CASE), "\n")
+                clean = clean.replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
+                clean = clean.replace(Regex("""<[^>]+>"""), "")
+                clean = clean.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
+                val paragraphs = clean.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                if (paragraphs.isNotEmpty()) {
+                    chapters.add(chapTitle to paragraphs)
+                }
+            }
+            zip.close()
+        } catch (e: Exception) {
+            com.pdfchemy.app.utils.AppLogger.e("Failed to parse EPUB: ${e.message}", e)
+        } finally {
+            tempFile?.delete()
+        }
+        return chapters
+    }
+
+    private fun extractEpubOutline(context: Context, sourceUri: Uri): List<OutlineBookmark> {
+        val chapters = extractEpubChapters(context, sourceUri)
+        return chapters.mapIndexed { index, pair ->
+            OutlineBookmark(
+                title = pair.first,
+                pageNumber = index + 1
+            )
+        }
+    }
+
+    private fun extractEpubReflowContent(context: Context, sourceUri: Uri): List<ReflowSection> {
+        val chapters = extractEpubChapters(context, sourceUri)
+        return chapters.mapIndexed { index, pair ->
+            ReflowSection(
+                pageNumber = index + 1,
+                title = pair.first,
+                paragraphs = pair.second
+            )
+        }
     }
 }

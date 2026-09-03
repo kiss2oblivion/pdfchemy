@@ -345,6 +345,9 @@
 <string name="settings_rate_app">تقييم PDFchemy</string>
 <string name="settings_rate_app_desc">هل يعجبك التطبيق؟ اترك تقييماً على Google Play!</string>
 <string name="settings_rate_app_thanks">شكراً لدعمكم!</string>
+    <string name="settings_share_app">مشاركة PDFchemy Tools</string>
+    <string name="settings_share_app_desc">أخبر أصدقاءك وزملاءك عن هذا التطبيق</string>
+    <string name="settings_share_app_message">جرّب تطبيق PDFchemy Tools — أداة سريعة وخاصة 100%% بدون إنترنت لضغط وتعديل ملفات PDF لنظام Android: %1$s</string>
 <string name="settings_app_tour">جولة التطبيق</string>
 <string name="settings_app_tour_desc">إعادة استعراض دليل الميزات الرئيسية</string>
 <string name="settings_feedback">إرسال الملاحظات والدعم</string>

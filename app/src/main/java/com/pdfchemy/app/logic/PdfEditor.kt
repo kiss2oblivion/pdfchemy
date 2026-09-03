@@ -378,7 +378,20 @@ object PdfEditor {
                 val file = File(uri.path ?: return null)
                 ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             } else {
-                context.contentResolver.openFileDescriptor(uri, "r")
+                // PdfRenderer strictly requires a seekable ParcelFileDescriptor.
+                // Content providers frequently provide pipe-based or non-seekable descriptors.
+                // Copying the stream to a temporary cache file guarantees full seekability and reliable rendering.
+                val tempFile = File(context.cacheDir, "pdf_seekable_${System.currentTimeMillis()}.pdf")
+                val copied = context.contentResolver.openInputStream(uri)?.use { input ->
+                    java.io.FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                if (copied != null && copied > 0 && tempFile.exists()) {
+                    ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                } else {
+                    context.contentResolver.openFileDescriptor(uri, "r")
+                }
             }
         } catch (e: Exception) {
             AppLogger.e("PdfEditor: failed to open parcel file descriptor", e)

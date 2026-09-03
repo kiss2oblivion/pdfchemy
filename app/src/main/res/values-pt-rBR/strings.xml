@@ -347,6 +347,9 @@
 <string name="settings_rate_app">Avaliar o PDFchemy Tools</string>
 <string name="settings_rate_app_desc">Gostando do app? Deixe uma avaliação para nós no Google Play!</string>
 <string name="settings_rate_app_thanks">Obrigado pelo seu apoio!</string>
+    <string name="settings_share_app">Compartilhar o PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Conte aos seus amigos e colegas sobre este app</string>
+    <string name="settings_share_app_message">Conheça o PDFchemy Tools — um compressor e editor de PDF rápido, 100%% offline e privado para Android: %1$s</string>
     
 <string name="settings_app_tour">Tour do App</string>
 <string name="settings_app_tour_desc">Reveja o guia rápido dos principais recursos</string>

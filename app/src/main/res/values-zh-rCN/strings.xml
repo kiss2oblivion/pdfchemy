@@ -345,6 +345,9 @@
 <string name="settings_rate_app">为 PDFchemy 评分</string>
 <string name="settings_rate_app_desc">喜欢这款应用？在 Google Play 给我们留个好评吧！</string>
 <string name="settings_rate_app_thanks">感谢您的支持！</string>
+    <string name="settings_share_app">分享 PDFchemy Tools</string>
+    <string name="settings_share_app_desc">向朋友和同事推荐此应用</string>
+    <string name="settings_share_app_message">了解一下 PDFchemy Tools — 适用于 Android 的快速、100%% 离线且保护隐私的 PDF 压缩与编辑器: %1$s</string>
 <string name="settings_app_tour">功能向导</string>
 <string name="settings_app_tour_desc">重温主要核心功能的快速演示</string>
 <string name="settings_feedback">意见反馈与技术支持</string>

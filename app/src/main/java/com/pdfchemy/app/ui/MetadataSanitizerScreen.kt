@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfchemy.app.R
@@ -371,7 +372,8 @@ fun MetadataSanitizerScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     colors = if (isWipeAction) {
                         ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -390,9 +392,15 @@ fun MetadataSanitizerScreen(
                     } else {
                         val btnIcon = if (isWipeAction) Icons.Rounded.CleaningServices else Icons.Rounded.Save
                         val btnText = if (isWipeAction) R.string.btn_wipe_and_save else R.string.btn_update_and_save
-                        Icon(btnIcon, contentDescription = null)
+                        Icon(btnIcon, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(btnText), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(btnText),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

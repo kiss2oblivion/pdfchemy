@@ -28,6 +28,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -357,15 +359,22 @@ fun MarkdownStudioScreen(
                             val targetName = if (documentTitle.isBlank()) "document.pdf" else "$documentTitle.pdf"
                             savePdfLauncher.launch(targetName)
                         },
-                        modifier = Modifier.height(52.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 52.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         enabled = !isProcessing && markdownText.isNotBlank()
                     ) {
                         if (isProcessing) {
                             CircularProgressIndicator(modifier = Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
+                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.btn_export_pdf), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(R.string.btn_export_pdf),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

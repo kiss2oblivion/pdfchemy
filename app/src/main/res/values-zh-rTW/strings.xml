@@ -345,6 +345,9 @@
 <string name="settings_rate_app">為 PDFchemy 評分</string>
 <string name="settings_rate_app_desc">喜歡這款應用程式？在 Google Play 給我們留個好評吧！</string>
 <string name="settings_rate_app_thanks">感謝您的支持！</string>
+    <string name="settings_share_app">分享 PDFchemy Tools</string>
+    <string name="settings_share_app_desc">向朋友和同事推薦這款應用程式</string>
+    <string name="settings_share_app_message">歡迎體驗 PDFchemy Tools — 專為 Android 設計的高速、100%% 離線且嚴格保護隱私的 PDF 壓縮與編輯工具: %1$s</string>
 <string name="settings_app_tour">功能導覽</string>
 <string name="settings_app_tour_desc">重溫主要核心功能的快速介紹</string>
 <string name="settings_feedback">意見回饋與技術支援</string>

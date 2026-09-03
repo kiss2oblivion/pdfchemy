@@ -347,6 +347,9 @@
 <string name="settings_rate_app">Evaluează PDFchemy Tools</string>
 <string name="settings_rate_app_desc">Vă place aplicația? Lăsați-ne o recenzie pe Google Play!</string>
 <string name="settings_rate_app_thanks">Vă mulțumim pentru sprijin!</string>
+    <string name="settings_share_app">Distribuie PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Recomandă această aplicație prietenilor și colegilor</string>
+    <string name="settings_share_app_message">Încearcă PDFchemy Tools — un compresor și editor PDF rapid, 100%% offline și privat pentru Android: %1$s</string>
     
 <string name="settings_app_tour">Ghidul aplicației</string>
 <string name="settings_app_tour_desc">Revizuiți prezentarea rapidă a funcțiilor principale</string>

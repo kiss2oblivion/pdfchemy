@@ -139,7 +139,7 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     title = stringResource(R.string.menu_reflow_reader),
                     subtitle = stringResource(R.string.menu_reflow_reader_desc),
                     icon = Icons.Rounded.MenuBook,
-                    onClick = { onNavigate(Screen.ReflowReader) }
+                    onClick = { onNavigate(Screen.ReflowReader()) }
                 )
             }
             item {

@@ -345,6 +345,9 @@
 <string name="settings_rate_app">Đánh giá PDFchemy</string>
 <string name="settings_rate_app_desc">Bạn thích ứng dụng? Hãy để lại đánh giá trên Google Play nhé!</string>
 <string name="settings_rate_app_thanks">Cảm ơn sự ủng hộ của bạn!</string>
+    <string name="settings_share_app">Chia sẻ PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Giới thiệu ứng dụng này cho bạn bè và đồng nghiệp</string>
+    <string name="settings_share_app_message">Hãy dùng thử PDFchemy Tools — ứng dụng nén và chỉnh sửa PDF nhanh, 100%% ngoại tuyến và bảo mật cho Android: %1$s</string>
 <string name="settings_app_tour">Xem hướng dẫn tính năng</string>
 <string name="settings_app_tour_desc">Xem lại phần giới thiệu các tính năng chính</string>
 <string name="settings_feedback">Gửi phản hồi &amp; Hỗ trợ</string>

@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfchemy.app.R
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
 
 enum class EbookMode {
     PDF_TO_EPUB,
+    EPUB_TO_PDF,
     PDF_TO_CBZ,
     CBZ_TO_PDF
 }
@@ -70,12 +72,19 @@ fun EbookConverterScreen(
         contract = ActivityResultContracts.CreateDocument(
             when (selectedMode) {
                 EbookMode.PDF_TO_EPUB -> "application/epub+zip"
+                EbookMode.EPUB_TO_PDF -> "application/pdf"
                 EbookMode.PDF_TO_CBZ -> "application/vnd.comicbook+zip"
                 EbookMode.CBZ_TO_PDF -> "application/pdf"
             }
         )
     ) { destUri ->
         if (destUri != null && selectedSourceUri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    destUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
             coroutineScope.launch {
                 isProcessing = true
                 val result: Result<Boolean> = when (selectedMode) {
@@ -86,6 +95,17 @@ fun EbookConverterScreen(
                             destEpubUri = destUri,
                             bookTitle = bookTitle.ifBlank { "Untitled E-Book" },
                             authorName = authorName.ifBlank { "Unknown Author" }
+                        )
+                    }
+                    EbookMode.EPUB_TO_PDF -> {
+                        PdfToEpubEngine.epubToPdf(
+                            context = context,
+                            sourceEpubUri = selectedSourceUri!!,
+                            destPdfUri = destUri,
+                            onProgress = { c, t ->
+                                progressCurrent = c
+                                progressTotal = t
+                            }
                         )
                     }
                     EbookMode.PDF_TO_CBZ -> {
@@ -114,6 +134,7 @@ fun EbookConverterScreen(
                 isProcessing = false
 
                 if (result.isSuccess) {
+                    viewModel.refreshHistory()
                     viewModel.showSuccessToast(
                         context.getString(R.string.title_ebook_success),
                         context.getString(R.string.desc_ebook_success)
@@ -194,22 +215,34 @@ fun EbookConverterScreen(
                     FilterChip(
                         selected = selectedMode == EbookMode.PDF_TO_EPUB,
                         onClick = { selectedMode = EbookMode.PDF_TO_EPUB; selectedSourceUri = null },
-                        label = { Text(stringResource(R.string.tab_pdf_to_epub)) },
+                        label = { Text(stringResource(R.string.tab_pdf_to_epub), maxLines = 1) },
                         leadingIcon = { Icon(Icons.Rounded.AutoStories, contentDescription = null, modifier = Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
+                        selected = selectedMode == EbookMode.EPUB_TO_PDF,
+                        onClick = { selectedMode = EbookMode.EPUB_TO_PDF; selectedSourceUri = null },
+                        label = { Text(stringResource(R.string.tab_epub_to_pdf), maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
                         selected = selectedMode == EbookMode.PDF_TO_CBZ,
                         onClick = { selectedMode = EbookMode.PDF_TO_CBZ; selectedSourceUri = null },
-                        label = { Text(stringResource(R.string.tab_pdf_to_cbz)) },
+                        label = { Text(stringResource(R.string.tab_pdf_to_cbz), maxLines = 1) },
                         leadingIcon = { Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = selectedMode == EbookMode.CBZ_TO_PDF,
                         onClick = { selectedMode = EbookMode.CBZ_TO_PDF; selectedSourceUri = null },
-                        label = { Text(stringResource(R.string.tab_cbz_to_pdf)) },
-                        leadingIcon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        label = { Text(stringResource(R.string.tab_cbz_to_pdf), maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Rounded.FolderZip, contentDescription = null, modifier = Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -222,6 +255,7 @@ fun EbookConverterScreen(
                     .clickable {
                         val mimeTypes = when (selectedMode) {
                             EbookMode.PDF_TO_EPUB, EbookMode.PDF_TO_CBZ -> arrayOf("application/pdf")
+                            EbookMode.EPUB_TO_PDF -> arrayOf("application/epub+zip", "application/zip", "application/octet-stream")
                             EbookMode.CBZ_TO_PDF -> arrayOf("application/zip", "application/x-cbz", "application/octet-stream")
                         }
                         filePickerLauncher.launch(mimeTypes)
@@ -235,18 +269,24 @@ fun EbookConverterScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val icon = when (selectedMode) {
+                        EbookMode.PDF_TO_EPUB, EbookMode.PDF_TO_CBZ -> Icons.Rounded.PictureAsPdf
+                        EbookMode.EPUB_TO_PDF -> Icons.Rounded.AutoStories
+                        EbookMode.CBZ_TO_PDF -> Icons.Rounded.FolderZip
+                    }
+                    val defaultTitle = when (selectedMode) {
+                        EbookMode.PDF_TO_EPUB, EbookMode.PDF_TO_CBZ -> stringResource(R.string.select_pdf_for_ebook)
+                        EbookMode.EPUB_TO_PDF -> stringResource(R.string.select_epub_for_pdf)
+                        EbookMode.CBZ_TO_PDF -> stringResource(R.string.select_cbz_file)
+                    }
                     Icon(
-                        if (selectedMode == EbookMode.CBZ_TO_PDF) Icons.Rounded.FolderZip else Icons.Rounded.PictureAsPdf,
+                        icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = selectedSourceUri?.let { FileUtils.getFileName(context, it) }
-                                ?: stringResource(
-                                    if (selectedMode == EbookMode.CBZ_TO_PDF) R.string.select_cbz_file
-                                    else R.string.select_pdf_for_ebook
-                                ),
+                            text = selectedSourceUri?.let { FileUtils.getFileName(context, it) } ?: defaultTitle,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -306,14 +346,15 @@ fun EbookConverterScreen(
                     val base = selectedSourceUri?.let { FileUtils.getFileName(context, it)?.substringBeforeLast(".") } ?: "ebook"
                     val suggested = when (selectedMode) {
                         EbookMode.PDF_TO_EPUB -> "$base.epub"
+                        EbookMode.EPUB_TO_PDF, EbookMode.CBZ_TO_PDF -> "$base.pdf"
                         EbookMode.PDF_TO_CBZ -> "$base.cbz"
-                        EbookMode.CBZ_TO_PDF -> "$base.pdf"
                     }
                     saveFileLauncher.launch(suggested)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .defaultMinSize(minHeight = 52.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 enabled = !isProcessing && selectedSourceUri != null
             ) {
                 if (isProcessing) {
@@ -321,12 +362,18 @@ fun EbookConverterScreen(
                 } else {
                     val btnText = when (selectedMode) {
                         EbookMode.PDF_TO_EPUB -> R.string.btn_convert_to_epub
+                        EbookMode.EPUB_TO_PDF, EbookMode.CBZ_TO_PDF -> R.string.btn_convert_to_pdf
                         EbookMode.PDF_TO_CBZ -> R.string.btn_convert_to_cbz
-                        EbookMode.CBZ_TO_PDF -> R.string.btn_convert_to_pdf
                     }
-                    Icon(Icons.Rounded.AutoStories, contentDescription = null)
+                    Icon(Icons.Rounded.AutoStories, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(btnText), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(btnText),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

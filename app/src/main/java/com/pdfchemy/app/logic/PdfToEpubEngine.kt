@@ -139,7 +139,7 @@ p { margin-bottom: 1.2em; text-align: justify; }
 
                 val navXhtml = """<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en">
 <head><title>Table of Contents</title><link rel="stylesheet" type="text/css" href="stylesheet.css"/></head>
 <body>
   <nav epub:type="toc" id="toc">
@@ -152,6 +152,32 @@ p { margin-bottom: 1.2em; text-align: justify; }
 </html>"""
                 zip.putNextEntry(ZipEntry("OEBPS/nav.xhtml"))
                 zip.write(navXhtml.toByteArray(Charsets.UTF_8))
+                zip.closeEntry()
+
+                // 5b. OEBPS/toc.ncx (EPUB 2 backward compatibility)
+                val ncxNavPoints = chapterFiles.mapIndexed { idx, fn ->
+                    """    <navPoint id="np_${idx + 1}" playOrder="${idx + 1}">
+      <navLabel><text>Page ${idx + 1}</text></navLabel>
+      <content src="$fn"/>
+    </navPoint>"""
+                }.joinToString("\n")
+
+                val ncx = """<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="$bookId"/>
+    <meta name="dtb:depth" content="1"/>
+    <meta name="dtb:totalPageCount" content="0"/>
+    <meta name="dtb:maxPageNumber" content="0"/>
+  </head>
+  <docTitle><text>${escapeHtml(bookTitle)}</text></docTitle>
+  <docAuthor><text>${escapeHtml(authorName)}</text></docAuthor>
+  <navMap>
+$ncxNavPoints
+  </navMap>
+</ncx>"""
+                zip.putNextEntry(ZipEntry("OEBPS/toc.ncx"))
+                zip.write(ncx.toByteArray(Charsets.UTF_8))
                 zip.closeEntry()
 
                 // 6. OEBPS/content.opf
@@ -174,10 +200,11 @@ p { margin-bottom: 1.2em; text-align: justify; }
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="css" href="stylesheet.css" media-type="text/css"/>
     $manifestItems
   </manifest>
-  <spine>
+  <spine toc="ncx">
     $spineItems
   </spine>
 </package>"""
@@ -212,6 +239,226 @@ p { margin-bottom: 1.2em; text-align: justify; }
         }
     }
 
+    /**
+     * Converts an EPUB e-book into an A4 PDF document with styled typography and pagination.
+     */
+    suspend fun epubToPdf(
+        context: Context,
+        sourceEpubUri: Uri,
+        destPdfUri: Uri,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        PDFBoxResourceLoader.init(context)
+        var tempFile: File? = null
+        val document = PDDocument()
+        try {
+            tempFile = File(context.cacheDir, "epub_in_${System.currentTimeMillis()}.epub")
+            context.contentResolver.openInputStream(sourceEpubUri)?.use { input ->
+                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+            } ?: throw IllegalStateException("Cannot open input EPUB file")
+
+            val zip = java.util.zip.ZipFile(tempFile)
+
+            // 1. Locate OPF from META-INF/container.xml
+            var opfPath = "OEBPS/content.opf"
+            val containerEntry = zip.getEntry("META-INF/container.xml")
+            if (containerEntry != null) {
+                val containerText = zip.getInputStream(containerEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val rootfileRegex = Regex("""full-path\s*=\s*["']([^"']+)["']""")
+                val match = rootfileRegex.find(containerText)
+                if (match != null) {
+                    opfPath = match.groupValues[1]
+                }
+            }
+
+            // 2. Read OPF
+            val opfEntry = zip.getEntry(opfPath) ?: throw IllegalStateException("EPUB metadata (content.opf) not found")
+            val opfDir = if (opfPath.contains('/')) opfPath.substringBeforeLast('/') + "/" else ""
+            val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+
+            // Extract Title
+            val titleMatch = Regex("""<dc:title[^>]*>([^<]+)</dc:title>""", RegexOption.IGNORE_CASE).find(opfText)
+            val bookTitle = titleMatch?.groupValues?.get(1)?.trim() ?: "Converted E-Book"
+
+            // Map manifest items
+            val itemMap = mutableMapOf<String, String>()
+            val itemRegex = Regex("""<item\s+[^>]*id\s*=\s*["']([^"']+)["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+            for (m in itemRegex.findAll(opfText)) {
+                val id = m.groupValues[1]
+                val href = m.groupValues[2]
+                itemMap[id] = opfDir + href
+            }
+            val itemRegex2 = Regex("""<item\s+[^>]*href\s*=\s*["']([^"']+)["'][^>]*id\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+            for (m in itemRegex2.findAll(opfText)) {
+                val href = m.groupValues[1]
+                val id = m.groupValues[2]
+                itemMap[id] = opfDir + href
+            }
+
+            // Extract Spine order
+            val spineItems = mutableListOf<String>()
+            val itemrefRegex = Regex("""<itemref\s+[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+            for (m in itemrefRegex.findAll(opfText)) {
+                val idref = m.groupValues[1]
+                val resolvedPath = itemMap[idref]
+                if (resolvedPath != null && (resolvedPath.endsWith(".xhtml", true) || resolvedPath.endsWith(".html", true) || resolvedPath.endsWith(".htm", true))) {
+                    if (!resolvedPath.contains("nav.xhtml", true)) {
+                        spineItems.add(resolvedPath)
+                    }
+                }
+            }
+
+            if (spineItems.isEmpty()) {
+                val allHtml = zip.entries().toList().filter { 
+                    it.name.endsWith(".xhtml", true) || it.name.endsWith(".html", true) 
+                }.filter { !it.name.contains("nav.xhtml", true) }.sortedBy { it.name }
+                for (entry in allHtml) {
+                    spineItems.add(entry.name)
+                }
+            }
+
+            if (spineItems.isEmpty()) {
+                throw IllegalStateException("No readable content chapters found in EPUB archive")
+            }
+
+            // 3. Extract text paragraphs
+            val allParagraphs = mutableListOf<String>()
+            val totalChapters = spineItems.size
+
+            for ((chapIdx, path) in spineItems.withIndex()) {
+                onProgress(chapIdx + 1, totalChapters)
+                val entry = zip.getEntry(path) ?: continue
+                val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val text = cleanHtmlToPlainText(html)
+                if (text.isNotBlank()) {
+                    allParagraphs.addAll(text.split("\n\n").filter { it.isNotBlank() })
+                }
+            }
+            zip.close()
+
+            // 4. Render paragraphs into PDFBox document
+            val pageWidth = 595f
+            val pageHeight = 842f
+            val margin = 50f
+            val maxLineWidth = pageWidth - (margin * 2)
+            val font = com.tom_roush.pdfbox.pdmodel.font.PDType1Font.HELVETICA
+            val titleFont = com.tom_roush.pdfbox.pdmodel.font.PDType1Font.HELVETICA_BOLD
+            val fontSize = 11f
+            val leading = 15f
+
+            var currentPage = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4)
+            document.addPage(currentPage)
+            var contentStream = com.tom_roush.pdfbox.pdmodel.PDPageContentStream(document, currentPage)
+            var currentY = pageHeight - margin
+
+            // Draw Book Title on first page
+            contentStream.beginText()
+            contentStream.setFont(titleFont, 18f)
+            contentStream.newLineAtOffset(margin, currentY)
+            contentStream.showText(sanitizeText(bookTitle.take(60)))
+            contentStream.endText()
+            currentY -= 35f
+
+            for (para in allParagraphs) {
+                val lines = wordWrap(sanitizeText(para), font, fontSize, maxLineWidth)
+                for (line in lines) {
+                    if (currentY < margin + leading) {
+                        contentStream.close()
+                        currentPage = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4)
+                        document.addPage(currentPage)
+                        contentStream = com.tom_roush.pdfbox.pdmodel.PDPageContentStream(document, currentPage)
+                        currentY = pageHeight - margin
+                    }
+
+                    contentStream.beginText()
+                    contentStream.setFont(font, fontSize)
+                    contentStream.newLineAtOffset(margin, currentY)
+                    contentStream.showText(line)
+                    contentStream.endText()
+                    currentY -= leading
+                }
+                currentY -= 8f
+            }
+            contentStream.close()
+
+            // Save PDF to destination
+            context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
+                document.save(out)
+            } ?: throw IllegalStateException("Cannot open destination PDF stream")
+
+            val historyRepo = HistoryRepository(context)
+            historyRepo.addHistoryItem(
+                destPdfUri,
+                FileUtils.getFileName(context, destPdfUri) ?: "book.pdf",
+                "EPUB to PDF"
+            )
+
+            Result.success(true)
+        } catch (e: Exception) {
+            AppLogger.e("PdfToEpubEngine: Error converting EPUB to PDF", e)
+            Result.failure(e)
+        } finally {
+            try { document.close() } catch (_: Exception) {}
+            tempFile?.delete()
+        }
+    }
+
+    private fun cleanHtmlToPlainText(html: String): String {
+        var s = html.replace(Regex("""<head.*?</head>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+        s = s.replace(Regex("""<style.*?</style>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+        s = s.replace(Regex("""<script.*?</script>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
+        s = s.replace(Regex("""<(p|h[1-6]|div|li)[^>]*>""", RegexOption.IGNORE_CASE), "\n")
+        s = s.replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
+        s = s.replace(Regex("""<[^>]+>"""), "")
+        s = s.replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&#39;", "'")
+        return s.lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n\n")
+    }
+
+    private fun sanitizeText(text: String): String {
+        return text.replace("“", "\"")
+            .replace("”", "\"")
+            .replace("‘", "'")
+            .replace("’", "'")
+            .replace("—", "--")
+            .replace("–", "-")
+            .replace("…", "...")
+            .filter { it.code in 32..126 || it.code in 160..255 }
+    }
+
+    private fun wordWrap(text: String, font: com.tom_roush.pdfbox.pdmodel.font.PDFont, fontSize: Float, maxWidth: Float): List<String> {
+        val lines = mutableListOf<String>()
+        val words = text.split(Regex("\\s+"))
+        var currentLine = StringBuilder()
+
+        for (word in words) {
+            val candidate = if (currentLine.isEmpty()) word else "$currentLine $word"
+            val width = try {
+                font.getStringWidth(candidate) / 1000 * fontSize
+            } catch (_: Exception) {
+                maxWidth + 1f
+            }
+            if (width > maxWidth && currentLine.isNotEmpty()) {
+                lines.add(currentLine.toString())
+                currentLine = StringBuilder(word)
+            } else {
+                currentLine = StringBuilder(candidate)
+            }
+        }
+        if (currentLine.isNotEmpty()) {
+            lines.add(currentLine.toString())
+        }
+        return lines
+    }
+
     private fun escapeHtml(text: String): String {
         return text.replace("&", "&amp;")
             .replace("<", "&lt;")
@@ -220,3 +467,4 @@ p { margin-bottom: 1.2em; text-align: justify; }
             .replace("'", "&apos;")
     }
 }
+

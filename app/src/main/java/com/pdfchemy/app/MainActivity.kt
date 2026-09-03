@@ -24,8 +24,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -492,14 +495,19 @@ fun MainApp(
     onChangeThemeMode: (String) -> Unit = {},
     onOpenTour: () -> Unit = {}
 ) {
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+    var currentScreen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.Home) }
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     val incomingPdfUri by (incomingPdfUriState?.collectAsState() ?: remember { mutableStateOf<Uri?>(null) })
     LaunchedEffect(incomingPdfUri) {
         incomingPdfUri?.let { uri ->
-            currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+            val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase() ?: ""
+            if (name.endsWith(".epub")) {
+                currentScreen = Screen.ReflowReader(initialUri = uri)
+            } else {
+                currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+            }
             incomingPdfUriState?.value = null
         }
     }
@@ -580,7 +588,10 @@ fun MainApp(
             Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.ComparePdf -> PdfCompareScreen(viewModel) { currentScreen = Screen.CheckCategory }
-            Screen.ReflowReader -> ReflowReaderScreen { currentScreen = Screen.OrganizeCategory }
+            is Screen.ReflowReader -> {
+                val reflowScreen = currentScreen as Screen.ReflowReader
+                ReflowReaderScreen(initialUri = reflowScreen.initialUri) { currentScreen = Screen.OrganizeCategory }
+            }
             Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
             Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
@@ -876,7 +887,7 @@ sealed class Screen {
     object PageNumber : Screen()
     object PageLayout : Screen()
     object ComparePdf : Screen()
-    object ReflowReader : Screen()
+    data class ReflowReader(val initialUri: Uri? = null) : Screen()
     object ImageReplacer : Screen()
     object FindAndReplaceText : Screen()
     object CropPdf : Screen()
@@ -898,6 +909,90 @@ sealed class Screen {
     data class OfficeExport(val initialFormat: com.pdfchemy.app.logic.OfficeFormat = com.pdfchemy.app.logic.OfficeFormat.WORD) : Screen()
     object Premium : Screen()
 }
+
+val ScreenSaver: Saver<Screen, String> = Saver(
+    save = { screen ->
+        when (screen) {
+            is Screen.PdfEditor -> "PdfEditor:${screen.initialPdfUri?.toString() ?: ""}"
+            is Screen.ReflowReader -> "ReflowReader:${screen.initialUri?.toString() ?: ""}"
+            is Screen.OfficeExport -> "OfficeExport:${screen.initialFormat.name}"
+            else -> screen::class.simpleName ?: "Home"
+        }
+    },
+    restore = { str ->
+        when {
+            str.startsWith("PdfEditor:") -> {
+                val uriStr = str.removePrefix("PdfEditor:")
+                Screen.PdfEditor(if (uriStr.isNotEmpty()) Uri.parse(uriStr) else null)
+            }
+            str.startsWith("ReflowReader:") -> {
+                val uriStr = str.removePrefix("ReflowReader:")
+                Screen.ReflowReader(if (uriStr.isNotEmpty()) Uri.parse(uriStr) else null)
+            }
+            str.startsWith("OfficeExport:") -> {
+                val formatName = str.removePrefix("OfficeExport:")
+                val format = try {
+                    com.pdfchemy.app.logic.OfficeFormat.valueOf(formatName)
+                } catch (_: Exception) {
+                    com.pdfchemy.app.logic.OfficeFormat.WORD
+                }
+                Screen.OfficeExport(format)
+            }
+            str == "CompressPdf" -> Screen.CompressPdf
+            str == "BatchCompressPdf" -> Screen.BatchCompressPdf
+            str == "ImageCompressor" -> Screen.ImageCompressor
+            str == "TextToPdf" -> Screen.TextToPdf
+            str == "TextConverter" -> Screen.TextConverter
+            str == "Settings" -> Screen.Settings
+            str == "CompressCategory" -> Screen.CompressCategory
+            str == "CreateCategory" -> Screen.CreateCategory
+            str == "OrganizeCategory" -> Screen.OrganizeCategory
+            str == "MergePdf" -> Screen.MergePdf
+            str == "SplitPdf" -> Screen.SplitPdf
+            str == "DeletePages" -> Screen.DeletePages
+            str == "ExtractImages" -> Screen.ExtractImages
+            str == "CheckCategory" -> Screen.CheckCategory
+            str == "InspectMetadata" -> Screen.InspectMetadata
+            str == "StripMetadata" -> Screen.StripMetadata
+            str == "TextCleaner" -> Screen.TextCleaner
+            str == "ImagesToPdf" -> Screen.ImagesToPdf
+            str == "RotatePdf" -> Screen.RotatePdf
+            str == "ExtractText" -> Screen.ExtractText
+            str == "ProtectPdf" -> Screen.ProtectPdf
+            str == "UnlockPdf" -> Screen.UnlockPdf
+            str == "PdfToImages" -> Screen.PdfToImages
+            str == "FillForm" -> Screen.FillForm
+            str == "OcrPdf" -> Screen.OcrPdf
+            str == "ScanPdf" -> Screen.ScanPdf
+            str == "SignPdf" -> Screen.SignPdf
+            str == "PageOrganizer" -> Screen.PageOrganizer
+            str == "Watermark" -> Screen.Watermark
+            str == "PageNumber" -> Screen.PageNumber
+            str == "PageLayout" -> Screen.PageLayout
+            str == "ComparePdf" -> Screen.ComparePdf
+            str == "ImageReplacer" -> Screen.ImageReplacer
+            str == "FindAndReplaceText" -> Screen.FindAndReplaceText
+            str == "CropPdf" -> Screen.CropPdf
+            str == "MetadataSanitizer" -> Screen.MetadataSanitizer
+            str == "MarkdownStudio" -> Screen.MarkdownStudio
+            str == "EbookConverter" -> Screen.EbookConverter
+            str == "FlattenPdf" -> Screen.FlattenPdf
+            str == "Booklet" -> Screen.Booklet
+            str == "RepairPdf" -> Screen.RepairPdf
+            str == "GrayscaleOptimizer" -> Screen.GrayscaleOptimizer
+            str == "HeaderFooter" -> Screen.HeaderFooter
+            str == "BookmarkEditor" -> Screen.BookmarkEditor
+            str == "Redaction" -> Screen.Redaction
+            str == "AttachmentManager" -> Screen.AttachmentManager
+            str == "LinearizePdf" -> Screen.LinearizePdf
+            str == "NUp" -> Screen.NUp
+            str == "PdfAValidator" -> Screen.PdfAValidator
+            str == "FontInspector" -> Screen.FontInspector
+            str == "Premium" -> Screen.Premium
+            else -> Screen.Home
+        }
+    }
+)
 
 /**
  * Animated title with a subtle shimmer highlight that sweeps across the text.
@@ -1016,6 +1111,11 @@ fun HomeScreen(
     val headerOffsetY = remember { Animatable(30f) }
     val cardsAlpha = remember { Animatable(0f) }
     val cardsOffsetY = remember { Animatable(30f) }
+
+    // Refresh recent activity on entry
+    LaunchedEffect(Unit) {
+        viewModel.refreshHistory()
+    }
 
     // Run the entrance animation
     LaunchedEffect(Unit) {
@@ -1203,7 +1303,7 @@ fun HomeScreen(
                     CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
                 }
                     Spacer(modifier = Modifier.height(16.dp))
-                    RecentFilesSection(viewModel)
+                    RecentFilesSection(viewModel, onNavigate = { screen -> onNavigate(screen) })
                 }
             }
             }
@@ -1368,12 +1468,12 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
 
     val saveScannedPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
-    ) { uri: Uri? ->
-        if (uri != null && scannedPdfUri != null) {
+    ) { destUri: Uri? ->
+        if (destUri != null && scannedPdfUri != null) {
             try {
-                val uri = scannedPdfUri ?: return@rememberLauncherForActivityResult
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                val sourceUri = scannedPdfUri ?: return@rememberLauncherForActivityResult
+                context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                    context.contentResolver.openOutputStream(destUri)?.use { output ->
                         input.copyTo(output)
                     }
                 }
@@ -1659,7 +1759,13 @@ fun PlaceholderCategoryScreen(title: String, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolCard(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
+fun ToolCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -1674,7 +1780,10 @@ fun ToolCard(title: String, subtitle: String, icon: ImageVector, onClick: () -> 
             view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             onClick() 
         },
-        modifier = Modifier.fillMaxWidth().scale(scale),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(108.dp)
+            .scale(scale),
         interactionSource = interactionSource,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -1684,27 +1793,33 @@ fun ToolCard(title: String, subtitle: String, icon: ImageVector, onClick: () -> 
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth().background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    )
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp)
                 )
-            ).border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(20.dp)
-            )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp)
+                )
         ) {
             Row(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .padding(end = 16.dp)
-                        .size(52.dp)
+                        .size(50.dp)
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1715,15 +1830,32 @@ fun ToolCard(title: String, subtitle: String, icon: ImageVector, onClick: () -> 
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                Column {
-                    Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 16.sp
+                    )
                 }
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -2525,20 +2657,28 @@ fun RightPanel(
 
     Button(
         onClick = { if (selectedTab == 0) onSaveSingle() else onSaveBatch() },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+            .defaultMinSize(minHeight = 54.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
-        )
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Icon(
             imageVector = Icons.Default.Check,
-            contentDescription = stringResource(R.string.desc_compress_icon)
+            contentDescription = stringResource(R.string.desc_compress_icon),
+            modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = if (selectedTab == 0) stringResource(R.string.btn_optimize_and_save) else stringResource(R.string.btn_select_folder_and_compress),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
     Spacer(modifier = Modifier.height(32.dp))
@@ -2594,15 +2734,23 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             ) {
                 Button(
                     onClick = { pickTextLauncher.launch(arrayOf("text/plain")) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
-                    Icon(Icons.Rounded.UploadFile, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.import_txt))
+                    Icon(Icons.Rounded.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.import_txt),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
 
                 Button(
@@ -2613,15 +2761,23 @@ fun TextToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             savePdfLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(null, "converted_text"))
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
-                    Icon(Icons.Rounded.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.save_as_pdf))
+                    Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.save_as_pdf),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
@@ -2639,8 +2795,17 @@ fun TargetPresetChip(
     ElevatedFilterChip(
         selected = isSelected,
         onClick = onClick,
-        modifier = modifier.defaultMinSize(minHeight = 48.dp),
-        label = { Text(label) }
+        modifier = modifier.defaultMinSize(minHeight = 42.dp),
+        label = {
+            Text(
+                text = label,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 12.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     )
 }
 @OptIn(ExperimentalMaterial3Api::class)
@@ -2650,19 +2815,23 @@ fun CompressionPresetButton(
     quality: Float,
     currentQuality: Float,
     isRecommended: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val isSelected = quality == currentQuality
     ElevatedFilterChip(
         selected = isSelected,
         onClick = onClick,
-        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+        modifier = modifier.defaultMinSize(minHeight = 42.dp),
         label = {
-            if (isRecommended) {
-                Text("$label ★")
-            } else {
-                Text(label)
-            }
+            Text(
+                text = if (isRecommended) "$label ★" else label,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 11.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     )
 }
@@ -3050,6 +3219,34 @@ fun SettingsScreen(
 
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+                            // Share App
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    val packageName = context.packageName
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.app_name))
+                                        val shareMessage = context.getString(R.string.settings_share_app_message, "https://play.google.com/store/apps/details?id=$packageName")
+                                        putExtra(Intent.EXTRA_TEXT, shareMessage)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.settings_share_app)))
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_share_app), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_share_app_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Share,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                             // Privacy Policy
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
@@ -3100,7 +3297,10 @@ fun SettingsScreen(
 }
 
 @Composable
-fun RecentFilesSection(viewModel: MainViewModel) {
+fun RecentFilesSection(
+    viewModel: MainViewModel,
+    onNavigate: ((Screen) -> Unit)? = null
+) {
     val history by viewModel.historyList.collectAsState()
     val context = LocalContext.current
 
@@ -3122,15 +3322,37 @@ fun RecentFilesSection(viewModel: MainViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    try {
-                                        val uri = Uri.parse(item.uriString)
-                                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                                            setDataAndType(uri, "application/pdf")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    val uri = Uri.parse(item.uriString)
+                                    val ext = item.name.substringAfterLast('.', "").lowercase()
+                                    if (ext == "epub" && onNavigate != null) {
+                                        onNavigate(Screen.ReflowReader(uri))
+                                    } else if (ext == "pdf" && onNavigate != null) {
+                                        onNavigate(Screen.PdfEditor(initialPdfUri = uri))
+                                    } else {
+                                        try {
+                                            val mimeType = com.pdfchemy.app.utils.FileUtils.getMimeType(context, uri, item.name)
+                                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, mimeType)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            try {
+                                                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                    setDataAndType(uri, "*/*")
+                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                }
+                                                val chooser = Intent.createChooser(fallbackIntent, item.name)
+                                                context.startActivity(chooser)
+                                            } catch (e2: Exception) {
+                                                if (ext == "pdf" && onNavigate != null) {
+                                                    onNavigate(Screen.PdfEditor(initialPdfUri = uri))
+                                                } else {
+                                                    AppLogger.e("Cannot open file from recent activity: ${item.name}", e2)
+                                                    Toast.makeText(context, "No app available to open ${item.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                         }
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        AppLogger.e("Exception caught in MainActivity", e)
                                     }
                                 }
                                 .padding(8.dp),

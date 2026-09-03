@@ -32,6 +32,8 @@ import com.pdfchemy.app.Screen
 import com.pdfchemy.app.ToolCard
 import com.pdfchemy.app.logic.PdfMetadata
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import com.pdfchemy.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -252,22 +254,38 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             if (sourceUri == null) {
                 Button(
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.select_pdf))
+                    Text(
+                        text = stringResource(R.string.select_pdf),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             } else if (isAnalyzing) {
                 CircularProgressIndicator()
             } else {
                 Button(
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 ) {
-                    Text(stringResource(R.string.select_different_pdf))
+                    Text(
+                        text = stringResource(R.string.select_different_pdf),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
                 if (analysis != null) {
@@ -302,9 +320,17 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
                 Button(
                     onClick = { sourceUri?.let { createDocLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(it, "metadata_updated")) } },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.save_changes_to_new_pdf))
+                    Text(
+                        text = stringResource(R.string.save_changes_to_new_pdf),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -364,9 +390,17 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = { filePickerLauncher.launch(arrayOf("application/pdf")) },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(stringResource(R.string.select_pdf))
+                    Text(
+                        text = stringResource(R.string.select_pdf),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             } else {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -390,27 +424,45 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
                         onClick = { sourceUri?.let { viewModel.clearMetadataOverwrite(context, it) } },
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = 52.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error,
                             contentColor = MaterialTheme.colorScheme.onError
-                        )
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Text(stringResource(R.string.overwrite_original), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(
+                            text = stringResource(R.string.overwrite_original),
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                     Button(
                         onClick = { sourceUri?.let { createDocLauncher.launch(com.pdfchemy.app.logic.FileUtil.generateSuggestedName(it, "stripped")) } },
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = 52.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Text(stringResource(R.string.save_as_new), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(
+                            text = stringResource(R.string.save_as_new),
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             }

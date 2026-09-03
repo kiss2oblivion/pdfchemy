@@ -252,6 +252,37 @@ fun PdfEditorScreen(
                 EmptyPdfPickerView(
                     onPickClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
                 )
+            } else if (totalPages == 0 && !isRenderingPage) {
+                // File Cannot Be Opened / Access Expired
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.error_file_inaccessible),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.desc_file_inaccessible),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.btn_select_file))
+                    }
+                }
             } else if (isRenderingPage || currentPageBitmap == null) {
                 // Loading Page Spinner
                 Column(
@@ -685,13 +716,20 @@ fun EmptyPdfPickerView(onPickClick: () -> Unit) {
         Button(
             onClick = onPickClick,
             modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(50.dp),
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 50.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(14.dp)
         ) {
-            Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+            Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.editor_open_pdf_btn), fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(R.string.editor_open_pdf_btn),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
