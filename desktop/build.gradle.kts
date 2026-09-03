@@ -42,13 +42,11 @@ compose.desktop {
         nativeDistributions {
             targetFormats(
                 TargetFormat.Msi,
-                TargetFormat.Exe,
-                TargetFormat.Deb,
-                TargetFormat.Rpm
+                TargetFormat.Exe
             )
             packageName = "PDFchemy"
             packageVersion = "1.0.0"
-            description = "PDFchemy Tools - Local-First Offline PDF Utility"
+            description = "PDFchemy Tools - Local-First Offline PDF Utility for Windows"
             copyright = "© 2026 Andrei Ioan Cucos. All rights reserved."
             vendor = "PDFchemy"
 
@@ -56,13 +54,8 @@ compose.desktop {
                 menuGroup = "PDFchemy"
                 upgradeUuid = "8a2f07d2-a7d0-4cb5-8d59-2fce4d15f129"
                 shortcut = true
-            }
-
-            linux {
-                shortcut = true
-                packageName = "pdfchemy"
-                appCategory = "Office;Utility;"
-                menuGroup = "Office"
+                dirChooser = true
+                perUserInstall = false
             }
         }
     }
