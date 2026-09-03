@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.pdfchemy.PDFchemy</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Proprietary</project_license>
+  <name>PDFchemy Tools</name>
+  <summary>Local-First Offline PDF &amp; Document Utility</summary>
+  <description>
+    <p>
+      PDFchemy Tools is a fast, 100% offline, privacy-first document utility.
+      All PDF operations execute locally on your machine with zero cloud uploads and zero telemetry.
+    </p>
+    <ul>
+      <li>Compress PDFs with customized DPI and JPEG quality presets</li>
+      <li>Merge multiple documents with drag-and-drop file reordering</li>
+      <li>Split, rotate, and extract specific page ranges</li>
+      <li>Reflow Reader with dark/sepia reading themes and scalable typography</li>
+      <li>128-bit/256-bit AES PDF password encryption and decryption</li>
+      <li>Extract plain text and convert documents locally</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">com.pdfchemy.PDFchemy.desktop</launchable>
+  <provides>
+    <mediatype>application/pdf</mediatype>
+    <mediatype>application/epub+zip</mediatype>
+    <mediatype>text/plain</mediatype>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>Utility</category>
+    <category>Publishing</category>
+  </categories>
+  <developer_name>Andrei Ioan Cucos</developer_name>
+  <url type="homepage">https://github.com/cucosandrei/pdfchemy</url>
+  <url type="bugtracker">https://github.com/cucosandrei/pdfchemy/issues</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.0.0" date="2026-09-03">
+      <description>
+        <p>Initial official desktop release for Windows and Linux.</p>
+      </description>
+    </release>
+  </releases>
+</component>

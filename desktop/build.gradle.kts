@@ -55,6 +55,7 @@ compose.desktop {
                 packageName = "pdfchemy"
                 appCategory = "Office;Utility;"
                 menuGroup = "Office"
+                iconFile.set(project.file("src/main/resources/icons/linux/icon.png"))
             }
         }
     }
