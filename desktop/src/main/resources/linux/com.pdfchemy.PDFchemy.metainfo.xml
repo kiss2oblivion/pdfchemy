@@ -2,21 +2,27 @@
 <component type="desktop-application">
   <id>com.pdfchemy.PDFchemy</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>Proprietary</project_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <name>PDFchemy Tools</name>
-  <summary>Local-First Offline PDF &amp; Document Utility</summary>
+  <summary>Local-First Emergency Document Utility Built For The People</summary>
   <description>
     <p>
-      PDFchemy Tools is a fast, 100% offline, privacy-first document utility.
+      PDFchemy Tools is a 100% offline, privacy-first emergency document utility built for the people.
       All PDF operations execute locally on your machine with zero cloud uploads and zero telemetry.
     </p>
+    <p>
+      Developer Manifesto:
+      "Lifetime of updates until I personally die and free of charge; and all you have to do is make
+      a solid valid request and it will be done and implemented; cuz it's from the people to the people..."
+      — Andrei Ioan Cucoș (John), Developer
+    </p>
     <ul>
-      <li>Compress PDFs with customized DPI and JPEG quality presets</li>
-      <li>Merge multiple documents with drag-and-drop file reordering</li>
-      <li>Split, rotate, and extract specific page ranges</li>
-      <li>Reflow Reader with dark/sepia reading themes and scalable typography</li>
-      <li>128-bit/256-bit AES PDF password encryption and decryption</li>
-      <li>Extract plain text and convert documents locally</li>
+      <li>Visual Page Studio: Rearrange, rotate, delete, and duplicate pages with responsive visual thumbnail cards.</li>
+      <li>Smart Target Compressor: Optimize DPI and JPEG quality to guarantee your document fits under email or portal size budgets (e.g. under 2MB).</li>
+      <li>Images ⇄ PDF Studio: Compile collections of photos or receipts into a PDF, or batch-extract all pages as high-res PNG images.</li>
+      <li>Multi-Core Batch Queue: Process 50+ PDFs simultaneously across all CPU cores.</li>
+      <li>Reflow Reader: Distraction-free reading with typography scaling and dark/sepia themes.</li>
+      <li>Document Security: 128/256-bit AES password encryption and safe password removal.</li>
     </ul>
   </description>
   <launchable type="desktop-id">com.pdfchemy.PDFchemy.desktop</launchable>
@@ -33,11 +39,12 @@
   <developer_name>Andrei Ioan Cucos</developer_name>
   <url type="homepage">https://github.com/cucosandrei/pdfchemy</url>
   <url type="bugtracker">https://github.com/cucosandrei/pdfchemy/issues</url>
+  <url type="vcs-browser">https://github.com/cucosandrei/pdfchemy</url>
   <content_rating type="oars-1.1" />
   <releases>
-    <release version="1.0.0" date="2026-09-03">
+    <release version="1.0.0" date="2026-09-04">
       <description>
-        <p>Initial official desktop release for Windows and Linux.</p>
+        <p>Official release featuring Visual Page Studio, Smart Target-Size Compressor, Images ⇄ PDF Studio, Multi-Core Batch Queue, and the Lifetime Manifesto.</p>
       </description>
     </release>
   </releases>
