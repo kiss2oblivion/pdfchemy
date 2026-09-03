@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,9 +55,8 @@ fun DesktopApp(
     var activeTab by remember { mutableStateOf(DesktopNavTab.HOME) }
     var selectedFile by remember { mutableStateOf<File?>(initialFile) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showManifestoDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    var showDonationDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(initialFile) {
         if (initialFile != null) {
@@ -64,8 +64,8 @@ fun DesktopApp(
         }
     }
 
-    if (showDonationDialog) {
-        DonationDialog(onDismiss = { showDonationDialog = false })
+    if (showManifestoDialog) {
+        ManifestoDialog(onDismiss = { showManifestoDialog = false })
     }
 
     Scaffold(
@@ -97,7 +97,7 @@ fun DesktopApp(
                     }
                 },
                 actions = {
-                    // Local-First Privacy Badge
+                    // Local-First Privacy Guarantee Badge
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -109,28 +109,24 @@ fun DesktopApp(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(Icons.Rounded.Shield, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00E676))
-                            Text("100% Offline & Private", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Text("100% Offline • Zero Telemetry", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    // Donate / Support Button
+                    // The Manifesto & Principles Button
                     FilledTonalButton(
-                        onClick = { showDonationDialog = true },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                            contentColor = Color(0xFFFF4081)
-                        ),
+                        onClick = { showManifestoDialog = true },
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
+                        Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Donate", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("Our Manifesto", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     // Open File Button
-                    FilledTonalButton(
+                    Button(
                         onClick = {
                             val picked = DesktopFileDialog.openPdf()
                             if (picked != null) {
@@ -180,16 +176,12 @@ fun DesktopApp(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Bottom Sponsor Heart
-                FilledTonalIconButton(
-                    onClick = { showDonationDialog = true },
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                        contentColor = Color(0xFFFF4081)
-                    ),
+                // Bottom Manifesto Badge
+                IconButton(
+                    onClick = { showManifestoDialog = true },
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Icon(Icons.Rounded.Favorite, contentDescription = "Support Development")
+                    Icon(Icons.Rounded.AllInclusive, contentDescription = "The Manifesto", tint = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -208,14 +200,14 @@ fun DesktopApp(
                         onSelectTab = { activeTab = it },
                         selectedFile = selectedFile,
                         onSelectFile = { selectedFile = it },
-                        onOpenTipJar = { showDonationDialog = true }
+                        onOpenManifesto = { showManifestoDialog = true }
                     )
-                    DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
-                    DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
-                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
+                    DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.BATCH -> BatchQueueView(onOpenTipJar = { showDonationDialog = true })
+                    DesktopNavTab.BATCH -> BatchQueueView()
                 }
             }
         }
@@ -230,7 +222,7 @@ private fun HomeView(
     onSelectTab: (DesktopNavTab) -> Unit,
     selectedFile: File?,
     onSelectFile: (File) -> Unit,
-    onOpenTipJar: () -> Unit = {}
+    onOpenManifesto: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -398,7 +390,7 @@ private fun HomeView(
                 Text(
                     "\"Lifetime of updates until I personally die — and 100% free of charge. All you have to do is make a solid, valid request and it will be done and implemented; cuz it's from the people to the people.\n\nIt may or may not be the same as a corpo app would do, but at least it's gonna be free and I will make it as best as I possibly can. If I can't, well I can't and that's that — at least you have an option, oh you enigmatic edge case that you are.\"",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    fontStyle = FontStyle.Italic,
                     lineHeight = 22.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -418,18 +410,12 @@ private fun HomeView(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FilledTonalButton(
-                            onClick = onOpenTipJar,
+                        OutlinedButton(
+                            onClick = onOpenManifesto,
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                                contentColor = Color(0xFFFF4081)
-                            ),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("☕ Tip Jar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Read The Full Manifesto", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -460,14 +446,13 @@ private data class ToolItem(val title: String, val desc: String, val icon: Image
 // 2. VISUAL PAGE STUDIO (GAP 1: THE PDF ARRANGER KILLER)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
+private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     var pageItems by remember { mutableStateOf<List<PageItemSpec>>(emptyList()) }
     val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Load pages when file changes
     LaunchedEffect(file) {
         if (file != null) {
             thumbnails.clear()
@@ -479,7 +464,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                     withContext(Dispatchers.Main) {
                         pageItems = specs
                     }
-                    // Render thumbnails asynchronously in background
                     for (i in 0 until count) {
                         val bimg = DesktopPdfEngine.renderThumbnail(file, i, targetWidth = 240)
                         val bitmap = bimg.toComposeImageBitmap()
@@ -504,7 +488,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
     }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Studio Action Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -522,10 +505,9 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
             if (file != null && pageItems.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = {
-                        // Rotate all pages 90 deg clockwise
                         pageItems = pageItems.map { it.copy(rotation = (it.rotation + 90) % 360) }
                     }) {
-                        Icon(Icons.Rounded.RotateRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Rotate All 90°")
                     }
@@ -563,24 +545,16 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    if (statusText!!.contains("saved", ignoreCase = true) || statusText!!.contains("organized", ignoreCase = true)) {
-                        FilledTonalButton(
-                            onClick = onOpenTipJar,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                                contentColor = Color(0xFFFF4081)
-                            )
-                        ) {
-                            Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF00E676).copy(alpha = 0.15f)
+                    ) {
+                        Text("100% Local • Zero Leaks", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -612,7 +586,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                 }
             }
         } else {
-            // Visual Page Cards Grid
             Surface(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -651,7 +624,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            // Page Number & Rotation Badge
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -668,7 +640,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                 }
                                             }
 
-                                            // Thumbnail Preview Image
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -687,13 +658,11 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                 }
                                             }
 
-                                            // Page Action Controls
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                // Move Left
                                                 IconButton(
                                                     onClick = {
                                                         if (index > 0) {
@@ -710,7 +679,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                     Icon(Icons.Rounded.ChevronLeft, contentDescription = "Move Left")
                                                 }
 
-                                                // Rotate 90 deg
                                                 IconButton(
                                                     onClick = {
                                                         val mutable = pageItems.toMutableList()
@@ -719,10 +687,9 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                     },
                                                     modifier = Modifier.size(32.dp)
                                                 ) {
-                                                    Icon(Icons.Rounded.RotateRight, contentDescription = "Rotate")
+                                                    Icon(Icons.Rounded.Refresh, contentDescription = "Rotate")
                                                 }
 
-                                                // Duplicate Page
                                                 IconButton(
                                                     onClick = {
                                                         val mutable = pageItems.toMutableList()
@@ -734,7 +701,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                     Icon(Icons.Rounded.ContentCopy, contentDescription = "Duplicate")
                                                 }
 
-                                                // Delete Page
                                                 IconButton(
                                                     onClick = {
                                                         pageItems = pageItems.filterIndexed { i, _ -> i != index }
@@ -744,7 +710,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                                                     Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                                                 }
 
-                                                // Move Right
                                                 IconButton(
                                                     onClick = {
                                                         if (index < pageItems.size - 1) {
@@ -772,6 +737,9 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
                 }
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
@@ -779,7 +747,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJ
 // 3. SMART TARGET-SIZE COMPRESSOR (GAP 2: BEAT CLOUD PAYWALLS)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
+private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
     var isTargetSizeMode by remember { mutableStateOf(false) }
     var targetMb by remember { mutableFloatStateOf(2.0f) }
     var qualityLevel by remember { mutableFloatStateOf(0.7f) }
@@ -842,7 +810,6 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
                 }
             }
 
-            // Mode Selector: Presets vs Target File Size
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FilterChip(
                     selected = !isTargetSizeMode,
@@ -859,7 +826,6 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
             }
 
             if (isTargetSizeMode) {
-                // Target File Size Mode
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -876,7 +842,6 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
                             steps = 19
                         )
 
-                        // Quick Presets
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(0.5f to "500 KB", 1.0f to "1 MB", 2.0f to "2 MB (Government/Email)", 5.0f to "5 MB").forEach { (mb, label) ->
                                 AssistChip(
@@ -888,7 +853,6 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
                     }
                 }
             } else {
-                // Presets Mode
                 Text("Compression Level", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf(
@@ -941,19 +905,11 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
                             color = if (resultText!!.startsWith("Success")) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Bold
                         )
-                        if (resultText!!.startsWith("Success")) {
-                            FilledTonalButton(
-                                onClick = onOpenTipJar,
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                                    contentColor = Color(0xFFFF4081)
-                                )
-                            ) {
-                                Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("☕ Tip Jar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF00E676).copy(alpha = 0.2f)
+                        ) {
+                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -998,6 +954,9 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
                 Text("Start Smart Compression", fontWeight = FontWeight.Bold)
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
@@ -1005,7 +964,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar
 // 4. CONVERT STUDIO (GAP 3: IMAGES ⇄ PDF CONVERSION)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun ConvertView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
+private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     var statusText by remember { mutableStateOf<String?>(null) }
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
     val scope = rememberCoroutineScope()
@@ -1185,21 +1144,18 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar:
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    FilledTonalButton(
-                        onClick = onOpenTipJar,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                            contentColor = Color(0xFFFF4081)
-                        )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF00E676).copy(alpha = 0.2f)
                     ) {
-                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
@@ -1207,7 +1163,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar:
 // 5. BATCH QUEUE VIEW (GAP 4: MULTI-CORE BULK PROCESSING)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun BatchQueueView(onOpenTipJar: () -> Unit = {}) {
+private fun BatchQueueView() {
     var queueFiles by remember { mutableStateOf<List<File>>(emptyList()) }
     var isProcessing by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
@@ -1351,21 +1307,18 @@ private fun BatchQueueView(onOpenTipJar: () -> Unit = {}) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    FilledTonalButton(
-                        onClick = onOpenTipJar,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
-                            contentColor = Color(0xFFFF4081)
-                        )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF00E676).copy(alpha = 0.2f)
                     ) {
-                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
@@ -1446,6 +1399,9 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
                 }
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
@@ -1551,60 +1507,85 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                 Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
+
+        // Edge Case Guarantee Callout
+        EdgeCaseCallout()
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB")
-    val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, 3)
-    return DecimalFormat("#,##0.#").format(bytes / Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups]
+// -------------------------------------------------------------------------------------------------
+// REUSABLE COMMUNITY EDGE CASE CALLOUT BAR
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun EdgeCaseCallout() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Have an enigmatic edge case or missing format? Make a request and I'll build it for you.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(
+                onClick = {
+                    try {
+                        if (java.awt.Desktop.isDesktopSupported()) {
+                            java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/cucosandrei/pdfchemy/issues/new"))
+                        }
+                    } catch (_: Exception) {}
+                },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("Request Feature →", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
 }
 
+// -------------------------------------------------------------------------------------------------
+// THE LIFETIME MANIFESTO DIALOG
+// -------------------------------------------------------------------------------------------------
 @Composable
-private fun DonationDialog(onDismiss: () -> Unit) {
-    var copiedToClipboard by remember { mutableStateOf(false) }
-
+private fun ManifestoDialog(onDismiss: () -> Unit) {
     fun openBrowser(url: String) {
         try {
             if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
                 java.awt.Desktop.getDesktop().browse(java.net.URI(url))
             }
-        } catch (e: Exception) {
-            // Ignored
-        }
-    }
-
-    fun copyToClipboard(text: String) {
-        try {
-            val selection = java.awt.datatransfer.StringSelection(text)
-            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
-            copiedToClipboard = true
-        } catch (e: Exception) {
-            // Ignored
-        }
+        } catch (_: Exception) {}
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            Button(onClick = onDismiss) {
+                Text("Got It, Let's Work")
             }
         },
         icon = {
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFFFF4081).copy(alpha = 0.15f), CircleShape),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(32.dp))
+                Icon(Icons.Rounded.AllInclusive, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
             }
         },
         title = {
             Text(
-                "Support PDFchemy",
+                "The Lifetime Manifesto",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
@@ -1614,114 +1595,93 @@ private fun DonationDialog(onDismiss: () -> Unit) {
         text = {
             Column(
                 modifier = Modifier
-                    .width(480.dp)
+                    .width(520.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("Lifetime Updates • From The People, To The People", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
+                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "\"Lifetime of updates until I personally die and free of charge; and all you have to do is make a solid valid request and it will be done and implemented; cuz it's from the people to the people; it may or may not be the same as a corpo app would do but at least it's gonna be free and I will make it as best as I possibly can; if I can't well I can't and that's that at least you have an option oh you enigmatic edge case that you are.\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontStyle = FontStyle.Italic,
+                            lineHeight = 22.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text("— Andrei Ioan Cucoș (John), Developer", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "— Andrei Ioan Cucoș (John), Independent Developer",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
-                // Quick Amount Tier Buttons
-                Text("Choose a Support Tier", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text("Our 4 Unbreakable Guarantees:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        Triple("☕ $3", "Coffee", "https://buymeacoffee.com/cucosandrei"),
-                        Triple("🍕 $10", "Lunch", "https://paypal.me/cucosandrei/10"),
-                        Triple("💖 $25", "Sponsor", "https://paypal.me/cucosandrei/25"),
-                        Triple("⭐ $50", "Patron", "https://paypal.me/cucosandrei/50")
-                    ).forEach { (label, sub, url) ->
-                        Card(
-                            onClick = { openBrowser(url) },
-                            modifier = Modifier.weight(1f).height(65.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(6.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GuaranteeRow("100% Free Forever", "Zero subscriptions, zero paywalls, zero artificial page/file limits, and zero watermark vandalism.")
+                    GuaranteeRow("100% Offline & Private", "Zero files ever leave this computer. Zero analytics or tracking telemetry. 100% safe for confidential documents.")
+                    GuaranteeRow("Original-Safe", "We never overwrite or destroy your source files without explicit confirmation.")
+                    GuaranteeRow("Built For The People", "Submit a solid feature request or edge case on GitHub, and John will personally implement it.")
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
 
-                // Payment Methods
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // Buy Me a Coffee Button
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
-                        onClick = { openBrowser("https://buymeacoffee.com/cucosandrei") },
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDD00), contentColor = Color(0xFF000000))
+                        onClick = { openBrowser("https://github.com/cucosandrei/pdfchemy/issues/new") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Rounded.Coffee, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Buy Me a Coffee (Card / Apple & Google Pay)", fontWeight = FontWeight.Bold)
-                    }
-
-                    // PayPal Button
-                    Button(
-                        onClick = { openBrowser("https://paypal.me/cucosandrei") },
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA), contentColor = Color.White)
-                    ) {
-                        Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Donate via PayPal / Credit Card", fontWeight = FontWeight.Bold)
-                    }
-
-                    // GitHub Sponsors
-                    OutlinedButton(
-                        onClick = { openBrowser("https://github.com/sponsors/cucosandrei") },
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFFFF4081))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sponsor on GitHub", fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Copy Support / PayPal Email
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { copyToClipboard("cucosandreiioan@gmail.com") }) {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (copiedToClipboard) "Copied to clipboard!" else "PayPal / Contact: cucosandreiioan@gmail.com", fontSize = 12.sp)
+                        Text("Request an Edge Case", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { openBrowser("mailto:cucosandreiioan@gmail.com?subject=PDFchemy%20Feedback") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Email John Directly", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+
+                // Quiet, humble footnote for anyone seeking to support
+                Text(
+                    "Note: PDFchemy is completely self-funded and independent. If you ever wish to support the developer coffee fund, optional links are available at buymeacoffee.com/cucosandrei or paypal.me/cucosandrei.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     )
+}
+
+@Composable
+private fun GuaranteeRow(title: String, desc: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF00C853), modifier = Modifier.size(18.dp).padding(top = 2.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+private fun formatFileSize(bytes: Long): String {
+    if (bytes <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB")
+    val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, 3)
+    return DecimalFormat("#,##0.#").format(bytes / Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups]
 }
