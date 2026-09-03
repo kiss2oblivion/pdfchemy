@@ -207,14 +207,15 @@ fun DesktopApp(
                     DesktopNavTab.HOME -> HomeView(
                         onSelectTab = { activeTab = it },
                         selectedFile = selectedFile,
-                        onSelectFile = { selectedFile = it }
+                        onSelectFile = { selectedFile = it },
+                        onOpenTipJar = { showDonationDialog = true }
                     )
-                    DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
+                    DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
+                    DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it }, onOpenTipJar = { showDonationDialog = true })
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
-                    DesktopNavTab.BATCH -> BatchQueueView()
+                    DesktopNavTab.BATCH -> BatchQueueView(onOpenTipJar = { showDonationDialog = true })
                 }
             }
         }
@@ -228,7 +229,8 @@ fun DesktopApp(
 private fun HomeView(
     onSelectTab: (DesktopNavTab) -> Unit,
     selectedFile: File?,
-    onSelectFile: (File) -> Unit
+    onSelectFile: (File) -> Unit,
+    onOpenTipJar: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -416,6 +418,20 @@ private fun HomeView(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FilledTonalButton(
+                            onClick = onOpenTipJar,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                                contentColor = Color(0xFFFF4081)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("☕ Tip Jar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
                         Button(
                             onClick = {
                                 try {
@@ -444,7 +460,7 @@ private data class ToolItem(val title: String, val desc: String, val icon: Image
 // 2. VISUAL PAGE STUDIO (GAP 1: THE PDF ARRANGER KILLER)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
+private fun PageStudioView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
     var pageItems by remember { mutableStateOf<List<PageItemSpec>>(emptyList()) }
     val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
@@ -546,7 +562,27 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(statusText!!, modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    if (statusText!!.contains("saved", ignoreCase = true) || statusText!!.contains("organized", ignoreCase = true)) {
+                        FilledTonalButton(
+                            onClick = onOpenTipJar,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                                contentColor = Color(0xFFFF4081)
+                            )
+                        ) {
+                            Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
 
@@ -743,7 +779,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
 // 3. SMART TARGET-SIZE COMPRESSOR (GAP 2: BEAT CLOUD PAYWALLS)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
+private fun CompressView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
     var isTargetSizeMode by remember { mutableStateOf(false) }
     var targetMb by remember { mutableFloatStateOf(2.0f) }
     var qualityLevel by remember { mutableFloatStateOf(0.7f) }
@@ -890,11 +926,36 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
 
             if (resultText != null) {
                 Surface(
-                    color = Color(0xFF00E676).copy(alpha = 0.15f),
+                    color = if (resultText!!.startsWith("Success")) Color(0xFF00E676).copy(alpha = 0.15f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(resultText!!, modifier = Modifier.padding(16.dp), color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            resultText!!,
+                            modifier = Modifier.weight(1f),
+                            color = if (resultText!!.startsWith("Success")) Color(0xFF00C853) else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (resultText!!.startsWith("Success")) {
+                            FilledTonalButton(
+                                onClick = onOpenTipJar,
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                                    contentColor = Color(0xFFFF4081)
+                                )
+                            ) {
+                                Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("☕ Tip Jar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -944,7 +1005,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
 // 4. CONVERT STUDIO (GAP 3: IMAGES ⇄ PDF CONVERSION)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
+private fun ConvertView(file: File?, onFileChange: (File) -> Unit, onOpenTipJar: () -> Unit = {}) {
     var statusText by remember { mutableStateOf<String?>(null) }
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
     val scope = rememberCoroutineScope()
@@ -1118,7 +1179,25 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    FilledTonalButton(
+                        onClick = onOpenTipJar,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                            contentColor = Color(0xFFFF4081)
+                        )
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
@@ -1128,7 +1207,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
 // 5. BATCH QUEUE VIEW (GAP 4: MULTI-CORE BULK PROCESSING)
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun BatchQueueView() {
+private fun BatchQueueView(onOpenTipJar: () -> Unit = {}) {
     var queueFiles by remember { mutableStateOf<List<File>>(emptyList()) }
     var isProcessing by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
@@ -1266,7 +1345,25 @@ private fun BatchQueueView() {
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(statusText!!, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    FilledTonalButton(
+                        onClick = onOpenTipJar,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                            contentColor = Color(0xFFFF4081)
+                        )
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF4081))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("☕ Tip Jar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
