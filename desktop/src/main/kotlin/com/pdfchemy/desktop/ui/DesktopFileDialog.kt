@@ -36,6 +36,21 @@ object DesktopFileDialog {
         val files = dialog.files ?: return emptyList()
         return files.toList()
     }
+    /**
+     * Opens native file dialog to select multiple images (e.g. for Images to PDF).
+     */
+    fun openMultipleImages(parent: Frame? = null): List<File> {
+        val dialog = FileDialog(parent, "Select Image Files", FileDialog.LOAD).apply {
+            isMultipleMode = true
+            filenameFilter = FilenameFilter { _, name ->
+                val lower = name.lowercase()
+                lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".bmp") || lower.endsWith(".webp")
+            }
+            isVisible = true
+        }
+        val files = dialog.files ?: return emptyList()
+        return files.toList()
+    }
 
     /**
      * Opens native file dialog to save a PDF file.

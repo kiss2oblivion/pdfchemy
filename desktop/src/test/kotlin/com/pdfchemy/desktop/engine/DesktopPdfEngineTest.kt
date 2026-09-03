@@ -8,7 +8,10 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.awt.Color
+import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 
 class DesktopPdfEngineTest {
 
@@ -68,6 +71,52 @@ class DesktopPdfEngineTest {
             assertEquals(90, doc.getPage(0).rotation)
             assertEquals(90, doc.getPage(1).rotation)
         }
+    }
+
+    @Test
+    fun testSaveReorderedPdf() {
+        val pdf = createTestPdf(pages = 3, text = "Reorder Test")
+        val reordered = tempFolder.newFile("reordered.pdf")
+
+        // Reorder: Page 3 first, then Page 1 (rotated 90)
+        val specs = listOf(
+            PageItemSpec(originalPageIndex = 2, rotation = 0),
+            PageItemSpec(originalPageIndex = 0, rotation = 90)
+        )
+        DesktopPdfEngine.saveReorderedPdf(pdf, reordered, specs)
+
+        assertEquals(2, DesktopPdfEngine.getPageCount(reordered))
+        PDDocument.load(reordered).use { doc ->
+            assertEquals(0, doc.getPage(0).rotation)
+            assertEquals(90, doc.getPage(1).rotation)
+        }
+    }
+
+    @Test
+    fun testImagesToPdfAndExtract() {
+        // Create 2 test images
+        val img1 = tempFolder.newFile("test1.png")
+        val img2 = tempFolder.newFile("test2.png")
+
+        val b1 = BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB).apply {
+            createGraphics().apply { color = Color.RED; fillRect(0, 0, 200, 200); dispose() }
+        }
+        val b2 = BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB).apply {
+            createGraphics().apply { color = Color.BLUE; fillRect(0, 0, 200, 200); dispose() }
+        }
+        ImageIO.write(b1, "png", img1)
+        ImageIO.write(b2, "png", img2)
+
+        val compiledPdf = tempFolder.newFile("compiled_from_images.pdf")
+        DesktopPdfEngine.imagesToPdf(listOf(img1, img2), compiledPdf)
+
+        assertEquals(2, DesktopPdfEngine.getPageCount(compiledPdf))
+
+        // Extract back
+        val outDir = tempFolder.newFolder("extracted_images")
+        val extracted = DesktopPdfEngine.extractPagesToImages(compiledPdf, outDir, format = "png")
+        assertEquals(2, extracted.size)
+        assertTrue(extracted[0].exists())
     }
 
     @Test
