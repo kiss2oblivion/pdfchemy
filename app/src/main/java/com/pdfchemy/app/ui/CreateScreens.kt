@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import java.io.File
 import androidx.core.content.FileProvider
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.pdfchemy.app.R
 
 fun createTempImageUri(context: android.content.Context): Uri {
@@ -119,11 +120,19 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             )
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
-                    Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = "Gallery")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.gallery))
+                    Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = "Gallery", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.gallery),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
                 
                 Button(
@@ -132,15 +141,23 @@ fun ImagesToPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         currentPhotoUri = uri
                         cameraLauncher.launch(uri)
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
-                    Icon(Icons.Rounded.PhotoCamera, contentDescription = "Take Photo")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.camera))
+                    Icon(Icons.Rounded.PhotoCamera, contentDescription = "Take Photo", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.camera),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
 

@@ -353,6 +353,9 @@
 <string name="settings_rate_app">Rate PDFchemy Tools</string>
 <string name="settings_rate_app_desc">Enjoying the app? Leave us a review on Google Play!</string>
 <string name="settings_rate_app_thanks">Thank you for your support!</string>
+    <string name="settings_share_app">Share PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Tell friends and colleagues about this app</string>
+    <string name="settings_share_app_message">Check out PDFchemy Tools — a fast, 100%% offline and private PDF compressor and editor for Android: %1$s</string>
     
 <string name="settings_app_tour">App Tour</string>
 <string name="settings_app_tour_desc">Revisit the quick walkthrough of key features</string>
@@ -762,9 +765,11 @@
 <string name="ebook_suite_subtitle">Convert PDFs to reflowable EPUB for Kindle/Kobo or Comic CBZ</string>
 <string name="label_choose_ebook_format">Conversion Format</string>
 <string name="tab_pdf_to_epub">PDF to EPUB</string>
+<string name="tab_epub_to_pdf">EPUB to PDF</string>
 <string name="tab_pdf_to_cbz">PDF to CBZ</string>
 <string name="tab_cbz_to_pdf">CBZ to PDF</string>
 <string name="select_pdf_for_ebook">Select PDF Document</string>
+<string name="select_epub_for_pdf">Select EPUB Document</string>
 <string name="select_cbz_file">Select Comic CBZ Archive</string>
 <string name="label_ebook_metadata">E-Book Metadata</string>
 <string name="btn_convert_to_epub">Convert to EPUB 3.0</string>
@@ -963,4 +968,7 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+<string name="error_file_inaccessible">Cannot Access File</string>
+<string name="desc_file_inaccessible">The document could not be read or permission has expired. Please select the file again.</string>
+<string name="btn_select_file">Select File</string>
 </resources>

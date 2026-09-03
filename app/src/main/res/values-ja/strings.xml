@@ -345,6 +345,9 @@
 <string name="settings_rate_app">PDFchemyを評価</string>
 <string name="settings_rate_app_desc">Google Playでのレビューをお待ちしております！</string>
 <string name="settings_rate_app_thanks">ご支援ありがとうございます！</string>
+    <string name="settings_share_app">PDFchemy Toolsを共有</string>
+    <string name="settings_share_app_desc">友人や同僚にこのアプリをお知らせください</string>
+    <string name="settings_share_app_message">PDFchemy Toolsをお試しください — Android向けの高速・完全オフライン・プライベートなPDF圧縮・編集アプリです: %1$s</string>
 <string name="settings_app_tour">アプリツアー</string>
 <string name="settings_app_tour_desc">主な機能のガイドツアーを再確認</string>
 <string name="settings_feedback">フィードバック・サポート送信</string>

@@ -345,6 +345,9 @@
 <string name="settings_rate_app">Beoordeel PDFchemy</string>
 <string name="settings_rate_app_desc">Bevalt de app? Laat een beoordeling achter op Google Play!</string>
 <string name="settings_rate_app_thanks">Bedankt voor uw steun!</string>
+    <string name="settings_share_app">PDFchemy Tools delen</string>
+    <string name="settings_share_app_desc">Vertel vrienden en collega\'s over deze app</string>
+    <string name="settings_share_app_message">Bekijk PDFchemy Tools — een snelle, 100%% offline en veilige PDF-compressor en editor voor Android: %1$s</string>
 <string name="settings_app_tour">Functierondleiding</string>
 <string name="settings_app_tour_desc">Bekijk de introductie van de belangrijkste functies opnieuw</string>
 <string name="settings_feedback">Feedback &amp; Ondersteuning</string>

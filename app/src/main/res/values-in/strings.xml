@@ -346,6 +346,9 @@
 <string name="settings_rate_app">Beri Nilai PDFchemy Tools</string>
 <string name="settings_rate_app_desc">Menikmati aplikasi ini? Beri kami ulasan di Google Play!</string>
 <string name="settings_rate_app_thanks">Terima kasih atas dukungan Anda!</string>
+    <string name="settings_share_app">Bagikan PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Beri tahu teman dan kolega tentang aplikasi ini</string>
+    <string name="settings_share_app_message">Coba PDFchemy Tools — kompresor dan editor PDF cepat, 100%% offline, dan privat untuk Android: %1$s</string>
     
 <string name="settings_app_tour">Tur Aplikasi</string>
 <string name="settings_app_tour_desc">Kunjungi kembali panduan singkat fitur-fitur utama</string>

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfchemy.app.R
@@ -331,15 +332,22 @@ fun HeaderFooterScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .defaultMinSize(minHeight = 52.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 enabled = !isProcessing && selectedPdfUri != null
             ) {
                 if (isProcessing) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Icon(Icons.Rounded.TextFields, contentDescription = null)
+                    Icon(Icons.Rounded.TextFields, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.btn_apply_stamp), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.btn_apply_stamp),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

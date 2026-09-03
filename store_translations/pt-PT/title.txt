@@ -1,1 +1,1 @@
-PDFchemy Tools: Comprimir PDF
+PDFchemy: Comprimir PDF

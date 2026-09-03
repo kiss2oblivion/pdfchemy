@@ -345,6 +345,9 @@
 <string name="settings_rate_app">Оценить PDFchemy</string>
 <string name="settings_rate_app_desc">Нравится приложение? Оставьте отзыв в Google Play!</string>
 <string name="settings_rate_app_thanks">Спасибо за поддержку!</string>
+    <string name="settings_share_app">Поделиться PDFchemy Tools</string>
+    <string name="settings_share_app_desc">Расскажите друзьям и коллегам об этом приложении</string>
+    <string name="settings_share_app_message">Попробуйте PDFchemy Tools — быстрый, 100%% офлайн и приватный компрессор и редактор PDF для Android: %1$s</string>
 <string name="settings_app_tour">Обзор приложения</string>
 <string name="settings_app_tour_desc">Повторный просмотр руководства по возможностям</string>
 <string name="settings_feedback">Отзывы и поддержка</string>

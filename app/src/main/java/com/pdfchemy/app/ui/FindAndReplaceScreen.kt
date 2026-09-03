@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfchemy.app.R
@@ -333,14 +334,22 @@ fun FindAndReplaceScreen(
                                 val suggestedName = "replaced_$baseName"
                                 savePdfLauncher.launch(suggestedName)
                             },
+                            modifier = Modifier.defaultMinSize(minHeight = 44.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
-                            Icon(Icons.Rounded.DoneAll, contentDescription = null)
+                            Icon(Icons.Rounded.DoneAll, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.btn_replace_all_and_save))
+                            Text(
+                                text = stringResource(R.string.btn_replace_all_and_save),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
                     }
 

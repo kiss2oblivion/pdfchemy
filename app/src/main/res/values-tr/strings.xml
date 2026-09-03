@@ -345,6 +345,9 @@
 <string name="settings_rate_app">PDFchemy\'yi Değerlendirin</string>
 <string name="settings_rate_app_desc">Uygulamayı beğendiniz mi? Google Play\'de yorum bırakın!</string>
 <string name="settings_rate_app_thanks">Desteğiniz için teşekkür ederiz!</string>
+    <string name="settings_share_app">PDFchemy Tools\'u Paylaş</string>
+    <string name="settings_share_app_desc">Bu uygulamayı arkadaşlarınıza ve iş arkadaşlarınıza önerin</string>
+    <string name="settings_share_app_message">PDFchemy Tools\'a göz atın — Android için hızlı, %%100 çevrimdışı ve gizli bir PDF sıkıştırıcı ve düzenleyici: %1$s</string>
 <string name="settings_app_tour">Uygulama Turu</string>
 <string name="settings_app_tour_desc">Temel özelliklerin tanıtımını tekrar izleyin</string>
 <string name="settings_feedback">Geri Bildirim ve Destek</string>

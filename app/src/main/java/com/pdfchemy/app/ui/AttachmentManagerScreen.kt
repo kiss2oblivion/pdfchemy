@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfchemy.app.R
@@ -296,12 +297,19 @@ fun AttachmentManagerScreen(
                 onClick = { pickEmbedFileLauncher.launch(arrayOf("*/*")) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .defaultMinSize(minHeight = 52.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 enabled = selectedPdfUri != null
             ) {
-                Icon(Icons.Rounded.AttachFile, contentDescription = null)
+                Icon(Icons.Rounded.AttachFile, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.btn_embed_new_file), fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(R.string.btn_embed_new_file),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

@@ -345,6 +345,9 @@
 <string name="settings_rate_app">PDFchemy Tools को रेट करें</string>
 <string name="settings_rate_app_desc">ऐप पसंद आ रहा है? Google Play पर समीक्षा छोड़ें!</string>
 <string name="settings_rate_app_thanks">आपके समर्थन के लिए धन्यवाद!</string>
+    <string name="settings_share_app">PDFchemy Tools शेयर करें</string>
+    <string name="settings_share_app_desc">दोस्तों और सहकर्मियों को इस ऐप के बारे में बताएं</string>
+    <string name="settings_share_app_message">PDFchemy Tools देखें — Android के लिए एक तेज़, 100%% ऑफलाइन और प्राइवेट PDF कंप्रेसर और एडिटर: %1$s</string>
 <string name="settings_app_tour">ऐप टूर</string>
 <string name="settings_app_tour_desc">मुख्य सुविधाओं का त्वरित अवलोकन फिर से देखें</string>
 <string name="settings_feedback">प्रतिक्रिया और सहायता भेजें</string>

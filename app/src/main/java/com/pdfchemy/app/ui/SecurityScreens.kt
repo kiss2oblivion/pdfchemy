@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
 import com.pdfchemy.app.R
@@ -251,12 +252,19 @@ fun ProtectPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         enabled = canProtect,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .defaultMinSize(minHeight = 52.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null)
+                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_encrypt_and_save), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.action_encrypt_and_save),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -440,12 +448,19 @@ fun UnlockPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         enabled = password.isNotBlank(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .defaultMinSize(minHeight = 52.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.LockOpen, contentDescription = null)
+                        Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_unlock_and_save), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.action_unlock_and_save),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -672,12 +687,19 @@ fun PdfToImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         onClick = { dirPickerLauncher.launch(null) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .defaultMinSize(minHeight = 52.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_choose_folder_and_export), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.action_choose_folder_and_export),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
@@ -274,7 +276,8 @@ fun OfficeExportScreen(
                 enabled = selectedUri != null && !isProcessing,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .defaultMinSize(minHeight = 54.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when (selectedFormat) {
@@ -303,7 +306,9 @@ fun OfficeExportScreen(
                     Text(
                         text = stringResource(R.string.btn_export_office_file, selectedFormat.extension.uppercase()),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

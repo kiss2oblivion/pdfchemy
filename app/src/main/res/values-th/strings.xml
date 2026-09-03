@@ -345,6 +345,9 @@
 <string name="settings_rate_app">ให้คะแนน PDFchemy</string>
 <string name="settings_rate_app_desc">ชอบแอปนี้ไหม? ร่วมเขียนรีวิวบน Google Play!</string>
 <string name="settings_rate_app_thanks">ขอบคุณสำหรับการสนับสนุน!</string>
+    <string name="settings_share_app">แชร์ PDFchemy Tools</string>
+    <string name="settings_share_app_desc">บอกต่อแอปนี้ให้เพื่อนและเพื่อนร่วมงานของคุณ</string>
+    <string name="settings_share_app_message">ลองใช้ PDFchemy Tools — แอปบีบอัดและแก้ไข PDF ที่รวดเร็ว ออฟไลน์ 100%% และเป็นส่วนตัวสำหรับ Android: %1$s</string>
 <string name="settings_app_tour">แนะนำการใช้งาน</string>
 <string name="settings_app_tour_desc">ดูคำแนะนำฟีเจอร์เด่นอีกครั้ง</string>
 <string name="settings_feedback">ส่งข้อเสนอแนะและติดต่อฝ่ายสนับสนุน</string>

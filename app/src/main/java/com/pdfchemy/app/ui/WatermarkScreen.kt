@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
@@ -178,11 +179,20 @@ fun WatermarkScreen(
                         Button(
                             onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) },
                             shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.fillMaxWidth(0.8f).height(50.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 50.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                            Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.select_pdf_to_watermark), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(R.string.select_pdf_to_watermark),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -285,16 +295,25 @@ fun WatermarkScreen(
                 // Save Action Button
                 Button(
                     onClick = { savePdfLauncher.launch("watermarked_${System.currentTimeMillis()}.pdf") },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(14.dp),
                     enabled = watermarkText.isNotBlank() && !isProcessing
                 ) {
                     if (isProcessing) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
-                        Icon(Icons.Rounded.BrandingWatermark, contentDescription = null)
+                        Icon(Icons.Rounded.BrandingWatermark, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_apply_watermark), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.action_apply_watermark),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

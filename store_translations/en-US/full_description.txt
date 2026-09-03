@@ -1,19 +1,56 @@
-Need to fix or compress a PDF before you send it?
+Need to compress a PDF before sending it? Email bouncing because your PDF is too large? 
 
-PDFchemy Tools gives you practical, fast offline PDF tools on your phone without accounts, subscriptions, or cloud lock-in.
+PDFchemy Tools is your dependable, 100% offline PDF compressor and document utility. Reduce PDF file size from MB to KB on your phone in seconds—with zero cloud uploads, no forced accounts, and no monthly subscription traps.
 
-Use it to compress PDF files, reduce PDF size, scan documents with your camera, turn images or text into PDFs, merge PDF files, split pages, rotate, delete, extract text with OCR, inspect metadata, and strip metadata when needed.
+Open it when you need your document fixed now.
 
-PDFchemy Tools is built for ordinary document emergencies: a file is too large to email, pages are in the wrong order, a paper scan needs to become a clean PDF, or you just need a quick PDF compressor that does the job.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHY USERS CHOOSE PDFCHEMY TOOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Why PDFchemy Tools?
-• No account or login required
-• No subscription traps
-• Fast offline PDF compression directly on your device
-• Your files are 100% private and never uploaded to cloud servers
-• High-quality camera document scanner & text extractor
-• Lifetime Premium option: One-time purchase that removes ads forever
+• 100% Private & Offline: Your files never leave your device. All compression and editing runs locally. Perfect for sensitive work, medical, or tax documents.
+• No Accounts, No Logins: Open the app and start compressing immediately. A tool, not a trap.
+• Real-Time Size Estimator: Preview projected file savings and visual quality before saving. Never wonder if your PDF got smaller.
+• Original-Safe Guarantee: Never overwrites your source file. Your original document remains untouched.
+• No Subscription Traps: Fully functional free tools. If you want an ad-free experience, a simple one-time lifetime purchase unlocks Premium forever.
 
-The free version is fully functional and supported by ads. If you use the app often and want an ad-free experience, Premium removes all ads with one simple lifetime purchase.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POWERFUL OFFLINE PDF FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PDFchemy Tools is for people who need simple, honest, and powerful PDF tools — not another monthly subscription.
+🗜️ ADVANCED PDF COMPRESSION
+• Reduce PDF file size to targeted limits (under 2MB, 1MB, or 200KB for emails and portals)
+• Batch compression: compress multiple PDF files or entire folders at once
+• Grayscale & monochrome conversion to maximize file size savings
+
+✍️ INTERACTIVE PDF EDITOR & SIGNATURES
+• Fill PDF forms and sign contracts with your fingertip or stylus
+• Add text notes, highlight key passages, and insert date or approval stamps
+• Rotate, reorder, or delete individual pages directly on the visual canvas
+
+📷 DOCUMENT SCANNER & OCR
+• High-resolution camera document scanner with automatic page edge detection
+• On-device OCR text recognition: turn scanned paperwork into searchable PDFs or plain text
+
+📑 MERGE, SPLIT & ORGANIZE
+• Merge multiple PDFs into a single organized document
+• Split large PDFs by custom page ranges
+• Visual booklet imposition (2-up printing) and page cropping
+
+🔐 256-BIT ENCRYPTION & SECURITY
+• Password protect sensitive PDFs with 256-bit AES encryption
+• Decrypt and remove passwords from unlocked files
+• Permanent black-box text and number redaction
+• Metadata sanitizer: strip camera info, author names, and software history with one tap
+
+🔍 INSPECT, REPAIR & COMPARE
+• Document Repair Engine: recover damaged or corrupted PDF files
+• PDF Diff: visually compare two PDF revisions side-by-side
+• PDF/A Archival Validator for official long-term preservation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUILT FOR YOUR PRIVACY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Unlike web converters or cloud-based PDF apps that upload your confidential documents to unknown third-party servers, PDFchemy executes every single process on your phone's processor. Zero data collection on your document contents.
+
+PDFchemy Tools is made for professionals, students, and anyone who needs fast, private, and honest PDF tools without another monthly subscription.

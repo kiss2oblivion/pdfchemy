@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
@@ -48,16 +49,28 @@ enum class ReaderTheme(val bg: Color, val text: Color, val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReflowReaderScreen(onBack: () -> Unit) {
+fun ReflowReaderScreen(
+    initialUri: Uri? = null,
+    onBack: () -> Unit
+) {
     BackHandler { onBack() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
-    var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedPdfUri by remember { mutableStateOf<Uri?>(initialUri) }
     var reflowSections by remember { mutableStateOf<List<ReflowSection>>(emptyList()) }
     var bookmarks by remember { mutableStateOf<List<OutlineBookmark>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialUri) {
+        if (initialUri != null) {
+            isLoading = true
+            reflowSections = PdfOutlineReader.extractReflowContent(context, initialUri)
+            bookmarks = PdfOutlineReader.extractOutline(context, initialUri)
+            isLoading = false
+        }
+    }
 
     var selectedTheme by remember { mutableStateOf(ReaderTheme.LIGHT) }
     var fontSizeSp by remember { mutableStateOf(16f) }
@@ -147,7 +160,7 @@ fun ReflowReaderScreen(onBack: () -> Unit) {
                                 Icon(Icons.Rounded.MenuBook, contentDescription = "Table of Contents", tint = selectedTheme.text)
                             }
                         }
-                        IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }) {
+                        IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf", "application/epub+zip", "application/zip", "application/octet-stream")) }) {
                             Icon(Icons.Rounded.FolderOpen, contentDescription = "Open Document", tint = selectedTheme.text)
                         }
                     }
@@ -271,12 +284,22 @@ fun ReflowReaderScreen(onBack: () -> Unit) {
                         )
 
                         Button(
-                            onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) },
-                            shape = RoundedCornerShape(12.dp)
+                            onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf", "application/epub+zip", "application/zip", "application/octet-stream")) },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 50.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                            Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.select_pdf_for_reading), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(R.string.select_pdf_for_reading),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 } else {

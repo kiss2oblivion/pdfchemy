@@ -540,19 +540,22 @@ fun ImageCompressorScreen(
                         enabled = canProceed,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp),
+                            .defaultMinSize(minHeight = 54.dp),
                         shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Icon(Icons.Rounded.Compress, contentDescription = null)
+                        Icon(Icons.Rounded.Compress, contentDescription = null, modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (selectedTab == 0) stringResource(R.string.image_btn_compress) else stringResource(R.string.image_btn_compress_batch, selectedBatchUris.size),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

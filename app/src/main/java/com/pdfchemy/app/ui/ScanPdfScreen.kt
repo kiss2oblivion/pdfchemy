@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
@@ -275,13 +276,20 @@ fun ScanPdfScreen(
                                     }
                             },
                             modifier = Modifier
-                                .fillMaxWidth(0.85f)
-                                .height(52.dp),
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 52.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Icon(Icons.Rounded.CameraAlt, contentDescription = null)
+                            Icon(Icons.Rounded.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.action_start_camera_scan), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(R.string.action_start_camera_scan),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -289,13 +297,19 @@ fun ScanPdfScreen(
                         OutlinedButton(
                             onClick = { imagePickerLauncher.launch("image/*") },
                             modifier = Modifier
-                                .fillMaxWidth(0.85f)
-                                .height(48.dp),
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 48.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
+                            Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.action_import_from_gallery))
+                            Text(
+                                text = stringResource(R.string.action_import_from_gallery),
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -378,16 +392,23 @@ fun ScanPdfScreen(
                     onClick = { savePdfLauncher.launch("scanned_document_${System.currentTimeMillis()}.pdf") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .defaultMinSize(minHeight = 52.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(14.dp),
                     enabled = !isProcessing
                 ) {
                     if (isProcessing) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
-                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.action_save_as_pdf, scannedBitmaps.size), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.action_save_as_pdf, scannedBitmaps.size),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
