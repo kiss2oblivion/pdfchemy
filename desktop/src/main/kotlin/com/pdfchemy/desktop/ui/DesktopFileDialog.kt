@@ -67,16 +67,27 @@ object DesktopFileDialog {
     }
 
     /**
-     * Opens native directory chooser.
+     * Opens native directory chooser that works reliably across Windows, Linux, and macOS.
      */
     fun chooseDirectory(parent: Frame? = null): File? {
-        val dialog = FileDialog(parent, "Select Output Folder", FileDialog.LOAD).apply {
-            System.setProperty("apple.awt.fileDialogForDirectories", "true")
-            isVisible = true
+        val isMac = System.getProperty("os.name")?.lowercase()?.contains("mac") == true
+        if (isMac) {
+            val dialog = FileDialog(parent, "Select Output Folder", FileDialog.LOAD).apply {
+                System.setProperty("apple.awt.fileDialogForDirectories", "true")
+                isVisible = true
+            }
+            val file = dialog.file ?: return null
+            val dir = dialog.directory ?: return null
+            val selected = File(dir, file)
+            return if (selected.isDirectory) selected else File(dir)
+        } else {
+            val chooser = javax.swing.JFileChooser().apply {
+                dialogTitle = "Select Output Folder"
+                fileSelectionMode = javax.swing.JFileChooser.DIRECTORIES_ONLY
+                isAcceptAllFileFilterUsed = false
+            }
+            val result = chooser.showOpenDialog(parent)
+            return if (result == javax.swing.JFileChooser.APPROVE_OPTION) chooser.selectedFile else null
         }
-        val file = dialog.file ?: return null
-        val dir = dialog.directory ?: return null
-        val selected = File(dir, file)
-        return if (selected.isDirectory) selected else File(dir)
     }
 }
