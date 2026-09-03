@@ -13,13 +13,21 @@
 
 ---
 
-## ⚡ Cross-Platform Support
+## ⚡ Cross-Platform Support & Digital Stores
 
-* **Android:** Phones, Foldables, and Tablets (available on Google Play).
-* **Windows:** Windows 10 & 11 (64-bit native MSI, EXE, and Windows Package Manager `winget`).
-* **Linux:** Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), universal AppImage (`.AppImage`), and Flatpak (`Flathub`).
+* **Android:** Google Play Store (Phones, Tablets & Foldables).
+* **Windows:**
+  * **Windows Package Manager:** `winget install PDFchemy.PDFchemy`
+  * **Microsoft Store:** Available via Win32 Store Program (see [DISTRIBUTION.md](DISTRIBUTION.md)).
+  * **Chocolatey & Scoop:** `choco install pdfchemy` • `scoop install pdfchemy`
+  * **Native Installers:** 64-bit `.msi` and `.exe` direct downloads.
+* **Linux:**
+  * **Flathub (Flatpak):** `flatpak install flathub com.pdfchemy.PDFchemy`
+  * **Snap Store:** `snap install pdfchemy`
+  * **Universal AppImage:** Portable 1-click executable (`.AppImage`)
+  * **Native Packages:** Debian/Ubuntu (`.deb`) and Fedora/RHEL (`.rpm`)
 
----
+*See [DISTRIBUTION.md](DISTRIBUTION.md) for full publishing guides.*
 
 ## 🚀 Desktop Superpowers
 

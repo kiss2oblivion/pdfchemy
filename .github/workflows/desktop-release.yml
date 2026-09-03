@@ -65,18 +65,26 @@ jobs:
       - name: Install Linux Packaging Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y fakeroot dpkg rpm
+          sudo apt-get install -y fakeroot dpkg rpm wget file
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Make gradlew and scripts executable
+        run: |
+          chmod +x ./gradlew
+          chmod +x packaging/appimage/build-appimage.sh
 
-      - name: Build Linux Packages
+      - name: Build Linux Native Packages (DEB & RPM)
         run: ./gradlew :desktop:packageDeb :desktop:packageRpm
+
+      - name: Build Standalone Universal AppImage
+        run: ./packaging/appimage/build-appimage.sh
 
       - name: Collect Linux Binaries & Checksums
         run: |
           mkdir -p dist-linux
           find desktop/build/compose -type f \( -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist-linux/ \;
+          if [ -f "PDFchemy-x86_64.AppImage" ]; then
+            cp PDFchemy-x86_64.AppImage dist-linux/
+          fi
           cd dist-linux
           sha256sum * > SHA256SUMS-linux.txt
           cat SHA256SUMS-linux.txt
