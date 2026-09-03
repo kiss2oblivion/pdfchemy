@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -74,7 +75,21 @@ fun PdfEditorScreen(
     var totalPages by remember { mutableIntStateOf(0) }
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var currentPageBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var secondaryPageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isRenderingPage by remember { mutableStateOf(false) }
+
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isWideScreen = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE || configuration.screenWidthDp >= 600
+    var isDualPageMode by remember(isWideScreen) { mutableStateOf(isWideScreen) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPageBitmap?.recycle()
+            secondaryPageBitmap?.recycle()
+            currentPageBitmap = null
+            secondaryPageBitmap = null
+        }
+    }
 
     // Page modifications map (PageIndex -> PageModification)
     val pageModifications = remember { mutableStateMapOf<Int, PageModification>() }
@@ -108,12 +123,28 @@ fun PdfEditorScreen(
         }
     }
 
-    // Render current page when index changes
-    LaunchedEffect(selectedPdfUri, currentPageIndex, totalPages) {
+    // Render current page(s) with immediate recycling
+    LaunchedEffect(selectedPdfUri, currentPageIndex, totalPages, isDualPageMode) {
         selectedPdfUri?.let { uri ->
             if (totalPages > 0 && currentPageIndex in 0 until totalPages) {
                 isRenderingPage = true
-                currentPageBitmap = PdfEditor.renderPageBitmap(context, uri, currentPageIndex, targetWidth = 1080)
+                if (isDualPageMode && currentPageIndex + 1 < totalPages) {
+                    val dual = PdfEditor.renderDualPageBitmaps(context, uri, currentPageIndex, currentPageIndex + 1, targetWidth = 720)
+                    val oldLeft = currentPageBitmap
+                    val oldRight = secondaryPageBitmap
+                    currentPageBitmap = dual.leftPage
+                    secondaryPageBitmap = dual.rightPage
+                    if (oldLeft != null && oldLeft != dual.leftPage && !oldLeft.isRecycled) oldLeft.recycle()
+                    if (oldRight != null && oldRight != dual.rightPage && !oldRight.isRecycled) oldRight.recycle()
+                } else {
+                    val newBmp = PdfEditor.renderPageBitmap(context, uri, currentPageIndex, targetWidth = 1080)
+                    val oldLeft = currentPageBitmap
+                    val oldRight = secondaryPageBitmap
+                    currentPageBitmap = newBmp
+                    secondaryPageBitmap = null
+                    if (oldLeft != null && oldLeft != newBmp && !oldLeft.isRecycled) oldLeft.recycle()
+                    if (oldRight != null && !oldRight.isRecycled) oldRight.recycle()
+                }
                 isRenderingPage = false
             }
         }
@@ -207,6 +238,17 @@ fun PdfEditorScreen(
                             Icon(Icons.Rounded.RotateRight, contentDescription = stringResource(R.string.action_rotate))
                         }
 
+                        // Dual Page Spread Toggle (Fold & Tablet)
+                        if (totalPages > 1 && isWideScreen) {
+                            IconButton(onClick = { isDualPageMode = !isDualPageMode }) {
+                                Icon(
+                                    imageVector = if (isDualPageMode) Icons.Rounded.MenuBook else Icons.Rounded.AutoStories,
+                                    contentDescription = stringResource(if (isDualPageMode) R.string.reader_single_page else R.string.reader_dual_page_spread),
+                                    tint = if (isDualPageMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
                         // Save Modified PDF
                         FilledTonalButton(
                             onClick = {
@@ -225,6 +267,11 @@ fun PdfEditorScreen(
         },
         bottomBar = {
             if (selectedPdfUri != null && totalPages > 0) {
+                val pageLabel = if (isDualPageMode && secondaryPageBitmap != null) {
+                    "${currentPageIndex + 1}-${currentPageIndex + 2} / $totalPages"
+                } else {
+                    "${currentPageIndex + 1} / $totalPages"
+                }
                 EditorBottomBar(
                     activeTool = activeTool,
                     onToolSelect = { tool ->
@@ -235,8 +282,25 @@ fun PdfEditorScreen(
                     onColorClick = { showColorPicker = true },
                     currentPage = currentPageIndex,
                     totalPages = totalPages,
-                    onPrevPage = { if (currentPageIndex > 0) currentPageIndex-- },
-                    onNextPage = { if (currentPageIndex < totalPages - 1) currentPageIndex++ }
+                    pageLabel = pageLabel,
+                    onPrevPage = {
+                        if (isDualPageMode) {
+                            currentPageIndex = (currentPageIndex - 2).coerceAtLeast(0)
+                        } else {
+                            if (currentPageIndex > 0) currentPageIndex--
+                        }
+                    },
+                    onNextPage = {
+                        if (isDualPageMode) {
+                            if (currentPageIndex + 2 < totalPages) {
+                                currentPageIndex += 2
+                            } else if (currentPageIndex + 1 < totalPages) {
+                                currentPageIndex++
+                            }
+                        } else {
+                            if (currentPageIndex < totalPages - 1) currentPageIndex++
+                        }
+                    }
                 )
             }
         }
@@ -295,6 +359,67 @@ fun PdfEditorScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else if (isDualPageMode && secondaryPageBitmap != null) {
+                // Two-Page Book Spread (Fold & Tablet)
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left Page (Page N)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .shadow(8.dp, RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp))
+                            .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = currentPageBitmap!!.asImageBitmap(),
+                            contentDescription = "Page ${currentPageIndex + 1}",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    // Center Book Spine / Crease Gutter
+                    Box(
+                        modifier = Modifier
+                            .width(6.dp)
+                            .fillMaxHeight()
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.25f),
+                                        Color.Black.copy(alpha = 0.04f),
+                                        Color.Black.copy(alpha = 0.25f)
+                                    )
+                                )
+                            )
+                    )
+
+                    // Right Page (Page N + 1)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .shadow(8.dp, RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
+                            .clip(RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = secondaryPageBitmap!!.asImageBitmap(),
+                            contentDescription = "Page ${currentPageIndex + 2}",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             } else {
                 // Interactive PDF Canvas
@@ -742,6 +867,7 @@ fun EditorBottomBar(
     onColorClick: () -> Unit,
     currentPage: Int,
     totalPages: Int,
+    pageLabel: String = "${currentPage + 1} / $totalPages",
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit
 ) {
@@ -818,7 +944,7 @@ fun EditorBottomBar(
                 }
 
                 Text(
-                    text = "${currentPage + 1} / $totalPages",
+                    text = pageLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
