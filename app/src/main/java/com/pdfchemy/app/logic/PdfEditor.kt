@@ -151,6 +151,71 @@ object PdfEditor {
         }
     }
 
+    data class DualPageBitmaps(
+        val leftPage: Bitmap?,
+        val rightPage: Bitmap?
+    )
+
+    /**
+     * Renders two consecutive pages side-by-side for Foldable dual-screen and tablet book reading.
+     */
+    suspend fun renderDualPageBitmaps(
+        context: Context,
+        uri: Uri,
+        leftIndex: Int,
+        rightIndex: Int,
+        targetWidth: Int = 720
+    ): DualPageBitmaps = withContext(Dispatchers.IO) {
+        var pfd: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        var leftBmp: Bitmap? = null
+        var rightBmp: Bitmap? = null
+        try {
+            pfd = openParcelFileDescriptor(context, uri) ?: return@withContext DualPageBitmaps(null, null)
+            renderer = PdfRenderer(pfd)
+            val total = renderer.pageCount
+
+            if (leftIndex in 0 until total) {
+                val page = renderer.openPage(leftIndex)
+                val origW = page.width.coerceAtLeast(1)
+                val origH = page.height.coerceAtLeast(1)
+                val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
+                val rw = (origW * scale).toInt().coerceAtLeast(1)
+                val rh = (origH * scale).toInt().coerceAtLeast(1)
+                val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                canvas.drawColor(android.graphics.Color.WHITE)
+                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                page.close()
+                leftBmp = bmp
+            }
+
+            if (rightIndex in 0 until total) {
+                val page = renderer.openPage(rightIndex)
+                val origW = page.width.coerceAtLeast(1)
+                val origH = page.height.coerceAtLeast(1)
+                val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
+                val rw = (origW * scale).toInt().coerceAtLeast(1)
+                val rh = (origH * scale).toInt().coerceAtLeast(1)
+                val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                canvas.drawColor(android.graphics.Color.WHITE)
+                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                page.close()
+                rightBmp = bmp
+            }
+            DualPageBitmaps(leftBmp, rightBmp)
+        } catch (e: Exception) {
+            AppLogger.e("PdfEditor: failed to render dual pages ($leftIndex, $rightIndex)", e)
+            DualPageBitmaps(leftBmp, rightBmp)
+        } finally {
+            try {
+                renderer?.close()
+                pfd?.close()
+            } catch (_: Exception) {}
+        }
+    }
+
     /**
      * Applies all user modifications (drawings, text boxes, stamps, page rotations, and deletions)
      * and saves the output to the destination URI without corrupting original vector content.

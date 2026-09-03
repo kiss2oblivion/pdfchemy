@@ -971,4 +971,22 @@
 <string name="error_file_inaccessible">Cannot Access File</string>
 <string name="desc_file_inaccessible">The document could not be read or permission has expired. Please select the file again.</string>
 <string name="btn_select_file">Select File</string>
+<string name="device_guard_title">Device Capacity Safeguard</string>
+<string name="device_guard_desc">This document has %1$d pages (%2$s) and requires approximately %3$s working memory. Your device currently has %4$s safe memory available. To prevent phone lag or freezing, PDFchemy has paused this operation.</string>
+<string name="alt_split_title">Split Document First (Recommended)</string>
+<string name="alt_split_desc">Divide the document into smaller parts (e.g. 30–50 pages) so your phone can process them smoothly.</string>
+<string name="alt_split_btn">Split Document</string>
+<string name="alt_range_title">Process Page Range</string>
+<string name="alt_range_desc">Select a specific range of pages to process instead of the entire document.</string>
+<string name="alt_range_btn">Select Range</string>
+<string name="alt_lightweight_title">Run in Lightweight Safe Mode</string>
+<string name="alt_lightweight_desc">Processes pages sequentially with downscaled resolution and immediate memory cleanup.</string>
+<string name="alt_lightweight_btn">Run Safe Mode</string>
+<string name="alt_free_ram_title">Free Up Phone Memory</string>
+<string name="alt_free_ram_desc">Close heavy background apps to free up device RAM, then try again.</string>
+<string name="alt_free_ram_btn">Understood</string>
+<string name="btn_proceed_anyway">Proceed Anyway</string>
+<string name="msg_circuit_breaker_paused">Processing safely paused to prevent phone freezing. Completed work saved.</string>
+<string name="reader_dual_page_spread">Two-Page Spread</string>
+<string name="reader_single_page">Single Page</string>
 </resources>

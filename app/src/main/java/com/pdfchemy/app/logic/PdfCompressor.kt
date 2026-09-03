@@ -14,7 +14,9 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import com.pdfchemy.app.utils.AppLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -163,6 +165,11 @@ object PdfCompressor {
             val maxDimension = if (quality < 0.2f) 800f else if (quality < 0.4f) 1200f else if (quality < 0.6f) 1800f else 3000f
 
             for (page in doc.pages) {
+                coroutineContext.ensureActive()
+                if (com.pdfchemy.app.logic.DeviceGuard.isMemoryCritical(context)) {
+                    AppLogger.w("PdfCompressor: Memory critical threshold reached during page processing. Running memory cleanup.")
+                    System.gc()
+                }
                 val resources = page.resources ?: continue
                 val processedNames = mutableSetOf<String>()
 

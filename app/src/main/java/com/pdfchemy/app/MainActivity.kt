@@ -526,6 +526,33 @@ fun MainApp(
 
     val isPremiumRaw by viewModel.isPremium.collectAsState()
     val isPremium = isPremiumRaw || isScreenshotRun
+
+    val safeguardAssessment by viewModel.safeguardAssessment.collectAsState()
+    safeguardAssessment?.let { assessment ->
+        HardwareSafeguardDialog(
+            assessment = assessment,
+            onDismiss = { viewModel.dismissSafeguardAssessment() },
+            onAction = { action ->
+                viewModel.dismissSafeguardAssessment()
+                when (action) {
+                    com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.SPLIT_FIRST -> {
+                        currentScreen = Screen.SplitPdf
+                    }
+                    com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.PAGE_RANGE -> {
+                        currentScreen = Screen.PageOrganizer
+                    }
+                    com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.LIGHTWEIGHT_MODE -> {
+                        viewModel.setUseGrayscale(true)
+                        viewModel.setQuality(0.35f)
+                    }
+                    com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.FREE_RAM -> {}
+                }
+            },
+            onProceedAnyway = {
+                viewModel.dismissSafeguardAssessment()
+            }
+        )
+    }
     
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -1208,128 +1235,74 @@ fun HomeScreen(
             }
         }
 
-        Box(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            if (isWideScreen) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .weight(1f)
-                        .graphicsLayer {
-                            alpha = headerAlpha.value
-                            translationX = -headerOffsetY.value  // slide from left in landscape
-                        }
-                ) {
-                    ShimmerTitle(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.headlineMedium,
-                        baseColor = MaterialTheme.colorScheme.primary,
-                        isDarkTheme = isDarkTheme
-                    )
-                    Text(
-                        text = stringResource(R.string.home_subtitle),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 2.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(top = 8.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1.5f)
-                        .padding(vertical = 8.dp)
-                        .graphicsLayer {
-                            alpha = cardsAlpha.value
-                            translationX = cardsOffsetY.value  // slide from right in landscape
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(130.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
-                        CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(130.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
-                        CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
-                    }
-                }
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    modifier = Modifier.widthIn(max = 600.dp).padding(24.dp),
+                        .widthIn(max = 680.dp)
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.graphicsLayer {
-                        alpha = headerAlpha.value
-                        translationY = -headerOffsetY.value  // slide down from above
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.graphicsLayer {
+                            alpha = headerAlpha.value
+                            translationY = -headerOffsetY.value  // slide down from above
+                        }
+                    ) {
+                        ShimmerTitle(
+                            text = stringResource(R.string.title_tools),
+                            style = MaterialTheme.typography.headlineLarge,
+                            baseColor = MaterialTheme.colorScheme.primary,
+                            isDarkTheme = isDarkTheme
+                        )
+                        Text(
+                            text = stringResource(R.string.home_subtitle),
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 2.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(top = 8.dp, bottom = 28.dp)
+                        )
                     }
-                ) {
-                    ShimmerTitle(
-                        text = stringResource(R.string.title_tools),
-                        style = MaterialTheme.typography.headlineLarge,
-                        baseColor = MaterialTheme.colorScheme.primary,
-                        isDarkTheme = isDarkTheme
-                    )
-                    Text(
-                        text = stringResource(R.string.home_subtitle),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 2.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
-                    )
-                }
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.graphicsLayer {
-                        alpha = cardsAlpha.value
-                        translationY = cardsOffsetY.value  // slide up from below
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.graphicsLayer {
+                            alpha = cardsAlpha.value
+                            translationY = cardsOffsetY.value  // slide up from below
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(150.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
+                            CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(150.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
+                            CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        RecentFilesSection(viewModel, onNavigate = { screen -> onNavigate(screen) })
                     }
-                ) {
-                  Row(
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    CategoryCard(stringResource(R.string.cat_compress), stringResource(R.string.cat_compress_desc), Icons.Rounded.Compress, { onNavigate(Screen.CompressCategory) }, Modifier.weight(1f).fillMaxHeight())
-                    CategoryCard(stringResource(R.string.cat_create), stringResource(R.string.cat_create_desc), Icons.Rounded.AddCircleOutline, { onNavigate(Screen.CreateCategory) }, Modifier.weight(1f).fillMaxHeight())
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    CategoryCard(stringResource(R.string.cat_organize), stringResource(R.string.cat_organize_desc), Icons.Rounded.FolderOpen, { onNavigate(Screen.OrganizeCategory) }, Modifier.weight(1f).fillMaxHeight())
-                    CategoryCard(stringResource(R.string.cat_check), stringResource(R.string.cat_check_desc), Icons.Rounded.FactCheck, { onNavigate(Screen.CheckCategory) }, Modifier.weight(1f).fillMaxHeight())
-                }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    RecentFilesSection(viewModel, onNavigate = { screen -> onNavigate(screen) })
-                }
-            }
             }
         }
-        } // End of Box weight(1f)
         }
     }
 }
@@ -3679,3 +3652,101 @@ fun OnboardingWalkthroughDialog(
         }
     }
 }
+
+@Composable
+fun HardwareSafeguardDialog(
+    assessment: com.pdfchemy.app.logic.DeviceGuard.CapacityAssessment,
+    onDismiss: () -> Unit,
+    onAction: (com.pdfchemy.app.logic.DeviceGuard.AlternativeAction) -> Unit,
+    onProceedAnyway: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Rounded.WarningAmber,
+                contentDescription = null,
+                tint = if (assessment.status == com.pdfchemy.app.logic.DeviceGuard.CapacityStatus.INSUFFICIENT_HARDWARE)
+                    MaterialTheme.colorScheme.error
+                else
+                    Color(0xFFFFA000)
+            )
+        },
+        title = {
+            Text(
+                stringResource(R.string.device_guard_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(
+                        R.string.device_guard_desc,
+                        assessment.pageCount,
+                        com.pdfchemy.app.logic.DeviceGuard.formatFileSize(assessment.fileSizeBytes),
+                        "${assessment.requiredMemMb} MB",
+                        "${assessment.availableMemMb} MB"
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val (titleRes, descRes, btnRes) = when (assessment.recommendedAlternative) {
+                            com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.SPLIT_FIRST ->
+                                Triple(R.string.alt_split_title, R.string.alt_split_desc, R.string.alt_split_btn)
+                            com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.PAGE_RANGE ->
+                                Triple(R.string.alt_range_title, R.string.alt_range_desc, R.string.alt_range_btn)
+                            com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.LIGHTWEIGHT_MODE ->
+                                Triple(R.string.alt_lightweight_title, R.string.alt_lightweight_desc, R.string.alt_lightweight_btn)
+                            com.pdfchemy.app.logic.DeviceGuard.AlternativeAction.FREE_RAM ->
+                                Triple(R.string.alt_free_ram_title, R.string.alt_free_ram_desc, R.string.alt_free_ram_btn)
+                        }
+
+                        Text(
+                            text = stringResource(titleRes),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = stringResource(descRes),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Button(
+                            onClick = {
+                                onAction(assessment.recommendedAlternative)
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(stringResource(btnRes))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (assessment.canProceedAnyway) {
+                TextButton(onClick = onProceedAnyway) {
+                    Text(stringResource(R.string.btn_proceed_anyway))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+

@@ -85,6 +85,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _warning = MutableStateFlow<String?>(null)
     val warning: StateFlow<String?> = _warning.asStateFlow()
 
+    private val _safeguardAssessment = MutableStateFlow<com.pdfchemy.app.logic.DeviceGuard.CapacityAssessment?>(null)
+    val safeguardAssessment: StateFlow<com.pdfchemy.app.logic.DeviceGuard.CapacityAssessment?> = _safeguardAssessment.asStateFlow()
+
+    fun dismissSafeguardAssessment() {
+        _safeguardAssessment.value = null
+    }
+
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
@@ -184,28 +191,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _useGrayscale.value = false
         _useLossless.value = false
         _stripMetadata.value = false
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val size = try {
                 context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: -1L
             } catch (e: Exception) {
                 -1L
             }
-            _selectedFileSize.value = size
+            withContext(Dispatchers.Main) {
+                _selectedFileSize.value = size
+                _isAnalyzing.value = true
+            }
 
-            _isAnalyzing.value = true
             val analysisResult = PdfCompressor.analyzePdf(context, uri)
-            _isAnalyzing.value = false
-            analysisResult.onSuccess { analysis ->
-                _pdfAnalysis.value = analysis
-                _compressionQuality.value = analysis.recommendedQuality
-                
-                // Smart auto-toggles recommendation based on scenario
-                applyScenarioDefaults(analysis.scenario)
-            }.onFailure {
-                _compressionQuality.value = 0.50f
-                _useGrayscale.value = false
-                _useLossless.value = false
-                _stripMetadata.value = false
+            withContext(Dispatchers.Main) {
+                _isAnalyzing.value = false
+                analysisResult.onSuccess { analysis ->
+                    _pdfAnalysis.value = analysis
+                    _compressionQuality.value = analysis.recommendedQuality
+                    
+                    // Smart auto-toggles recommendation based on scenario
+                    applyScenarioDefaults(analysis.scenario)
+
+                    // Pre-flight Device Capacity Assessment
+                    val guardCheck = com.pdfchemy.app.logic.DeviceGuard.assessTask(
+                        context = context,
+                        pageCount = analysis.pageCount,
+                        fileSizeBytes = size,
+                        isImageHeavy = analysis.imageCount > 10
+                    )
+                    if (guardCheck.status != com.pdfchemy.app.logic.DeviceGuard.CapacityStatus.SAFE) {
+                        _safeguardAssessment.value = guardCheck
+                    }
+                }.onFailure {
+                    _compressionQuality.value = 0.50f
+                    _useGrayscale.value = false
+                    _useLossless.value = false
+                    _stripMetadata.value = false
+                }
             }
         }
     }

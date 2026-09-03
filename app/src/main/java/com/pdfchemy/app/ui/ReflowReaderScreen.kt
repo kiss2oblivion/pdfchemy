@@ -1,6 +1,7 @@
 package com.pdfchemy.app.ui
 
 import android.content.Context
+import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -10,8 +11,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -62,6 +67,9 @@ fun ReflowReaderScreen(
     var reflowSections by remember { mutableStateOf<List<ReflowSection>>(emptyList()) }
     var bookmarks by remember { mutableStateOf<List<OutlineBookmark>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+
+    val configuration = LocalConfiguration.current
+    val isWideScreen = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE || configuration.screenWidthDp >= 600
 
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
@@ -300,6 +308,51 @@ fun ReflowReaderScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                        }
+                    }
+                } else if (isWideScreen) {
+                    // Two-Page Physical Book Spread on Fold & Tablet
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .widthIn(max = 1100.dp)
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(reflowSections) { section ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(selectedTheme.text.copy(alpha = 0.03f), RoundedCornerShape(8.dp))
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    color = selectedTheme.text.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "PAGE ${section.pageNumber}",
+                                        color = selectedTheme.text.copy(alpha = 0.6f),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                section.paragraphs.forEach { p ->
+                                    Text(
+                                        text = p,
+                                        color = selectedTheme.text,
+                                        fontSize = fontSizeSp.sp,
+                                        lineHeight = (fontSizeSp * 1.55f).sp,
+                                        fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
+                                        textAlign = TextAlign.Start
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {

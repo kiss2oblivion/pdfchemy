@@ -40,8 +40,10 @@ import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.PageAction
 import com.pdfchemy.app.logic.PdfPageOrganizer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.util.UUID
 
 data class OrganizerPageItem(
@@ -67,6 +69,12 @@ fun PageOrganizerScreen(
     var selectedItemIndex by remember { mutableIntStateOf(-1) }
     var isOrganizing by remember { mutableStateOf(false) }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            pageItems.forEach { it.thumbnail?.recycle() }
+        }
+    }
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -74,17 +82,33 @@ fun PageOrganizerScreen(
             selectedPdfUri = uri
             coroutineScope.launch(Dispatchers.IO) {
                 try {
+                    // Clean up existing thumbnails
+                    pageItems.forEach { it.thumbnail?.recycle() }
+
                     val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
                     val renderer = PdfRenderer(pfd)
                     val count = renderer.pageCount
                     val items = mutableListOf<OrganizerPageItem>()
 
                     for (i in 0 until count) {
+                        coroutineContext.ensureActive()
                         val page = renderer.openPage(i)
-                        val bmp = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        page.close()
-                        items.add(OrganizerPageItem(originalIndex = i, thumbnail = bmp))
+                        try {
+                            val originalWidth = page.width.coerceAtLeast(1)
+                            val originalHeight = page.height.coerceAtLeast(1)
+                            // Downsample thumbnail to max width 240px to prevent OOM
+                            val scale = (240f / originalWidth).coerceAtMost(1.0f)
+                            val thumbWidth = (originalWidth * scale).toInt().coerceAtLeast(1)
+                            val thumbHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
+
+                            val bmp = Bitmap.createBitmap(thumbWidth, thumbHeight, Bitmap.Config.RGB_565)
+                            val canvas = android.graphics.Canvas(bmp)
+                            canvas.drawColor(android.graphics.Color.WHITE)
+                            page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            items.add(OrganizerPageItem(originalIndex = i, thumbnail = bmp))
+                        } finally {
+                            page.close()
+                        }
                     }
                     renderer.close()
                     pfd.close()

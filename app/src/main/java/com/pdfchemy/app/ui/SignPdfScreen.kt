@@ -95,7 +95,13 @@ fun SignPdfScreen(
                 totalPages = renderer.pageCount
                 if (index in 0 until totalPages) {
                     val page = renderer.openPage(index)
-                    val bmp = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
+                    val originalWidth = page.width.coerceAtLeast(1)
+                    val originalHeight = page.height.coerceAtLeast(1)
+                    val scale = (1080f / originalWidth).coerceAtMost(1.5f)
+                    val renderWidth = (originalWidth * scale).toInt().coerceAtLeast(1)
+                    val renderHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
+
+                    val bmp = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
                     val canvas = android.graphics.Canvas(bmp)
                     canvas.drawColor(android.graphics.Color.WHITE)
                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
