@@ -5,10 +5,11 @@
 .DS_Store
 /build
 /app/build
+/desktop/build
+*.apk
 /captures
 .externalNativeBuild
 .cxx
 local.properties
 *.hprof
-*.png
 .agents/
