@@ -56,10 +56,16 @@ fun DesktopApp(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    var showDonationDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(initialFile) {
         if (initialFile != null) {
             selectedFile = initialFile
         }
+    }
+
+    if (showDonationDialog) {
+        DonationDialog(onDismiss = { showDonationDialog = false })
     }
 
     Scaffold(
@@ -106,6 +112,22 @@ fun DesktopApp(
                             Text("100% Offline & Private", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
+
+                    // Donate / Support Button
+                    FilledTonalButton(
+                        onClick = { showDonationDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                            contentColor = Color(0xFFFF4081)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF4081))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Donate", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Open File Button
                     FilledTonalButton(
@@ -154,6 +176,20 @@ fun DesktopApp(
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
                         label = { Text(tab.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Bottom Sponsor Heart
+                FilledTonalIconButton(
+                    onClick = { showDonationDialog = true },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color(0xFFFF4081).copy(alpha = 0.15f),
+                        contentColor = Color(0xFFFF4081)
+                    ),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Icon(Icons.Rounded.Favorite, contentDescription = "Support Development")
                 }
             }
 
@@ -1345,4 +1381,155 @@ private fun formatFileSize(bytes: Long): String {
     val units = arrayOf("B", "KB", "MB", "GB")
     val digitGroups = (Math.log10(bytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, 3)
     return DecimalFormat("#,##0.#").format(bytes / Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups]
+}
+
+@Composable
+private fun DonationDialog(onDismiss: () -> Unit) {
+    var copiedToClipboard by remember { mutableStateOf(false) }
+
+    fun openBrowser(url: String) {
+        try {
+            if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+            }
+        } catch (e: Exception) {
+            // Ignored
+        }
+    }
+
+    fun copyToClipboard(text: String) {
+        try {
+            val selection = java.awt.datatransfer.StringSelection(text)
+            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
+            copiedToClipboard = true
+        } catch (e: Exception) {
+            // Ignored
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFFF4081).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(32.dp))
+            }
+        },
+        title = {
+            Text(
+                "Support PDFchemy",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .width(480.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "PDFchemy is 100% free, offline, and private for the people. Zero ads, zero subscriptions, and zero paywalls.\n\nIf this tool saved you time or rescued your document, consider supporting its independent development!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Quick Amount Tier Buttons
+                Text("Choose a Support Tier", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        Triple("☕ $3", "Coffee", "https://buymeacoffee.com/cucosandrei"),
+                        Triple("🍕 $10", "Lunch", "https://paypal.me/cucosandrei/10"),
+                        Triple("💖 $25", "Sponsor", "https://paypal.me/cucosandrei/25"),
+                        Triple("⭐ $50", "Patron", "https://paypal.me/cucosandrei/50")
+                    ).forEach { (label, sub, url) ->
+                        Card(
+                            onClick = { openBrowser(url) },
+                            modifier = Modifier.weight(1f).height(65.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+
+                // Payment Methods
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Buy Me a Coffee Button
+                    Button(
+                        onClick = { openBrowser("https://buymeacoffee.com/cucosandrei") },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDD00), contentColor = Color(0xFF000000))
+                    ) {
+                        Icon(Icons.Rounded.Coffee, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Buy Me a Coffee (Card / Apple & Google Pay)", fontWeight = FontWeight.Bold)
+                    }
+
+                    // PayPal Button
+                    Button(
+                        onClick = { openBrowser("https://paypal.me/cucosandrei") },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA), contentColor = Color.White)
+                    ) {
+                        Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Donate via PayPal / Credit Card", fontWeight = FontWeight.Bold)
+                    }
+
+                    // GitHub Sponsors
+                    OutlinedButton(
+                        onClick = { openBrowser("https://github.com/sponsors/cucosandrei") },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFFFF4081))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sponsor on GitHub", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Copy Support / PayPal Email
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { copyToClipboard("cucosandreiioan@gmail.com") }) {
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (copiedToClipboard) "Copied to clipboard!" else "PayPal / Contact: cucosandreiioan@gmail.com", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    )
 }
