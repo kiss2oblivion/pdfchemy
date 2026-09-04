@@ -6,7 +6,7 @@
 set -e
 
 APP_NAME="PDFchemy Tools"
-JAR_NAME="PDFchemy-universal-1.0.1.jar"
+JAR_NAME="PDFchemy-universal-1.0.2.jar"
 MIN_JAVA_VERSION=17
 
 # Resolve script directory to find the JAR

@@ -42,6 +42,11 @@
   <url type="vcs-browser">https://github.com/kiss2oblivion/pdfchemy</url>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.0.2" date="2026-09-04">
+      <description>
+        <p>Full multi-language dynamic localization across 20 languages with automatic OS detection, first-run setup modal, and CLI configuration flags.</p>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-09-04">
       <description>
         <p>Hardened Gauntlet release featuring true forensic redaction, corrupted PDF recovery and reconstruction, and target-size anti-inflation safeguards.</p>

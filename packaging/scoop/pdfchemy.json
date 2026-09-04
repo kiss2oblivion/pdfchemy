@@ -1,21 +1,21 @@
 {
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Local-First Offline Emergency PDF Utility Built For The People",
     "homepage": "https://github.com/kiss2oblivion/pdfchemy",
     "license": "Freeware",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.1/PDFchemy-windows-x64-1.0.1.jar",
-            "hash": "d6ea5575f7f58535b820dd62ab8e8435d5d85ff572a45331516657155d273963",
+            "url": "https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.2/PDFchemy-windows-x64-1.0.2.jar",
+            "hash": "f90eb558c80cbca83ae0697e8d4a976b3d497bcd589c3b6f160e18d333e16227",
             "bin": [
                 [
-                    "PDFchemy-windows-x64-1.0.1.jar",
+                    "PDFchemy-windows-x64-1.0.2.jar",
                     "pdfchemy"
                 ]
             ],
             "shortcuts": [
                 [
-                    "PDFchemy-windows-x64-1.0.1.jar",
+                    "PDFchemy-windows-x64-1.0.2.jar",
                     "PDFchemy Tools"
                 ]
             ]
