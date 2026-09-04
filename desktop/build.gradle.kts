@@ -47,7 +47,7 @@ compose.desktop {
                 TargetFormat.Rpm
             )
             packageName = "PDFchemy"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             description = "PDFchemy Tools - Local-First Offline PDF Utility"
             copyright = "© 2026 Andrei Ioan Cucos. All rights reserved."
             vendor = "PDFchemy"

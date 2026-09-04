@@ -6,7 +6,7 @@
 set -e
 
 APP_NAME="PDFchemy Tools"
-JAR_NAME="PDFchemy-universal-1.0.0.jar"
+JAR_NAME="PDFchemy-universal-1.0.1.jar"
 MIN_JAVA_VERSION=17
 
 # Resolve script directory to find the JAR
@@ -14,8 +14,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JAR_PATH="$SCRIPT_DIR/$JAR_NAME"
 
 if [ ! -f "$JAR_PATH" ]; then
-    # Fallback to current working directory
-    JAR_PATH="./$JAR_NAME"
+    # Auto-detect any universal jar in the folder
+    FOUND_JAR=$(ls "$SCRIPT_DIR"/PDFchemy-universal-*.jar 2>/dev/null | head -n 1)
+    if [ -n "$FOUND_JAR" ]; then
+        JAR_PATH="$FOUND_JAR"
+    else
+        JAR_PATH="./$JAR_NAME"
+    fi
 fi
 
 check_java_installed() {
