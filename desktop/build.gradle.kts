@@ -14,7 +14,8 @@ dependencies {
     // Compose Multiplatform Desktop
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
+    // Pruned Material Icons (Only the 30 icons used in the app, saving ~35 MB compressed / 84 MB uncompressed)
+    implementation(files("libs/material-icons-pruned.jar"))
     implementation(compose.components.resources)
 
     // Apache PDFBox for pure JVM Desktop (Windows & Linux)
@@ -23,14 +24,6 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
-
-    // Document & Conversion Libraries (Pure JVM)
-    implementation("org.jsoup:jsoup:1.17.2")
-    implementation("com.vladsch.flexmark:flexmark-all:0.64.8")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.17.0")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.0")
 
     testImplementation("junit:junit:4.13.2")
 }

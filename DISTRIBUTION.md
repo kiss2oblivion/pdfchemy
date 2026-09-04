@@ -40,6 +40,17 @@ winget install PDFchemy.PDFchemy
    wingetcreate submit https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi
    ```
 3. **Current Live PR:** [microsoft/winget-pkgs #429064](https://github.com/microsoft/winget-pkgs/pull/429064) (CLA Signed, Manifest & URL Validations Passed ✅, VM Testing in progress).
+4. **v1.0.1 Update Command:**
+   ```powershell
+   wingetcreate update PDFchemy.PDFchemy --version 1.0.1 --urls https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.1/PDFchemy-windows-x64-1.0.1.msi
+   ```
+
+> [!TIP]
+> **Footprint Optimization Breakthrough (v1.0.1):**
+> - **Windows MSI:** Reduced from **135.9 MB** down to **68.74 MB** (**-49.4% footprint reduction**).
+> - **Windows EXE:** Reduced from **136.6 MB** down to **69.39 MB** (**-49.2% footprint reduction**).
+> - **Universal / Linux JAR:** Reduced from **110.2 MB** down to **40.22 MB** (**-63.5% footprint reduction**).
+
 
 
 ---
@@ -53,7 +64,7 @@ Microsoft Store allows developers to publish standard Win32 desktop apps (`.msi`
 3. Name: `PDFchemy Tools`.
 4. Distribution method: Choose **Desktop application (Win32)**.
 5. Installer URL:
-   `https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi`
+   `https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.1/PDFchemy-windows-x64-1.0.1.msi`
 6. Silent install parameters: `/qn /norestart`.
 7. Category: **Productivity > Document Management**.
 8. Price: **Free**.
@@ -67,7 +78,7 @@ Microsoft Store allows developers to publish standard Win32 desktop apps (`.msi`
   ```powershell
   cd packaging/chocolatey
   choco pack
-  choco push pdfchemy.1.0.0.nupkg --api-key <YOUR_API_KEY> --source https://push.chocolatey.org/
+  choco push pdfchemy.1.0.1.nupkg --api-key <YOUR_API_KEY> --source https://push.chocolatey.org/
   ```
   Users install via: `choco install pdfchemy`
 

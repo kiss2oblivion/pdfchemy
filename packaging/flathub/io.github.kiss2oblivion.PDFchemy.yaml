@@ -25,14 +25,14 @@ modules:
     buildsystem: simple
     build-commands:
       - install -D -m 755 pdfchemy /app/bin/pdfchemy
-      - install -D -m 644 PDFchemy-universal-1.0.0.jar /app/lib/pdfchemy/PDFchemy-universal-1.0.0.jar
+      - install -D -m 644 PDFchemy-universal-1.0.1.jar /app/lib/pdfchemy/PDFchemy-universal-1.0.1.jar
       - install -D -m 644 io.github.kiss2oblivion.PDFchemy.desktop /app/share/applications/io.github.kiss2oblivion.PDFchemy.desktop
       - install -D -m 644 icon.png /app/share/icons/hicolor/512x512/apps/io.github.kiss2oblivion.PDFchemy.png
       - install -D -m 644 io.github.kiss2oblivion.PDFchemy.metainfo.xml /app/share/metainfo/io.github.kiss2oblivion.PDFchemy.metainfo.xml
     sources:
       - type: file
-        url: https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-universal-1.0.0.jar
-        sha256: 0393682cbbdf7ddab2f2798606f28c2c338cacecb710ccd9539125a938e75814
+        url: https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.1/PDFchemy-universal-1.0.1.jar
+        sha256: d6ea5575f7f58535b820dd62ab8e8435d5d85ff572a45331516657155d273963
       - type: file
         path: pdfchemy
       - type: file
