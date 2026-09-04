@@ -53,6 +53,7 @@
 PDFchemy is 100% free with zero paywalls and zero subscriptions. If this tool saved your day, consider leaving a tip to support independent development:
 
 * ☕ **Ko-fi:** [https://ko-fi.com/andreiioancucos](https://ko-fi.com/andreiioancucos)
+* 💳 **Revolut:** [https://revolut.me/andreiy886](https://revolut.me/andreiy886) (`@andreiy886`)
 * 📬 **Contact / Inquiries:** `cucosandreiioan@gmail.com`
 
 ---
