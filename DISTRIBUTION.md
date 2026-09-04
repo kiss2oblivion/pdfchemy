@@ -148,3 +148,61 @@ GitHub Actions automatically executes `.github/workflows/desktop-release.yml` to
 2. Build Linux `.deb`, `.rpm`, and `.AppImage`.
 3. Generate SHA256 checksums (`SHA256SUMS.txt`).
 4. Publish an official GitHub Release with all binaries attached.
+
+---
+
+## 4. 🌐 Dynamic Multi-Language Localization (20 Languages / 21 Locales)
+
+PDFchemy on Windows and Linux features full parity with the Android edition across all 20 languages and 21 locales:
+
+| Code | Native Name | English Name |
+| :--- | :--- | :--- |
+| `en` | English | English |
+| `de` | Deutsch | German |
+| `es` | Español | Spanish |
+| `fr` | Français | French |
+| `ro` | Română | Romanian |
+| `it` | Italiano | Italian |
+| `pt` | Português | Portuguese (Portugal) |
+| `pt-BR` | Português (Brasil) | Portuguese (Brazil) |
+| `pl` | Polski | Polish |
+| `nl` | Nederlands | Dutch |
+| `ru` | Русский | Russian |
+| `tr` | Türkçe | Turkish |
+| `ar` | العربية | Arabic (RTL Layout) |
+| `hi` | हिन्दी | Hindi |
+| `id` | Bahasa Indonesia | Indonesian |
+| `ja` | 日本語 | Japanese |
+| `ko` | 한국어 | Korean |
+| `th` | ไทย | Thai |
+| `vi` | Tiếng Việt | Vietnamese |
+| `zh-CN` | 简体中文 | Chinese (Simplified) |
+| `zh-TW` | 繁體中文 | Chinese (Traditional) |
+
+### 🔍 Dynamic OS Language Detection
+By default, the desktop engine detects the user's operating system locale via `java.util.Locale.getDefault()` (respecting Windows display language and Linux `$LANG` / `$LC_MESSAGES`).
+
+### 🚀 First-Run & Installation Setup Phase
+1. **Interactive Setup Dialog:**
+   On initial app launch following installation, a welcome setup dialog automatically appears, showing the detected system language pre-selected, allowing 1-click confirmation or language selection.
+2. **Forced Setup Flag:**
+   Pass `--setup` or `-s` to trigger the language setup dialog on any boot:
+   ```bash
+   pdfchemy --setup
+   ```
+
+### ⚙️ Command-Line & Silent Installer Flags
+For automated deployments (Chocolatey, Scoop, silent MSI deployment, enterprise policies):
+```bash
+# Windows
+PDFchemy.exe --lang=de
+PDFchemy.exe --locale=ro
+
+# Linux / Unix
+./pdfchemy.sh --lang=fr
+./pdfchemy.sh --lang=ja
+```
+
+### 🔄 In-App Real-Time Language Switcher
+Users can click the Language button in the top bar anytime to switch between all 20 languages instantly without restarting the application.
+
