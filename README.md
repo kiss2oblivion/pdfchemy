@@ -27,7 +27,7 @@
   * **Universal AppImage:** Portable 1-click executable (`.AppImage`)
   * **Native Packages:** Debian/Ubuntu (`.deb`) and Fedora/RHEL (`.rpm`)
 
-*See [DISTRIBUTION.md](DISTRIBUTION.md) for full publishing guides.*
+*See [DISTRIBUTION.md](DISTRIBUTION.md) for full publishing guides and [PRESS_KIT.md](PRESS_KIT.md) for the Media & Reviewer Kit.*
 
 ## 🚀 Desktop Superpowers
 
