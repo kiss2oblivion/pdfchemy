@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>pdfchemy</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <title>PDFchemy Tools</title>
     <authors>Andrei Ioan Cucos</authors>
     <owners>Andrei Ioan Cucos</owners>
@@ -22,8 +22,9 @@ Features:
 - Images ⇄ PDF Studio (compile photos into PDFs, extract pages to PNG)
 - Multi-Core Batch Queue (compress or merge 50+ PDFs simultaneously across all cores)
 - Document Security (128/256-bit AES encryption &amp; password removal)
+- Forensic Redaction &amp; Corrupted PDF Recovery
     </description>
-    <releaseNotes>https://github.com/kiss2oblivion/pdfchemy/releases/tag/v1.0.0</releaseNotes>
+    <releaseNotes>https://github.com/kiss2oblivion/pdfchemy/releases/tag/v1.0.1</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />
