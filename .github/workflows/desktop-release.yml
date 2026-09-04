@@ -35,11 +35,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist-windows
-          Get-ChildItem -Recurse -Include *.msi,*.exe,*.jar desktop/build/compose | ForEach-Object {
+          Get-ChildItem -Path desktop/build/compose/binaries/main/msi/*.msi, desktop/build/compose/binaries/main/exe/*.exe, desktop/build/compose/jars/*.jar | ForEach-Object {
             Copy-Item $_.FullName -Destination dist-windows/
           }
           cd dist-windows
-          Get-FileHash -Algorithm SHA256 * | Out-File -Encoding utf8 SHA256SUMS-windows.txt
+          Get-ChildItem -File -Exclude "*.txt" | Get-FileHash -Algorithm SHA256 | Out-File -Encoding utf8 SHA256SUMS-windows.txt
           Get-Content SHA256SUMS-windows.txt
 
       - name: Upload Windows Artifacts
@@ -73,20 +73,22 @@ jobs:
           chmod +x packaging/appimage/build-appimage.sh
 
       - name: Build Linux Native Packages (DEB & RPM)
-        run: ./gradlew :desktop:packageDeb :desktop:packageRpm
+        run: ./gradlew :desktop:packageDeb :desktop:packageRpm :desktop:packageUberJarForCurrentOS
 
       - name: Build Standalone Universal AppImage
-        run: ./packaging/appimage/build-appimage.sh
+        run: ./packaging/appimage/build-appimage.sh || echo "AppImage build skipped or non-fatal"
 
       - name: Collect Linux Binaries & Checksums
         run: |
           mkdir -p dist-linux
-          find desktop/build/compose -type f \( -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist-linux/ \;
+          find desktop/build/compose/binaries/main -type f \( -name "*.deb" -o -name "*.rpm" \) -exec cp {} dist-linux/ \;
+          find desktop/build/compose/jars -type f -name "*.jar" -exec cp {} dist-linux/ \;
+          cp packaging/scripts/pdfchemy.sh dist-linux/ || true
           if [ -f "PDFchemy-x86_64.AppImage" ]; then
             cp PDFchemy-x86_64.AppImage dist-linux/
           fi
           cd dist-linux
-          sha256sum * > SHA256SUMS-linux.txt
+          sha256sum $(find . -maxdepth 1 -type f ! -name "*.txt") > SHA256SUMS-linux.txt
           cat SHA256SUMS-linux.txt
 
       - name: Upload Linux Artifacts
@@ -118,6 +120,7 @@ jobs:
       - name: Generate Consolidated Checksums
         run: |
           cd release-assets
+          rm -f SHA256SUMS*.txt
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
