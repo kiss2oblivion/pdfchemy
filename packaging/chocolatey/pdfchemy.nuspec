@@ -21,7 +21,7 @@ Features:
 - Smart Target Compressor (auto-tunes to fit under 2MB for email/portal uploads)
 - Images ⇄ PDF Studio (compile photos into PDFs, extract pages to PNG)
 - Multi-Core Batch Queue (compress or merge 50+ PDFs simultaneously across all cores)
-- Document Security (128/256-bit AES encryption & password removal)
+- Document Security (128/256-bit AES encryption &amp; password removal)
     </description>
     <releaseNotes>https://github.com/kiss2oblivion/pdfchemy/releases/tag/v1.0.0</releaseNotes>
   </metadata>
