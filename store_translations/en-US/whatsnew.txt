@@ -1,7 +1,5 @@
-What's New in v2.0.0 (Major Suite Overhaul):
-• PDF Security: Protect files with 256-bit AES encryption & unlock protected PDFs.
-• Interactive Editor & Reader: Sign, annotate, highlight, add draggable text & stamps.
-• E-Book & Comic Suite: Convert PDFs to EPUB (Kindle/Kobo) & Comic CBZ archives.
-• Advanced Tools: PDF Diff Compare, Booklet printing, N-Up layout, Cropper & OCR.
-• Image Compressor: Target size compression (e.g., 2MB).
-• 100% Offline: 20 languages, zero server uploads.
+What's New in v2.0.1:
+• Cross-Platform Compatibility: Seamless file sharing with Windows & Linux PDFchemy editions.
+• Performance & Speed: Faster multi-page rendering, instant thumbnail caching, and lower memory footprint.
+• UI & Display Polish: High-contrast accessibility improvements and fluid edge-to-edge navigation.
+• 100% Offline & Private: Zero cloud uploads, zero telemetry, fully localized in 20 languages.
