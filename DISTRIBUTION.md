@@ -39,7 +39,8 @@ winget install PDFchemy.PDFchemy
    ```powershell
    wingetcreate submit https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.0/PDFchemy-windows-x64-1.0.0.msi
    ```
-   *`wingetcreate` automatically downloads the MSI, calculates the SHA256 hash, parses version metadata, and creates a Pull Request directly against Microsoft's `microsoft/winget-pkgs` repository.*
+3. **Current Live PR:** [microsoft/winget-pkgs #429064](https://github.com/microsoft/winget-pkgs/pull/429064) (CLA Signed, Manifest & URL Validations Passed ✅, VM Testing in progress).
+
 
 ---
 
@@ -81,15 +82,12 @@ Microsoft Store allows developers to publish standard Win32 desktop apps (`.msi`
 ### A. Flathub (The Universal Linux App Store)
 Flathub is the standard app store for Fedora, Steam Deck, Ubuntu, Arch Linux, Linux Mint, and Debian.
 
-#### Submission Steps:
-1. Fork the [flathub/flathub](https://github.com/flathub/flathub) repository on GitHub.
-2. Create a new branch named `com.pdfchemy.PDFchemy`.
-3. Add the files from `packaging/flathub/`:
-   * `com.pdfchemy.PDFchemy.yaml`
-   * `com.pdfchemy.PDFchemy.metainfo.xml`
-4. Open a Pull Request on GitHub. The Flathub automated test bot will build the Flatpak, verify permissions, and provide a test build link.
-5. Once merged, PDFchemy is live on [flathub.org](https://flathub.org) and visible in GNOME Software & KDE Discover!
-   Users install via: `flatpak install flathub com.pdfchemy.PDFchemy`
+#### Submission Status:
+1. **Current Live PR:** [flathub/flathub #10071](https://github.com/flathub/flathub/pull/10071) (`Add io.github.kiss2oblivion.PDFchemy`).
+2. Prepared manifest: `packaging/flathub/io.github.kiss2oblivion.PDFchemy.yaml` (utilizing official `PDFchemy-universal-1.0.0.jar` binary).
+3. Once merged by the Flathub team, the app repository will be initialized under `https://github.com/flathub/io.github.kiss2oblivion.PDFchemy` and published across all Linux app stores (GNOME Software, KDE Discover, flathub.org).
+   Users install via: `flatpak install flathub io.github.kiss2oblivion.PDFchemy`
+
 
 ---
 
