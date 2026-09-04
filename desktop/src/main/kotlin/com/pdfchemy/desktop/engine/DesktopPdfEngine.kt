@@ -276,9 +276,15 @@ object DesktopPdfEngine {
         if (resultSize > targetBytes) {
             onProgress("Refining compression threshold...")
             val ratio = targetBytes.toFloat() / resultSize.toFloat()
-            val tighterDpi = (initialDpi * ratio).coerceIn(72f, 130f)
-            val tighterQuality = (initialQuality * ratio).coerceIn(0.30f, 0.60f)
+            val tighterDpi = (initialDpi * ratio).coerceIn(54f, 120f)
+            val tighterQuality = (initialQuality * ratio).coerceIn(0.25f, 0.50f)
             resultSize = compressPdf(inputFile, outputFile, tighterDpi, tighterQuality)
+        }
+
+        // Production Invariant: Never deliver a file that is larger than the original input!
+        if (resultSize >= originalSize) {
+            inputFile.copyTo(outputFile, overwrite = true)
+            resultSize = outputFile.length()
         }
 
         return resultSize
@@ -351,4 +357,182 @@ object DesktopPdfEngine {
         doc.save(outputFile)
         doc.close()
     }
+
+    /**
+     * Repairs and reconstructs damaged PDF files with missing headers, truncated EOF, or broken XRef tables.
+     */
+    fun repairPdf(inputFile: File, outputFile: File): Boolean {
+        var bytes = inputFile.readBytes()
+        if (bytes.isEmpty()) return false
+
+        // 1. Repair header if missing or preceded by garbage bytes
+        val headerMarker = "%PDF-".toByteArray(Charsets.US_ASCII)
+        val headerIdx = bytesIndexOf(bytes, headerMarker)
+        if (headerIdx > 0) {
+            bytes = bytes.copyOfRange(headerIdx, bytes.size)
+        } else if (headerIdx < 0) {
+            bytes = "%PDF-1.7\n".toByteArray(Charsets.US_ASCII) + bytes
+        }
+
+        // 2. Append %%EOF if truncated
+        val tailStr = String(bytes.takeLast(80).toByteArray(), Charsets.US_ASCII)
+        if (!tailStr.contains("%%EOF")) {
+            bytes = bytes + "\n%%EOF\n".toByteArray(Charsets.US_ASCII)
+        }
+
+        // 3. Parse with PDFBox parser and save cleanly to generate fresh XRef table
+        PDDocument.load(bytes).use { doc ->
+            doc.save(outputFile)
+        }
+        return outputFile.exists() && outputFile.length() > 0
+    }
+
+    /**
+     * Redacts target text query across all pages.
+     * When forensicSanitize is true, the redacted page is rasterized to a high-DPI clean image,
+     * permanently obliterating the underlying text layer so sensitive data cannot be retrieved
+     * via text strippers, mouse selection, or raw byte inspection.
+     */
+    fun redactPdf(
+        inputFile: File,
+        outputFile: File,
+        query: String,
+        overlayText: String = "REDACTED",
+        forensicSanitize: Boolean = true,
+        dpi: Float = 150f
+    ): Int {
+        if (query.isBlank()) {
+            inputFile.copyTo(outputFile, overwrite = true)
+            return 0
+        }
+
+        var matchCount = 0
+        PDDocument.load(inputFile).use { doc ->
+            val totalPages = doc.numberOfPages
+            val pagesToSanitize = mutableSetOf<Int>()
+
+            for (pageIdx in 0 until totalPages) {
+                val page = doc.getPage(pageIdx)
+                val cropBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
+
+                // Search text in page
+                val stripper = object : PDFTextStripper() {
+                    val positions = mutableListOf<org.apache.pdfbox.text.TextPosition>()
+                    override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
+                        positions.add(text)
+                        super.processTextPosition(text)
+                    }
+                }
+                stripper.startPage = pageIdx + 1
+                stripper.endPage = pageIdx + 1
+                val dummyWriter = java.io.StringWriter()
+                stripper.writeText(doc, dummyWriter)
+
+                val fullText = stripper.positions.joinToString("") { it.unicode ?: "" }
+                val pattern = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(query), java.util.regex.Pattern.CASE_INSENSITIVE)
+                val matcher = pattern.matcher(fullText)
+
+                val pageMatches = mutableListOf<Pair<FloatArray, String>>()
+
+                while (matcher.find()) {
+                    val start = matcher.start()
+                    val end = matcher.end()
+                    if (start in stripper.positions.indices && (end - 1) in stripper.positions.indices) {
+                        val firstPos = stripper.positions[start]
+                        val lastPos = stripper.positions[end - 1]
+
+                        val minX = firstPos.xDirAdj
+                        val maxX = lastPos.xDirAdj + lastPos.widthDirAdj
+                        val topY = firstPos.yDirAdj
+                        val height = firstPos.heightDir.coerceAtLeast(12f)
+                        val drawH = height + 4f
+                        val drawW = (maxX - minX) + 4f
+                        val drawX = minX - 2f
+                        val drawY = cropBox.height - (topY + height) - 2f
+
+                        pageMatches.add(floatArrayOf(drawX, drawY, drawW, drawH) to matcher.group())
+                        matchCount++
+                    }
+                }
+
+                if (pageMatches.isNotEmpty()) {
+                    pagesToSanitize.add(pageIdx)
+                    // Draw opaque black redaction box and overlay label
+                    org.apache.pdfbox.pdmodel.PDPageContentStream(
+                        doc,
+                        page,
+                        org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode.APPEND,
+                        true,
+                        true
+                    ).use { cs ->
+                        for ((box, _) in pageMatches) {
+                            cs.setNonStrokingColor(java.awt.Color.BLACK)
+                            cs.addRect(box[0], box[1], box[2], box[3])
+                            cs.fill()
+
+                            if (overlayText.isNotBlank() && box[2] > 20f && box[3] > 8f) {
+                                val font = org.apache.pdfbox.pdmodel.font.PDType1Font.HELVETICA_BOLD
+                                val fontSize = (box[3] * 0.5f).coerceIn(6f, 10f)
+                                val textWidth = font.getStringWidth(overlayText) / 1000f * fontSize
+                                if (textWidth < box[2]) {
+                                    cs.beginText()
+                                    cs.setFont(font, fontSize)
+                                    cs.setNonStrokingColor(java.awt.Color.WHITE)
+                                    val tx = box[0] + (box[2] - textWidth) / 2f
+                                    val ty = box[1] + (box[3] - fontSize) / 2f + 1f
+                                    cs.newLineAtOffset(tx, ty)
+                                    cs.showText(overlayText)
+                                    cs.endText()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (matchCount > 0 && forensicSanitize) {
+                // Forensic Pass: Rasterize redacted pages to clean images to eliminate underlying text bytes completely
+                val renderer = PDFRenderer(doc)
+                val sanitizedDoc = PDDocument()
+
+                for (i in 0 until totalPages) {
+                    val origPage = doc.getPage(i)
+                    val origBox = origPage.cropBox ?: origPage.mediaBox ?: PDRectangle.A4
+                    if (pagesToSanitize.contains(i)) {
+                        val rendered = renderer.renderImageWithDPI(i, dpi)
+                        val newPage = PDPage(PDRectangle(origBox.width, origBox.height))
+                        newPage.rotation = origPage.rotation
+                        sanitizedDoc.addPage(newPage)
+                        val pdImg = JPEGFactory.createFromImage(sanitizedDoc, rendered, 0.90f)
+                        org.apache.pdfbox.pdmodel.PDPageContentStream(sanitizedDoc, newPage).use { cs ->
+                            cs.drawImage(pdImg, 0f, 0f, origBox.width, origBox.height)
+                        }
+                    } else {
+                        sanitizedDoc.importPage(origPage)
+                    }
+                }
+                sanitizedDoc.save(outputFile)
+                sanitizedDoc.close()
+            } else {
+                doc.save(outputFile)
+            }
+        }
+        return matchCount
+    }
+
+    private fun bytesIndexOf(source: ByteArray, target: ByteArray): Int {
+        if (target.isEmpty() || source.size < target.size) return -1
+        for (i in 0..source.size - target.size) {
+            var match = true
+            for (j in target.indices) {
+                if (source[i + j] != target[j]) {
+                    match = false
+                    break
+                }
+            }
+            if (match) return i
+        }
+        return -1
+    }
 }
+
