@@ -16,6 +16,10 @@ import java.io.FileOutputStream
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import javax.imageio.ImageIO
 
 /**
@@ -378,4 +382,59 @@ class StressGauntletTest {
             assertTrue("Thread task $idx must succeed with valid output", result)
         }
     }
+
+    /**
+     * TEST 8: Pruned Desktop Icon Set Runtime Verification
+     * Confirms that all 38 icons used in the Desktop UI resolve with valid vector geometries
+     * and zero MissingClass or NoClassDefFound runtime errors.
+     */
+    @Test
+    fun test08_AllDesktopIconsIntegrity() {
+        val icons = listOf(
+            androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowForward,
+            androidx.compose.material.icons.Icons.AutoMirrored.Rounded.CallMerge,
+            androidx.compose.material.icons.Icons.AutoMirrored.Rounded.MenuBook,
+            androidx.compose.material.icons.Icons.AutoMirrored.Rounded.Notes,
+            androidx.compose.material.icons.Icons.Rounded.Add,
+            androidx.compose.material.icons.Icons.Rounded.AddPhotoAlternate,
+            androidx.compose.material.icons.Icons.Rounded.AllInclusive,
+            androidx.compose.material.icons.Icons.Rounded.CheckCircle,
+            androidx.compose.material.icons.Icons.Rounded.ChevronLeft,
+            androidx.compose.material.icons.Icons.Rounded.ChevronRight,
+            androidx.compose.material.icons.Icons.Rounded.Close,
+            androidx.compose.material.icons.Icons.Rounded.CloudUpload,
+            androidx.compose.material.icons.Icons.Rounded.Collections,
+            androidx.compose.material.icons.Icons.Rounded.ContentCopy,
+            androidx.compose.material.icons.Icons.Rounded.CreditCard,
+            androidx.compose.material.icons.Icons.Rounded.DarkMode,
+            androidx.compose.material.icons.Icons.Rounded.Dashboard,
+            androidx.compose.material.icons.Icons.Rounded.DeleteOutline,
+            androidx.compose.material.icons.Icons.Rounded.Email,
+            androidx.compose.material.icons.Icons.Rounded.Favorite,
+            androidx.compose.material.icons.Icons.Rounded.FileOpen,
+            androidx.compose.material.icons.Icons.Rounded.FolderOpen,
+            androidx.compose.material.icons.Icons.Rounded.GridView,
+            androidx.compose.material.icons.Icons.Rounded.Image,
+            androidx.compose.material.icons.Icons.Rounded.Layers,
+            androidx.compose.material.icons.Icons.Rounded.LightMode,
+            androidx.compose.material.icons.Icons.Rounded.Lightbulb,
+            androidx.compose.material.icons.Icons.Rounded.Lock,
+            androidx.compose.material.icons.Icons.Rounded.LockOpen,
+            androidx.compose.material.icons.Icons.Rounded.PictureAsPdf,
+            androidx.compose.material.icons.Icons.Rounded.Refresh,
+            androidx.compose.material.icons.Icons.Rounded.Save,
+            androidx.compose.material.icons.Icons.Rounded.Shield,
+            androidx.compose.material.icons.Icons.Rounded.Speed,
+            androidx.compose.material.icons.Icons.Rounded.Straighten,
+            androidx.compose.material.icons.Icons.Rounded.Tune,
+            androidx.compose.material.icons.Icons.Rounded.Undo,
+            androidx.compose.material.icons.Icons.Rounded.UploadFile
+        )
+        assertEquals(38, icons.size)
+        icons.forEach { icon ->
+            assertNotNull(icon.name)
+            assertTrue(icon.defaultWidth.value > 0f)
+        }
+    }
 }
+
