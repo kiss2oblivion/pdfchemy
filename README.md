@@ -52,10 +52,8 @@
 
 PDFchemy is 100% free with zero paywalls and zero subscriptions. If this tool saved your day, consider leaving a tip to support independent development:
 
-* ☕ **Buy Me a Coffee:** [buymeacoffee.com/cucosandrei](https://buymeacoffee.com/cucosandrei)
-* 💳 **PayPal:** [paypal.me/cucosandrei](https://paypal.me/cucosandrei)
-* 💖 **GitHub Sponsors:** [github.com/sponsors/cucosandrei](https://github.com/sponsors/cucosandrei)
-* 📬 **Contact / PayPal Email:** `cucosandreiioan@gmail.com`
+* ☕ **Ko-fi:** [https://ko-fi.com/andreiioancucos](https://ko-fi.com/andreiioancucos)
+* 📬 **Contact / Inquiries:** `cucosandreiioan@gmail.com`
 
 ---
 
