@@ -5,6 +5,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
+import com.pdfchemy.desktop.i18n.DesktopLocalization
 import com.pdfchemy.desktop.ui.DesktopApp
 import com.pdfchemy.desktop.ui.DesktopFileDialog
 import com.pdfchemy.desktop.ui.theme.DesktopTheme
@@ -15,6 +16,14 @@ import java.awt.dnd.DropTargetDropEvent
 import java.io.File
 
 fun main(args: Array<String>) = application {
+    val langArg = args.firstOrNull { it.startsWith("--lang=", ignoreCase = true) }?.substringAfter("=")
+        ?: args.firstOrNull { it.startsWith("--locale=", ignoreCase = true) }?.substringAfter("=")
+    val forceSetup = args.any { it.equals("--setup", ignoreCase = true) || it.equals("-s", ignoreCase = true) }
+
+    val shouldShowSetup = remember { DesktopLocalization.initFromCli(langArg, forceSetup) }
+    val currentLang by DesktopLocalization.currentLanguageState
+    val strings = DesktopLocalization.strings
+
     var droppedFile by remember {
         mutableStateOf(args.firstOrNull { it.lowercase().endsWith(".pdf") }?.let { File(it) })
     }
@@ -29,7 +38,7 @@ fun main(args: Array<String>) = application {
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,
-        title = "PDFchemy Tools — Local-First Offline PDF Utility",
+        title = "${strings.appTitle} — ${strings.homeHeroTitle}",
         icon = painterResource("icons/linux/icon.png"),
         onKeyEvent = { keyEvent ->
             if (keyEvent.type == KeyEventType.KeyDown) {
@@ -78,6 +87,7 @@ fun main(args: Array<String>) = application {
         DesktopTheme(darkTheme = isDarkTheme) {
             DesktopApp(
                 initialFile = droppedFile,
+                initialShowSetup = shouldShowSetup,
                 isDarkTheme = isDarkTheme,
                 onToggleTheme = { isDarkTheme = !isDarkTheme }
             )

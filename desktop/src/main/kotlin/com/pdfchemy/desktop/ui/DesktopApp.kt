@@ -27,6 +27,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pdfchemy.desktop.i18n.DesktopLanguage
+import com.pdfchemy.desktop.i18n.DesktopLocalization
+import com.pdfchemy.desktop.i18n.DesktopStrings
 import com.pdfchemy.desktop.engine.DesktopPdfEngine
 import com.pdfchemy.desktop.engine.PageItemSpec
 import kotlinx.coroutines.Dispatchers
@@ -35,23 +38,39 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.DecimalFormat
 
-enum class DesktopNavTab(val label: String, val icon: ImageVector) {
-    HOME("All Tools", Icons.Rounded.Dashboard),
-    COMPRESS("Compress", Icons.Rounded.Speed),
-    ORGANIZE("Page Studio", Icons.Rounded.GridView),
-    CONVERT("Convert", Icons.AutoMirrored.Rounded.Notes),
-    READER("Reader", Icons.AutoMirrored.Rounded.MenuBook),
-    SECURITY("Security", Icons.Rounded.Lock),
-    BATCH("Batch Queue", Icons.Rounded.Layers)
+enum class DesktopNavTab(val icon: ImageVector) {
+    HOME(Icons.Rounded.Dashboard),
+    COMPRESS(Icons.Rounded.Speed),
+    ORGANIZE(Icons.Rounded.GridView),
+    CONVERT(Icons.AutoMirrored.Rounded.Notes),
+    READER(Icons.AutoMirrored.Rounded.MenuBook),
+    SECURITY(Icons.Rounded.Lock),
+    BATCH(Icons.Rounded.Layers);
+
+    fun label(strings: DesktopStrings): String = when (this) {
+        HOME -> strings.tabAllTools
+        COMPRESS -> strings.tabCompress
+        ORGANIZE -> strings.tabOrganize
+        CONVERT -> strings.tabConvert
+        READER -> strings.tabReader
+        SECURITY -> strings.tabSecurity
+        BATCH -> strings.tabBatch
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DesktopApp(
     initialFile: File? = null,
+    initialShowSetup: Boolean = false,
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {}
 ) {
+    val currentLang by DesktopLocalization.currentLanguageState
+    val strings = DesktopLocalization.strings
+    var showSetupDialog by remember { mutableStateOf(initialShowSetup) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
+
     var activeTab by remember { mutableStateOf(DesktopNavTab.HOME) }
     var selectedFile by remember { mutableStateOf<File?>(initialFile) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -68,6 +87,15 @@ fun DesktopApp(
         ManifestoDialog(onDismiss = { showManifestoDialog = false })
     }
 
+    if (showSetupDialog) {
+        InstallationSetupDialog(
+            onDismiss = {
+                DesktopLocalization.completeSetup(DesktopLocalization.currentLanguage)
+                showSetupDialog = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,13 +109,13 @@ fun DesktopApp(
                         ) {
                             Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
                         }
-                        Text("PDFchemy Tools", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Text(strings.appTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                         ) {
                             Text(
-                                "Desktop Edition",
+                                strings.desktopEdition,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
@@ -109,9 +137,65 @@ fun DesktopApp(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(Icons.Rounded.Shield, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00E676))
-                            Text("100% Offline • Zero Telemetry", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Text(strings.privacyBadge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
+
+                    // Language Selector Dropdown Menu
+                    Box {
+                        FilledTonalButton(
+                            onClick = { showLanguageMenu = true },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Rounded.Translate, contentDescription = strings.selectLanguage, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = currentLang.nativeName,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showLanguageMenu,
+                            onDismissRequest = { showLanguageMenu = false },
+                            modifier = Modifier.heightIn(max = 420.dp)
+                        ) {
+                            DesktopLanguage.entries.forEach { lang ->
+                                val isSelected = currentLang == lang
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${lang.nativeName} (${lang.englishName})",
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (isSelected) {
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Icon(
+                                                    Icons.Rounded.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        DesktopLocalization.currentLanguage = lang
+                                        showLanguageMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     // The Manifesto & Principles Button
                     FilledTonalButton(
@@ -120,7 +204,7 @@ fun DesktopApp(
                     ) {
                         Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Our Manifesto", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.ourManifesto, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -138,7 +222,7 @@ fun DesktopApp(
                     ) {
                         Icon(Icons.Rounded.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Open PDF (Ctrl+O)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.openPdfCtrlO, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -147,7 +231,7 @@ fun DesktopApp(
                     IconButton(onClick = onToggleTheme) {
                         Icon(
                             imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                            contentDescription = "Toggle Theme"
+                            contentDescription = strings.toggleTheme
                         )
                     }
                 }
@@ -169,8 +253,8 @@ fun DesktopApp(
                     NavigationRailItem(
                         selected = activeTab == tab,
                         onClick = { activeTab = tab },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
+                        label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     )
                 }
 
@@ -224,6 +308,7 @@ private fun HomeView(
     onSelectFile: (File) -> Unit,
     onOpenManifesto: () -> Unit = {}
 ) {
+    val strings = DesktopLocalization.strings
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -244,9 +329,9 @@ private fun HomeView(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Emergency Document Utility", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(strings.homeHeroTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "All operations execute 100% on this computer. Zero cloud uploads, zero telemetry. Multi-core desktop speed without limits.",
+                        strings.homeHeroSubtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -257,7 +342,7 @@ private fun HomeView(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                "Active Document: ${selectedFile.name} (${formatFileSize(selectedFile.length())})",
+                                String.format(strings.activeDocument, selectedFile.name, formatFileSize(selectedFile.length())),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
@@ -277,21 +362,21 @@ private fun HomeView(
                 ) {
                     Icon(Icons.Rounded.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select PDF", fontWeight = FontWeight.Bold)
+                    Text(strings.selectPdf, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        Text("Document Superpowers", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(strings.documentSuperpowers, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
         // 3-Column Tool Cards Grid
         val tools = listOf(
-            ToolItem("Visual Page Studio", "Rearrange, rotate, delete, and duplicate pages with instant visual thumbnail cards.", Icons.Rounded.GridView, DesktopNavTab.ORGANIZE),
-            ToolItem("Smart Compressor", "Shrink to exact target sizes (e.g. under 2MB for email/portals) or use quality presets.", Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
-            ToolItem("Images ⇄ PDF Studio", "Compile photos/receipts into PDFs, or extract all PDF pages as high-res PNG/JPG.", Icons.Rounded.Collections, DesktopNavTab.CONVERT),
-            ToolItem("Multi-Core Batch Queue", "Drop 50+ PDFs and process them in parallel across your desktop CPU cores.", Icons.Rounded.Layers, DesktopNavTab.BATCH),
-            ToolItem("Reflow Reader", "Read PDFs and EPUBs with continuous typography, dark mode & sepia themes.", Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
-            ToolItem("Encrypt & Protect", "Lock documents with 128/256-bit AES encryption or remove passwords safely.", Icons.Rounded.Lock, DesktopNavTab.SECURITY)
+            ToolItem(strings.toolOrganizeTitle, strings.toolOrganizeDesc, Icons.Rounded.GridView, DesktopNavTab.ORGANIZE),
+            ToolItem(strings.toolCompressTitle, strings.toolCompressDesc, Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
+            ToolItem(strings.toolConvertTitle, strings.toolConvertDesc, Icons.Rounded.Collections, DesktopNavTab.CONVERT),
+            ToolItem(strings.toolBatchTitle, strings.toolBatchDesc, Icons.Rounded.Layers, DesktopNavTab.BATCH),
+            ToolItem(strings.toolReaderTitle, strings.toolReaderDesc, Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
+            ToolItem(strings.toolSecurityTitle, strings.toolSecurityDesc, Icons.Rounded.Lock, DesktopNavTab.SECURITY)
         )
 
         val columns = 3
@@ -374,13 +459,13 @@ private fun HomeView(
                     }
                     Column {
                         Text(
-                            "The Lifetime Promise: From The People, To The People",
+                            strings.promiseTitle,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "100% Free of Charge • Direct Developer Attention",
+                            strings.promiseSubtitle,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -403,7 +488,7 @@ private fun HomeView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "— Andrei Ioan Cucoș (John), Developer",
+                        strings.authorSignature,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -415,7 +500,7 @@ private fun HomeView(
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            Text("Read The Full Manifesto", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(strings.readFullManifesto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -431,7 +516,7 @@ private fun HomeView(
                         ) {
                             Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Request a Feature / Edge Case", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(strings.requestFeature, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -447,6 +532,7 @@ private data class ToolItem(val title: String, val desc: String, val icon: Image
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
     var pageItems by remember { mutableStateOf<List<PageItemSpec>>(emptyList()) }
     val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
@@ -775,6 +861,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
     var isTargetSizeMode by remember { mutableStateOf(false) }
     var targetMb by remember { mutableFloatStateOf(2.0f) }
     var qualityLevel by remember { mutableFloatStateOf(0.7f) }
@@ -789,7 +876,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Smart Document Compressor", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(strings.compressTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         if (file == null) {
             Card(
@@ -804,13 +891,13 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                 ) {
                     Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Select a PDF to Compress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(strings.selectPdf, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
                         val f = DesktopFileDialog.openPdf()
                         if (f != null) onFileChange(f)
                     }) {
-                        Text("Browse File")
+                        Text(strings.openPdf)
                     }
                 }
             }
@@ -1007,6 +1094,7 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
     var statusText by remember { mutableStateOf<String?>(null) }
     var lastConvertedTarget by remember { mutableStateOf<File?>(null) }
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
@@ -1016,7 +1104,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Document & Image Studio", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(strings.convertTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         // Images to PDF Card
         Card(
@@ -1031,7 +1119,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Images to PDF", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(strings.tabImagesToPdf, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Compile camera photos, receipts, or screenshots into a crisp PDF document.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Button(onClick = {
@@ -1040,7 +1128,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     }) {
                         Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Images")
+                        Text(strings.addImages)
                     }
                 }
 
@@ -1223,6 +1311,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun BatchQueueView() {
+    val strings = DesktopLocalization.strings
     var queueFiles by remember { mutableStateOf<List<File>>(emptyList()) }
     var isProcessing by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
@@ -1234,7 +1323,7 @@ private fun BatchQueueView() {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text("Multi-Core Batch Queue", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(strings.batchTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1257,7 +1346,7 @@ private fun BatchQueueView() {
                     }) {
                         Icon(Icons.Rounded.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add PDF Files")
+                        Text(strings.addFiles)
                     }
                 }
 
@@ -1402,6 +1491,7 @@ private fun BatchQueueView() {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
     var extractedText by remember { mutableStateOf<String?>(null) }
     var fontSizeSp by remember { mutableFloatStateOf(16f) }
     val scope = rememberCoroutineScope()
@@ -1426,7 +1516,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Reflow Reader", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(strings.readerTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(file?.name ?: "No document open", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1485,13 +1575,14 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
     var password by remember { mutableStateOf("") }
     var statusText by remember { mutableStateOf<String?>(null) }
     var lastSecurityFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Text("Document Security", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(strings.securityTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1621,6 +1712,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun EdgeCaseCallout() {
+    val strings = DesktopLocalization.strings
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -1635,7 +1727,7 @@ private fun EdgeCaseCallout() {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
-                    "Have an enigmatic edge case or missing format? Make a request and I'll build it for you.",
+                    strings.edgeCaseCalloutText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1650,7 +1742,7 @@ private fun EdgeCaseCallout() {
                 },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("Request Feature →", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(strings.edgeCaseCalloutBtn, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
     }
@@ -1661,6 +1753,7 @@ private fun EdgeCaseCallout() {
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun ManifestoDialog(onDismiss: () -> Unit) {
+    val strings = DesktopLocalization.strings
     fun openBrowser(url: String) {
         try {
             if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
@@ -1673,7 +1766,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("Got It, Let's Work")
+                Text(strings.manifestoGotIt)
             }
         },
         icon = {
@@ -1688,7 +1781,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
         },
         title = {
             Text(
-                "The Lifetime Manifesto",
+                strings.manifestoDialogTitle,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
@@ -1728,10 +1821,10 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                 Text("Our 4 Unbreakable Guarantees:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GuaranteeRow("100% Free Forever", "Zero subscriptions, zero paywalls, zero artificial page/file limits, and zero watermark vandalism.")
-                    GuaranteeRow("100% Offline & Private", "Zero files ever leave this computer. Zero analytics or tracking telemetry. 100% safe for confidential documents.")
-                    GuaranteeRow("Original-Safe", "We never overwrite or destroy your source files without explicit confirmation.")
-                    GuaranteeRow("Built For The People", "Submit a solid feature request or edge case on GitHub, and John will personally implement it.")
+                    GuaranteeRow(strings.guarantee1Title, strings.guarantee1Desc)
+                    GuaranteeRow(strings.guarantee2Title, strings.guarantee2Desc)
+                    GuaranteeRow(strings.guarantee3Title, strings.guarantee3Desc)
+                    GuaranteeRow(strings.guarantee4Title, strings.guarantee4Desc)
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
@@ -1744,7 +1837,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Request an Edge Case", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.btnRequestEdgeCase, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -1754,7 +1847,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.Email, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Email John Directly", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.btnEmailJohn, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -1770,7 +1863,7 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFF5E5B))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Ko-fi Tip", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.btnKofi, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -1781,13 +1874,13 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     ) {
                         Icon(Icons.Rounded.CreditCard, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF0075EB))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Revolut (@andreiy886)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(strings.btnRevolut, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 // Quiet, humble footnote for anyone seeking to support
                 Text(
-                    "PDFchemy is completely self-funded and free of charge for the people. If this tool saved your day, optional tips are warmly appreciated at ko-fi.com/andreiioancucos or revolut.me/andreiy886.",
+                    strings.donationFootnote,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
@@ -1827,4 +1920,142 @@ private fun openFileInExplorer(target: File) {
         }
     } catch (_: Exception) {}
 }
+
+// -------------------------------------------------------------------------------------------------
+// INSTALLATION & FIRST-RUN SETUP DIALOG
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun InstallationSetupDialog(onDismiss: () -> Unit) {
+    val currentLang by DesktopLocalization.currentLanguageState
+    val strings = DesktopLocalization.strings
+    val detectedSystemLang = remember { DesktopLanguage.detectSystemLanguage() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+            ) {
+                Text(strings.setupContinue, fontWeight = FontWeight.Bold)
+            }
+        },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Translate, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+            }
+        },
+        title = {
+            Text(
+                strings.setupWelcomeTitle,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .width(540.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    strings.setupWelcomeSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Detected OS Language Banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            String.format(strings.setupDetectedHint, "${detectedSystemLang.nativeName} (${detectedSystemLang.englishName})"),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                // Grid of 21 locales / 20 languages
+                val langs = DesktopLanguage.entries
+                val columns = 2
+                val rows = (langs.size + columns - 1) / columns
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (r in 0 until rows) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            for (c in 0 until columns) {
+                                val idx = r * columns + c
+                                if (idx < langs.size) {
+                                    val lang = langs[idx]
+                                    val isSelected = currentLang == lang
+                                    Surface(
+                                        onClick = { DesktopLocalization.currentLanguage = lang },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                        border = BorderStroke(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    lang.nativeName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    lang.englishName,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            if (isSelected) {
+                                                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
 
