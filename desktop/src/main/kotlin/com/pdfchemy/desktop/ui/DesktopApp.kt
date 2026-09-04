@@ -1758,20 +1758,36 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     }
                 }
 
-                OutlinedButton(
-                    onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
-                    modifier = Modifier.fillMaxWidth().height(42.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5E5B))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF5E5B))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Support the Developer on Ko-fi", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    OutlinedButton(
+                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5E5B))
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFF5E5B))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Ko-fi Tip", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { openBrowser("https://revolut.me/andreiy886") },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0075EB))
+                    ) {
+                        Icon(Icons.Rounded.CreditCard, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF0075EB))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Revolut (@andreiy886)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 // Quiet, humble footnote for anyone seeking to support
                 Text(
-                    "PDFchemy is completely self-funded and free of charge for the people. If this tool saved your day, optional tips are warmly appreciated at ko-fi.com/andreiioancucos.",
+                    "PDFchemy is completely self-funded and free of charge for the people. If this tool saved your day, optional tips are warmly appreciated at ko-fi.com/andreiioancucos or revolut.me/andreiy886.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
