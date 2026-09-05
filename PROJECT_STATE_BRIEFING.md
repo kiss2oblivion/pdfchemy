@@ -8,11 +8,13 @@
 * **Dezvoltator:** Andrei Ioan Cucoș (John / `cucosandreiioan@gmail.com`).
 * **Repo GitHub:** `https://github.com/kiss2oblivion/pdfchemy`
 * **Mantra:** *"Open it when you need the document fixed now."* Aplicația este o unealtă de prim-ajutor pentru documente, nu o capcană pentru utilizator.
-* **Invariante Arhitecturale:**
-  1. **100% Local-First & Confidențial:** Toate operațiunile (compresie, reorganizare, conversie, reader, criptare) rulează **exclusiv pe procesorul local al dispozitivului**. Zero telemetrie, zero conexiuni la servere, zero fișiere trimise în cloud.
-  2. **Original-Safe:** Niciun fișier sursă nu este suprascris fără acordul explicit al utilizatorului; fișierele rezultate sunt salvate ca documente noi.
-  3. **Anti-Abonamente (Anti-Subscription):** Pe desktop este 100% gratuit și open-source. Pe Android, varianta gratuită funcționează complet, iar versiunea Pro este o **plată unică pe viață** (fără abonamente lunare/anuale recurente).
-  4. **The Lifetime Manifesto:** Manifestul dezvoltatorului este integrat direct în codul aplicației pe Android și Desktop, stipulând 4 garanții neîncălcabile (fără cloud, fără abonamente forțate, suport pe viață pentru utilizatori).
+* **Invariante Arhitecturale (Defensabile Tehnic & Fără Ambiguități):**
+  1. **100% Local Document Processing (Procesare Documente Fără Cloud):** Toate operațiunile cu fișiere (compresie, reorganizare pagini, randare imagini, reader reflow, criptare AES-256) rulează **exclusiv pe procesorul local al dispozitivului**. Niciun document, text sau metadat de fișier nu părăsește vreodată telefonul sau PC-ul. Dacă tai internetul sau ești în modul avion, toate uneltele funcționează identic.
+  2. **Desktop (Windows & Linux) — Zero Rețea Literal:** Aplicația desktop nu conține reclame, nu are billing și are **zero socket-uri de rețea deschise, zero telemetrie și zero apeluri DNS**.
+  3. **Android — Trafic Strict Delimitat:** Singurul trafic de rețea de pe Android aparține exclusiv librăriilor standard Google: verificarea licenței Pro prin Google Play Billing și furnizarea bannerelor Google AdMob în varianta gratuită. **Zero trafic legat de fișierele utilizatorului.**
+  4. **Original-Safe:** Niciun fișier sursă nu este suprascris fără acordul explicit al utilizatorului; fișierele rezultate sunt salvate ca documente noi.
+  5. **Anti-Abonamente (Anti-Subscription):** Pe desktop este 100% gratuit. Pe Android, varianta gratuită funcționează complet, iar versiunea Pro este o **plată unică pe viață** (fără abonamente lunare/anuale recurente).
+  6. **The Lifetime Manifesto:** Manifestul dezvoltatorului este integrat direct în codul aplicației pe Android și Desktop, stipulând garanțiile noastre de transparență și suport direct.
 
 ---
 
