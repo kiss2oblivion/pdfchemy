@@ -949,4 +949,25 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">คำแถลงเจตนารมณ์ตลอดชีพ</string>
+    <string name="settings_manifesto_desc">คำสัญญาของเรา: อัปเดตฟรี 100% ไม่มีคลาวด์ สร้างขึ้นเพื่อผู้ใช้ทุกคน</string>
+    <string name="manifesto_dialog_title">คำแถลงเจตนารมณ์ตลอดชีพ</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">การรับประกัน 4 ประการที่ไม่เปลี่ยนแปลง:</string>
+    <string name="manifesto_g1_title">ฟรี 100% ตลอดไป</string>
+    <string name="manifesto_g1_desc">ไม่มีระบบสมัครสมาชิก ไม่มีค่าใช้จ่ายแอบแฝง ไม่จำกัดจำนวนหน้า และไม่มีการใส่ลายน้ำกวนใจ</string>
+    <string name="manifesto_g2_title">ออฟไลน์ 100% และเป็นส่วนตัว</string>
+    <string name="manifesto_g2_desc">ไฟล์ทั้งหมดจะไม่หลุดออกจากคอมพิวเตอร์ของคุณเด็ดขาด ปราศจากการติดตาม ปลอดภัย 100% สำหรับเอกสารลับ</string>
+    <string name="manifesto_g3_title">ไฟล์ต้นฉบับปลอดภัย</string>
+    <string name="manifesto_g3_desc">เราจะไม่เขียนทับหรือทำลายไฟล์ต้นฉบับของคุณโดยไม่ได้รับการยืนยันอย่างชัดเจน</string>
+    <string name="manifesto_g4_title">สร้างขึ้นเพื่อทุกคน</string>
+    <string name="manifesto_g4_desc">ส่งคำขอบน GitHub แล้ว John จะพัฒนาฟังก์ชันนั้นให้คุณด้วยตนเอง</string>
+    <string name="manifesto_btn_got_it">เข้าใจแล้ว เริ่มทำงานกันเลย</string>
+    <string name="manifesto_btn_edge_case">ขอฟีเจอร์เพิ่มเติม</string>
+    <string name="manifesto_btn_email">ส่งอีเมลถึง John โดยตรง</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>
