@@ -197,18 +197,6 @@ fun DesktopApp(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // The Manifesto & Principles Button
-                    FilledTonalButton(
-                        onClick = { showManifestoDialog = true },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.ourManifesto, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     // Open File Button
                     Button(
                         onClick = {
@@ -434,92 +422,26 @@ private fun HomeView(
             }
         }
 
-        // The Developer's Lifetime Manifesto Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        Spacer(modifier = Modifier.weight(1f, fill = false).height(24.dp))
+
+        // Subtle, Understated Footer
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Text(
+                "PDFchemy Tools • 100% Offline & Private",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+            TextButton(
+                onClick = onOpenManifesto,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.AllInclusive, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
-                    }
-                    Column {
-                        Text(
-                            strings.promiseTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            strings.promiseSubtitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Text(
-                    "\"Lifetime of updates until I personally die — and 100% free of charge. All you have to do is make a solid, valid request and it will be done and implemented; cuz it's from the people to the people.\n\nIt may or may not be the same as a corpo app would do, but at least it's gonna be free and I will make it as best as I possibly can. If I can't, well I can't and that's that — at least you have an option, oh you enigmatic edge case that you are.\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = FontStyle.Italic,
-                    lineHeight = 22.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        strings.authorSignature,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(
-                            onClick = onOpenManifesto,
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Text(strings.readFullManifesto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = {
-                                try {
-                                    if (java.awt.Desktop.isDesktopSupported()) {
-                                        java.awt.Desktop.getDesktop().browse(java.net.URI("https://github.com/kiss2oblivion/pdfchemy/issues/new"))
-                                    }
-                                } catch (_: Exception) {}
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(strings.requestFeature, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(strings.ourManifesto, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
