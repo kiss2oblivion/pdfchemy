@@ -959,4 +959,25 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">Das Lebenszeit-Manifest</string>
+    <string name="settings_manifesto_desc">Unser Versprechen: 100% kostenlose Updates, keine Cloud, für die Menschen.</string>
+    <string name="manifesto_dialog_title">Das Lebenszeit-Manifest</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">Unsere 4 unzerbrechlichen Garantien:</string>
+    <string name="manifesto_g1_title">Für immer 100% kostenlos</string>
+    <string name="manifesto_g1_desc">Keine Abos, keine Bezahlschranken, keine künstlichen Limits und keine Wasserzeichen.</string>
+    <string name="manifesto_g2_title">100% Offline &amp; Privat</string>
+    <string name="manifesto_g2_desc">Keine Datei verlässt diesen Computer. Keine Telemetrie. 100% sicher für vertrauliche Dokumente.</string>
+    <string name="manifesto_g3_title">Original geschützt</string>
+    <string name="manifesto_g3_desc">Wir überschreiben Ihre Quelldateien niemals ohne ausdrückliche Bestätigung.</string>
+    <string name="manifesto_g4_title">Für die Menschen gebaut</string>
+    <string name="manifesto_g4_desc">Reichen Sie eine Anfrage auf GitHub ein, und John wird sie persönlich umsetzen.</string>
+    <string name="manifesto_btn_got_it">Verstanden, an die Arbeit</string>
+    <string name="manifesto_btn_edge_case">Anfrage einreichen</string>
+    <string name="manifesto_btn_email">E-Mail an John</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>

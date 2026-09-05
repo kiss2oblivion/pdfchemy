@@ -949,4 +949,25 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">आजीवन घोषणापत्र</string>
+    <string name="settings_manifesto_desc">हमारा वादा: 100% मुफ्त अपडेट, शून्य क्लाउड, लोगों के लिए समर्पित।</string>
+    <string name="manifesto_dialog_title">आजीवन घोषणापत्र</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">हमारी 4 अटूट गारंटी:</string>
+    <string name="manifesto_g1_title">हमेशा के लिए 100% निःशुल्क</string>
+    <string name="manifesto_g1_desc">कोई सदस्यता नहीं, कोई पेवॉल नहीं, कोई कृत्रिम सीमा नहीं और कोई वॉटरमार्क नहीं।</string>
+    <string name="manifesto_g2_title">100% ऑफ़लाइन और निजी</string>
+    <string name="manifesto_g2_desc">कोई भी फ़ाइल इस कंप्यूटर से बाहर नहीं जाती। शून्य टेलीमेट्री। गोपनीय दस्तावेज़ों के लिए 100% सुरक्षित।</string>
+    <string name="manifesto_g3_title">मूल फ़ाइल सुरक्षित</string>
+    <string name="manifesto_g3_desc">हम बिना स्पष्ट पुष्टि के आपकी मूल फ़ाइलों को कभी ओवरराइट नहीं करते हैं।</string>
+    <string name="manifesto_g4_title">लोगों के लिए निर्मित</string>
+    <string name="manifesto_g4_desc">GitHub पर एक अनुरोध सबमिट करें, और जॉन इसे व्यक्तिगत रूप से लागू करेगा।</string>
+    <string name="manifesto_btn_got_it">समझ गया, काम शुरू करें</string>
+    <string name="manifesto_btn_edge_case">सुविधा का अनुरोध</string>
+    <string name="manifesto_btn_email">जॉन को सीधे ईमेल करें</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>

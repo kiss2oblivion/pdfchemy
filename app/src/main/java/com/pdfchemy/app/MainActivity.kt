@@ -46,6 +46,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.res.stringResource
 import com.pdfchemy.app.R
 import android.util.Log
@@ -2796,7 +2798,12 @@ fun SettingsScreen(
     var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
     var showDefaultPdfDialog by remember { mutableStateOf(false) }
     var showRefundPolicyDialog by remember { mutableStateOf(false) }
+    var showManifestoDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    if (showManifestoDialog) {
+        AndroidManifestoDialog(onDismiss = { showManifestoDialog = false })
+    }
 
     if (showDefaultPdfDialog) {
         AlertDialog(
@@ -3088,6 +3095,25 @@ fun SettingsScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            // The Lifetime Manifesto
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { showManifestoDialog = true },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_manifesto_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.settings_manifesto_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.AllInclusive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                             // App Tour
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { onOpenTour() },
@@ -3236,6 +3262,175 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(80.dp)) // Prevents ad banner from clipping the bottom content
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AndroidManifestoDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    fun openBrowser(url: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Cannot open browser", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.manifesto_btn_got_it))
+            }
+        },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Rounded.AllInclusive,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                stringResource(R.string.manifesto_dialog_title),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(R.string.manifesto_quote),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontStyle = FontStyle.Italic,
+                            lineHeight = 22.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            stringResource(R.string.manifesto_author),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Text(
+                    stringResource(R.string.manifesto_guarantees_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GuaranteeItem(stringResource(R.string.manifesto_g1_title), stringResource(R.string.manifesto_g1_desc))
+                    GuaranteeItem(stringResource(R.string.manifesto_g2_title), stringResource(R.string.manifesto_g2_desc))
+                    GuaranteeItem(stringResource(R.string.manifesto_g3_title), stringResource(R.string.manifesto_g3_desc))
+                    GuaranteeItem(stringResource(R.string.manifesto_g4_title), stringResource(R.string.manifesto_g4_desc))
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { openBrowser("https://github.com/kiss2oblivion/pdfchemy/issues/new") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.manifesto_btn_edge_case), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:cucosandreiioan@gmail.com")
+                                putExtra(Intent.EXTRA_SUBJECT, "PDFchemy Feedback & Feature Request")
+                            }
+                            try {
+                                context.startActivity(emailIntent)
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.manifesto_btn_email), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5E5B))
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFF5E5B))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.manifesto_btn_kofi), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = { openBrowser("https://revolut.me/andreiy886") },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0075EB))
+                    ) {
+                        Icon(Icons.Rounded.CreditCard, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF0075EB))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.manifesto_btn_revolut), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun GuaranteeItem(title: String, desc: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            Icons.Rounded.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp).padding(top = 2.dp)
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(desc, fontSize = 12.sp, lineHeight = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

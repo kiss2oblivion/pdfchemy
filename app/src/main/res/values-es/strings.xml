@@ -960,4 +960,25 @@
 <string name="error_user_memory">Este archivo contiene gráficos de ultra alta resolución que exceden la memoria del dispositivo. Pruebe una compresión más ligera o active el modo escala de grises.</string>
 <string name="error_user_corrupt">La estructura del archivo PDF parece dañada o corrupta. Intente usar la herramienta \'Reparar PDF\' primero.</string>
 <string name="error_user_storage">No se puede escribir en el almacenamiento de destino. Verifique el espacio libre disponible y los permisos.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">El Manifiesto de Por Vida</string>
+    <string name="settings_manifesto_desc">Nuestra promesa: actualizaciones 100% gratis, sin nube, hecho para la gente.</string>
+    <string name="manifesto_dialog_title">El Manifiesto de Por Vida</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">Nuestras 4 Garantías Inquebrantables:</string>
+    <string name="manifesto_g1_title">100% Gratis para Siempre</string>
+    <string name="manifesto_g1_desc">Cero suscripciones, cero muros de pago, cero límites artificiales y cero marcas de agua.</string>
+    <string name="manifesto_g2_title">100% Desconectado y Privado</string>
+    <string name="manifesto_g2_desc">Ningún archivo sale de esta computadora. Cero análisis o telemetría. Seguro para documentos confidenciales.</string>
+    <string name="manifesto_g3_title">Original Seguro</string>
+    <string name="manifesto_g3_desc">Nunca sobrescribimos ni destruimos tus archivos originales sin confirmación explícita.</string>
+    <string name="manifesto_g4_title">Construido Para la Gente</string>
+    <string name="manifesto_g4_desc">Envía una solicitud en GitHub y John la implementará personalmente.</string>
+    <string name="manifesto_btn_got_it">Entendido, a trabajar</string>
+    <string name="manifesto_btn_edge_case">Solicitar Función</string>
+    <string name="manifesto_btn_email">Enviar correo a John</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>

@@ -949,4 +949,25 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">生涯マニフェスト</string>
+    <string name="settings_manifesto_desc">私たちの約束: 100%無料アップデート、クラウドなし、人々のためのツール。</string>
+    <string name="manifesto_dialog_title">生涯マニフェスト</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">4つの揺るぎない保証:</string>
+    <string name="manifesto_g1_title">永久に完全無料</string>
+    <string name="manifesto_g1_desc">サブスクなし、課金なし、不条理なページ制限なし、透かしロゴの強制挿入も一切なし。</string>
+    <string name="manifesto_g2_title">完全オフライン＆高水準のプライバシー</string>
+    <string name="manifesto_g2_desc">ファイルがPC外へ送信されることは一切ありません。追跡ゼロ。機密文書の取り扱いも100%安全。</string>
+    <string name="manifesto_g3_title">オリジナルファイルの安全保護</string>
+    <string name="manifesto_g3_desc">明確な確認なしにお客様の元ファイルを上書きまたは破壊することは絶対にありません。</string>
+    <string name="manifesto_g4_title">ユーザーのための開発</string>
+    <string name="manifesto_g4_desc">GitHubに要望を投稿していただければ、開発者Johnが直接機能を作成します。</string>
+    <string name="manifesto_btn_got_it">了解、作業を始める</string>
+    <string name="manifesto_btn_edge_case">改善要望を投稿</string>
+    <string name="manifesto_btn_email">開発者に直接メール</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>

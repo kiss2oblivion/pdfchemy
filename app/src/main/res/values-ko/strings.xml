@@ -949,4 +949,25 @@
 <string name="error_user_memory">This file contains ultra high-resolution graphics that exceed device memory. Try choosing a lighter compression preset or enabling Grayscale mode.</string>
 <string name="error_user_corrupt">The PDF file structure appears damaged or corrupted. Try using the \'Repair PDF\' tool first to fix broken streams.</string>
 <string name="error_user_storage">Cannot write to the chosen destination storage. Please check available free space and write permissions.</string>
+
+    <!-- The Lifetime Manifesto -->
+    <string name="settings_manifesto_title">평생 선언문</string>
+    <string name="settings_manifesto_desc">우리의 약속: 100% 무료 업데이트, 클라우드 없음, 사람들을 위해 제작.</string>
+    <string name="manifesto_dialog_title">평생 선언문</string>
+    <string name="manifesto_quote">\</string>
+    <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
+    <string name="manifesto_guarantees_title">4가지 불변의 보증:</string>
+    <string name="manifesto_g1_title">영구 100% 무료</string>
+    <string name="manifesto_g1_desc">구독 없음, 유료 결제 유도 없음, 인위적인 페이지 제한 없음, 워터마크 없음.</string>
+    <string name="manifesto_g2_title">100% 오프라인 및 개인 정보 보호</string>
+    <string name="manifesto_g2_desc">어떤 파일도 이 컴퓨터를 벗어나지 않습니다. 원격 측정 없음. 기밀 문서에 100% 안전.</string>
+    <string name="manifesto_g3_title">원본 안전 보장</string>
+    <string name="manifesto_g3_desc">명시적인 확인 없이 원본 파일을 덮어쓰거나 훼손하지 않습니다.</string>
+    <string name="manifesto_g4_title">사용자를 위한 앱</string>
+    <string name="manifesto_g4_desc">GitHub에 기능 요청을 남겨주시면 개발자가 직접 구현해 드립니다.</string>
+    <string name="manifesto_btn_got_it">이해했습니다, 시작하기</string>
+    <string name="manifesto_btn_edge_case">기능 요청하기</string>
+    <string name="manifesto_btn_email">개발자에게 직접 이메일</string>
+    <string name="manifesto_btn_kofi">Ko-fi Tip</string>
+    <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
 </resources>
