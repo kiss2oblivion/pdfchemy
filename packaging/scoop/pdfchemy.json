@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.2/PDFchemy-windows-x64-1.0.2.jar",
-            "hash": "f90eb558c80cbca83ae0697e8d4a976b3d497bcd589c3b6f160e18d333e16227",
+            "hash": "a9055de058eabb03cad3c8812b254add11e8e2eadc53d6c9f5aab17166e825ff",
             "bin": [
                 [
                     "PDFchemy-windows-x64-1.0.2.jar",
