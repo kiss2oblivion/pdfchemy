@@ -29,6 +29,7 @@
 | **Rotate Pages** | `OrganizeScreens.kt` | `PdfManipulator.kt` | ✅ Live | Lossless 90°, 180°, 270° orientation correction |
 | **Auto-Deskew & Straighten** | `DeskewScreen.kt` | `PdfDeskewEngine.kt` | ✅ Live | Hough transform scan tilt auto-detection, manual angle slider, live rotation preview |
 | **Page Cropper & Margin Trimmer** | `PageCropperScreen.kt` | `PdfManipulator.kt` | ✅ Live | CropBox adjustment to remove scanner borders and margins |
+| **Paper Canvas Resizer** | `PageLayoutScreen.kt` | `PdfLayoutEngine.kt` | ✅ Live | Resizes standard paper dimensions (A4, Letter, Legal, A3, Executive) with content re-centering |
 | **N-Up Handouts** | `NUpScreen.kt` | `PdfManipulator.kt` | ✅ Live | Imposes 2, 4, 6, 9, or 16 pages per sheet with Z-order / N-order and subtle borders |
 | **Booklet Imposition** | `BookletScreen.kt` | `PdfManipulator.kt` | ✅ Live | Saddle-stitch fold printer ordering (4-page signature booklet imposition) |
 
@@ -100,6 +101,7 @@
 | **Convert** | • Images to PDF<br>• PDF to High-Res PNG Images<br>• Extract Plain Text (.txt)<br>• OCR Searchable PDF (Tesseract)<br>• PDF to ISO 19005-1b PDF/A<br>• Extract Tables to RFC 4180 CSV<br>• **Office Export:** PDF to Word (.docx), Excel (.xlsx), PowerPoint (.pptx) | `DesktopPdfEngine.kt`, `DesktopOfficeExportEngine.kt` | ✅ Live |
 | **Reader** | Single page, dual-page spread, zoom in/out, fit width, page rotation, dark/light theme | `DesktopPdfEngine.renderPage` | ✅ Live |
 | **Security** | • Encrypt & Lock (User/Owner Password)<br>• Decrypt & Unlock<br>• Deep Threat Sanitizer (JS, Actions, Beacons)<br>• PDF Recovery & Repair (Broken XRef/Trailers)<br>• Permanent Redaction (Pattern & manual scrub)<br>• Embedded File Attachments (Inspect, Extract, Embed) | `DesktopPdfEngine.kt` | ✅ Live |
+| **Compare Studio** | Side-by-side synchronized comparison, line-by-line textual diffs, revision change statistics | `DesktopApp.kt` (`CompareView`), `DesktopPdfEngine.compareDocuments` | ✅ Live |
 | **Merge** | Multi-document combiner with reorderable list | `DesktopPdfEngine.mergePdfs` | ✅ Live |
 | **Batch Studio** | Multi-file batch processing queue (Batch Compress, Batch Decrypt, Batch PDF/A) | `DesktopPdfEngine.kt` | ✅ Live |
 | **Digital Signatures (PKI)** | Cryptographic certificate signing (`.p12` / `.pfx` keystores) with visual seal | `PdfCryptoSigner.kt` (BouncyCastle) | ✅ Live |
