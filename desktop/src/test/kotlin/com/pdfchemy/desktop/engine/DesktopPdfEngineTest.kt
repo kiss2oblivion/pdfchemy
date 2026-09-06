@@ -495,5 +495,195 @@ class DesktopPdfEngineTest {
             assertEquals(mb.height - 72f, cb.height, 1.0f)
         }
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Corporate Paywall Crusher Round 2 Tests
+    // ---------------------------------------------------------------------------------------------
+
+    @Test
+    fun testExtractTablesToCsv() {
+        val file = tempFolder.newFile("table_sample.pdf")
+        val doc = PDDocument()
+        val page = PDPage()
+        doc.addPage(page)
+        PDPageContentStream(doc, page).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 12f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Item Name")
+            cs.newLineAtOffset(150f, 0f)
+            cs.showText("Quantity")
+            cs.newLineAtOffset(150f, 0f)
+            cs.showText("Unit Price")
+            cs.endText()
+
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA, 12f)
+            cs.newLineAtOffset(50f, 680f)
+            cs.showText("Widget Pro")
+            cs.newLineAtOffset(150f, 0f)
+            cs.showText("42")
+            cs.newLineAtOffset(150f, 0f)
+            cs.showText("$99.99")
+            cs.endText()
+        }
+        doc.save(file)
+        doc.close()
+
+        val csv = DesktopPdfEngine.extractTablesToCsv(file)
+        assertTrue("CSV should not be empty", csv.isNotBlank())
+        val lines = csv.lines().filter { it.isNotBlank() }
+        assertTrue("Should extract at least 2 rows", lines.size >= 2)
+        assertTrue("Should contain Item Name", csv.contains("Item Name"))
+        assertTrue("Should contain Widget Pro", csv.contains("Widget Pro"))
+    }
+
+    @Test
+    fun testDetectSkewAngleAndDeskew() {
+        // 1. Synthetic image with a horizontal bar
+        val img = BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB)
+        val g2d = img.createGraphics()
+        g2d.color = Color.WHITE
+        g2d.fillRect(0, 0, 200, 200)
+        g2d.color = Color.BLACK
+        g2d.fillRect(20, 95, 160, 10)
+        g2d.dispose()
+
+        val angle = DesktopPdfEngine.detectSkewAngle(img)
+        assertTrue("Straight horizontal line should have angle near 0", Math.abs(angle) < 1.0f)
+
+        // 2. Deskew document on a multi-page test PDF
+        val pdf = createTestPdf(pages = 2, text = "Deskew Candidate")
+        val outPdf = tempFolder.newFile("deskewed.pdf")
+        val count = DesktopPdfEngine.deskewDocument(pdf, outPdf)
+        assertTrue(outPdf.exists() && outPdf.length() > 0)
+        PDDocument.load(outPdf).use { doc ->
+            assertEquals(2, doc.numberOfPages)
+        }
+    }
+
+    @Test
+    fun testGenerateBookletAndNUp() {
+        val pdf = createTestPdf(pages = 4, text = "Booklet Source")
+        val bookletOut = tempFolder.newFile("booklet_out.pdf")
+
+        val bookletSuccess = DesktopPdfEngine.generateBooklet(pdf, bookletOut, drawFoldGuide = true)
+        assertTrue(bookletSuccess)
+        assertTrue(bookletOut.exists() && bookletOut.length() > 0)
+        PDDocument.load(bookletOut).use { doc ->
+            // 4 pages placed 2-per-sheet becomes 2 sheets (4 / 2)
+            assertEquals(2, doc.numberOfPages)
+        }
+
+        // Test 2-Up
+        val nup2Out = tempFolder.newFile("nup2_out.pdf")
+        val nup2Success = DesktopPdfEngine.generateNUp(pdf, nup2Out, pagesPerSheet = 2)
+        assertTrue(nup2Success)
+        PDDocument.load(nup2Out).use { doc ->
+            assertEquals(2, doc.numberOfPages)
+        }
+
+        // Test 4-Up
+        val nup4Out = tempFolder.newFile("nup4_out.pdf")
+        val nup4Success = DesktopPdfEngine.generateNUp(pdf, nup4Out, pagesPerSheet = 4)
+        assertTrue(nup4Success)
+        PDDocument.load(nup4Out).use { doc ->
+            assertEquals(1, doc.numberOfPages)
+        }
+    }
+
+    @Test
+    fun testSplitByBlankPagesAndBookmarks() {
+        // 1. Test Split by Blank Pages
+        val blankTestPdf = tempFolder.newFile("split_blank_source.pdf")
+        val doc = PDDocument()
+        // Page 1: Has text
+        val p1 = PDPage()
+        doc.addPage(p1)
+        PDPageContentStream(doc, p1).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA, 14f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Chapter 1 Content")
+            cs.endText()
+        }
+        // Page 2: Completely blank divider
+        val p2 = PDPage()
+        doc.addPage(p2)
+        // Page 3: Has text
+        val p3 = PDPage()
+        doc.addPage(p3)
+        PDPageContentStream(doc, p3).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA, 14f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Chapter 2 Content")
+            cs.endText()
+        }
+        doc.save(blankTestPdf)
+        doc.close()
+
+        val splitDir = tempFolder.newFolder("blank_split_dir")
+        val splitFiles = DesktopPdfEngine.splitByBlankPages(blankTestPdf, splitDir)
+        assertTrue("Should produce 2 chapter PDFs separated by blank page", splitFiles.size == 2)
+
+        // 2. Test Split by Bookmarks
+        val bookmarkTestPdf = tempFolder.newFile("split_bookmark_source.pdf")
+        val bDoc = PDDocument()
+        val bp1 = PDPage()
+        val bp2 = PDPage()
+        val bp3 = PDPage()
+        bDoc.addPage(bp1)
+        bDoc.addPage(bp2)
+        bDoc.addPage(bp3)
+
+        val outline = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline()
+        bDoc.documentCatalog.documentOutline = outline
+        val item1 = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem().apply {
+            title = "Chapter 1"
+            destination = org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination().apply { page = bp1 }
+        }
+        outline.addLast(item1)
+        val item2 = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem().apply {
+            title = "Chapter 2"
+            destination = org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination().apply { page = bp2 }
+        }
+        outline.addLast(item2)
+        bDoc.save(bookmarkTestPdf)
+        bDoc.close()
+
+        val bookmarkSplitDir = tempFolder.newFolder("bookmark_split_dir")
+        val bmSplitFiles = DesktopPdfEngine.splitByBookmarks(bookmarkTestPdf, bookmarkSplitDir)
+        assertTrue("Should split into at least 2 bookmark chapters", bmSplitFiles.size >= 2)
+    }
+
+    @Test
+    fun testEmbeddedAttachments() {
+        val pdf = createTestPdf(pages = 1, text = "Portfolio Host")
+        val portfolioOut = tempFolder.newFile("portfolio.pdf")
+
+        // 1. Create a dummy file to embed
+        val embedTarget = tempFolder.newFile("dataset.csv")
+        embedTarget.writeText("id,name,role\n1,Alice,Admin\n2,Bob,User\n")
+
+        // 2. Embed into PDF
+        val embedOk = DesktopPdfEngine.embedAttachment(pdf, embedTarget, portfolioOut)
+        assertTrue(embedOk)
+        assertTrue(portfolioOut.exists() && portfolioOut.length() > 0)
+
+        // 3. List attachments
+        val attachments = DesktopPdfEngine.listAttachments(portfolioOut)
+        assertEquals(1, attachments.size)
+        assertEquals("dataset.csv", attachments[0].name)
+        assertTrue(attachments[0].sizeBytes > 0)
+
+        // 4. Extract attachment
+        val extractDir = tempFolder.newFolder("extracted_attachments")
+        val extractedFile = DesktopPdfEngine.extractAttachment(portfolioOut, "dataset.csv", extractDir)
+        assertNotNull(extractedFile)
+        assertTrue(extractedFile!!.exists())
+        assertEquals(embedTarget.readText(), extractedFile.readText())
+    }
 }
+
 

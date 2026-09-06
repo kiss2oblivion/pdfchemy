@@ -296,6 +296,53 @@ data class DesktopStrings(
     var cropApplyCurrent: String = "Apply to Current Page Only"
     var btnApplyCrop: String = "Crop Margins & Save"
     var cropSuccess: String = "Margins cropped successfully: %1\$s"
+
+    // 6. Corporate Paywall Crusher Round 2
+    // Table Extractor to CSV
+    var tabTableToCsv: String = "Extract Tables to CSV"
+    var tableToCsvDesc: String = "Extract tables, spreadsheets, and tabular forms to RFC 4180 CSV without losing data."
+    var btnExportCsv: String = "Export Table to .csv"
+    var btnCopyCsv: String = "Copy CSV to Clipboard"
+    var csvCopied: String = "CSV copied to clipboard!"
+    var csvExportSuccess: String = "CSV exported successfully: %1\$s"
+    var csvNoTablesFound: String = "No tabular structures detected on this page."
+    var csvPageFilter: String = "Page to Extract (All / Specific)"
+
+    // Auto-Deskew & Scanner Angle Straightener
+    var toolDeskewTitle: String = "Auto-Deskew & Straighten"
+    var toolDeskewDesc: String = "Detect scan tilt and rotate pages to perfect alignment losslessly."
+    var btnDeskewAll: String = "Straighten Crooked Pages"
+    var deskewSuccess: String = "Successfully straightened %1\$d crooked pages: %2\$s"
+    var deskewNoSkew: String = "All pages are already perfectly aligned (tilt < 0.3°)."
+
+    // Booklet Creator & N-Up Imposition Studio
+    var toolBookletTitle: String = "Booklet & N-Up Imposition"
+    var toolBookletDesc: String = "Create saddle-stitch folded booklets and 2-up / 4-up print imposition sheets."
+    var btnGenerateBooklet: String = "Generate Saddle-Stitch Booklet PDF"
+    var btnGenerateNUp2: String = "Generate 2-Up PDF (Side-by-Side)"
+    var btnGenerateNUp4: String = "Generate 4-Up PDF (4 per sheet)"
+    var bookletSuccess: String = "Booklet imposition generated: %1\$s"
+    var nupSuccess: String = "%1\$d-Up imposition generated: %2\$s"
+
+    // Batch Split by Blank Page Separators & Bookmarks
+    var splitModeBlank: String = "Split by Blank Page Separators"
+    var splitModeBookmarks: String = "Split by Bookmarks / Outlines"
+    var splitBlankDesc: String = "Automatically detects blank divider pages inserted in document batches and splits into separate PDFs."
+    var splitBookmarksDesc: String = "Splits document into chapters based on PDF bookmarks/outlines."
+    var splitSuccess: String = "Successfully split into %1\$d files: %2\$s"
+    var splitNoBookmarks: String = "No bookmarks found in this document."
+    var splitNoBlanks: String = "No blank divider pages detected in this document."
+
+    // Embedded File Attachments & Portfolio Studio
+    var secModeAttachments: String = "Embedded Attachments"
+    var secAttachmentsTitle: String = "Embedded Attachments & Portfolio Studio"
+    var secAttachmentsSubtitle: String = "Inspect, extract, or embed arbitrary files directly inside the PDF container."
+    var attachmentsCount: String = "%1\$d Embedded Attachments Found"
+    var btnEmbedFile: String = "Embed File into PDF"
+    var btnExtractAllAttachments: String = "Extract All Attachments"
+    var noAttachmentsFound: String = "No embedded file attachments found in this document."
+    var embedSuccess: String = "File embedded successfully: %1\$s"
+    var extractSuccess: String = "Attachments extracted to: %1\$s"
 }
 
 /**

@@ -63,6 +63,9 @@ import com.pdfchemy.desktop.engine.DesktopBatesPosition
 import com.pdfchemy.desktop.engine.DesktopSanitizeResult
 import com.pdfchemy.desktop.engine.DesktopRepairResult
 import com.pdfchemy.desktop.engine.DesktopCropConfig
+import com.pdfchemy.desktop.engine.DesktopAttachment
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -847,6 +850,9 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     val scope = rememberCoroutineScope()
 
     var showCropDialog by remember { mutableStateOf(false) }
+    var showBookletDialog by remember { mutableStateOf(false) }
+    var showSplitDialog by remember { mutableStateOf(false) }
+    var isDeskewing by remember { mutableStateOf(false) }
     var cropPresetIndex by remember { mutableStateOf(0) }
     var cropLeftPt by remember { mutableStateOf(28.35f) }
     var cropRightPt by remember { mutableStateOf(28.35f) }
@@ -1009,25 +1015,44 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                         Text("Reverse")
                     }
 
-                    OutlinedButton(onClick = {
-                        val targetDir = DesktopFileDialog.chooseDirectory() ?: return@OutlinedButton
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val created = DesktopPdfEngine.splitPdf(file, targetDir, splitEveryNPages = 1)
-                                withContext(Dispatchers.Main) {
-                                    lastSavedFile = targetDir
-                                    statusText = "Split ${file.name} into ${created.size} separate PDF pages in:\n${targetDir.absolutePath}"
-                                }
-                            } catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    statusText = "Split failed: ${e.message}"
+                    OutlinedButton(
+                        onClick = {
+                            if (isDeskewing) return@OutlinedButton
+                            val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_straightened.pdf") ?: return@OutlinedButton
+                            isDeskewing = true
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val count = DesktopPdfEngine.deskewDocument(file, outFile)
+                                    withContext(Dispatchers.Main) {
+                                        isDeskewing = false
+                                        lastSavedFile = outFile
+                                        statusText = if (count > 0) String.format(strings.deskewSuccess, count, outFile.absolutePath) else strings.deskewNoSkew
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isDeskewing = false
+                                        statusText = "Deskew error: ${e.message}"
+                                    }
                                 }
                             }
-                        }
-                    }) {
+                        },
+                        enabled = !isDeskewing
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isDeskewing) "Straightening..." else "Auto-Deskew")
+                    }
+
+                    OutlinedButton(onClick = { showBookletDialog = true }) {
+                        Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Booklet / N-Up")
+                    }
+
+                    OutlinedButton(onClick = { showSplitDialog = true }) {
                         Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Split to Folder")
+                        Text("Split Studio")
                     }
 
                     OutlinedButton(onClick = {
@@ -1671,6 +1696,286 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                 Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(strings.btnApplyCrop, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showBookletDialog && file != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(onClick = { showBookletDialog = false }),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(520.dp)
+                        .clickable(enabled = false, onClick = {}),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(strings.toolBookletTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text(strings.toolBookletDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { showBookletDialog = false }) {
+                                Icon(Icons.Rounded.Close, contentDescription = "Close")
+                            }
+                        }
+
+                        // Saddle-Stitch Booklet Option
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📖 Saddle-Stitch Folded Booklet", fontWeight = FontWeight.Bold)
+                                Text("Reorders pages so that printed sheets can be folded in half to create a reading booklet.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showBookletDialog = false
+                                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_booklet.pdf") ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                DesktopPdfEngine.generateBooklet(file, outFile)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = outFile
+                                                    statusText = String.format(strings.bookletSuccess, outFile.absolutePath)
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "Booklet failed: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(strings.btnGenerateBooklet)
+                                }
+                            }
+                        }
+
+                        // 2-Up Imposition Option
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📑 2-Up Imposition (Side-by-Side)", fontWeight = FontWeight.Bold)
+                                Text("Places 2 pages side-by-side onto landscape sheets. Saves 50% paper.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showBookletDialog = false
+                                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_2up.pdf") ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                DesktopPdfEngine.generateNUp(file, outFile, pagesPerSheet = 2)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = outFile
+                                                    statusText = String.format(strings.nupSuccess, 2, outFile.absolutePath)
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "2-Up failed: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(strings.btnGenerateNUp2)
+                                }
+                            }
+                        }
+
+                        // 4-Up Imposition Option
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📄 4-Up Imposition (4 per sheet)", fontWeight = FontWeight.Bold)
+                                Text("Places 4 pages in a 2x2 grid onto portrait sheets. Ideal for handouts and slides.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showBookletDialog = false
+                                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_4up.pdf") ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                DesktopPdfEngine.generateNUp(file, outFile, pagesPerSheet = 4)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = outFile
+                                                    statusText = String.format(strings.nupSuccess, 4, outFile.absolutePath)
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "4-Up failed: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(strings.btnGenerateNUp4)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showSplitDialog && file != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(onClick = { showSplitDialog = false }),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(520.dp)
+                        .clickable(enabled = false, onClick = {}),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Document Splitting Studio", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("Choose your splitting mode and destination directory", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { showSplitDialog = false }) {
+                                Icon(Icons.Rounded.Close, contentDescription = "Close")
+                            }
+                        }
+
+                        // Split Every Page
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📄 Split into Single Pages", fontWeight = FontWeight.Bold)
+                                Text("Creates a separate PDF file for every single page in the document.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showSplitDialog = false
+                                        val targetDir = DesktopFileDialog.chooseDirectory() ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                val created = DesktopPdfEngine.splitPdf(file, targetDir, splitEveryNPages = 1)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = targetDir
+                                                    statusText = String.format(strings.splitSuccess, created.size, targetDir.absolutePath)
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "Split failed: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Split Every Page")
+                                }
+                            }
+                        }
+
+                        // Split by Blank Pages
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("⬜ " + strings.splitModeBlank, fontWeight = FontWeight.Bold)
+                                Text(strings.splitBlankDesc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showSplitDialog = false
+                                        val targetDir = DesktopFileDialog.chooseDirectory() ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                val created = DesktopPdfEngine.splitByBlankPages(file, targetDir)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = targetDir
+                                                    statusText = if (created.isNotEmpty()) {
+                                                        String.format(strings.splitSuccess, created.size, targetDir.absolutePath)
+                                                    } else {
+                                                        strings.splitNoBlanks
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "Split by blank pages error: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Split by Blank Pages")
+                                }
+                            }
+                        }
+
+                        // Split by Bookmarks
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("📑 " + strings.splitModeBookmarks, fontWeight = FontWeight.Bold)
+                                Text(strings.splitBookmarksDesc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Button(
+                                    onClick = {
+                                        showSplitDialog = false
+                                        val targetDir = DesktopFileDialog.chooseDirectory() ?: return@Button
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                val created = DesktopPdfEngine.splitByBookmarks(file, targetDir)
+                                                withContext(Dispatchers.Main) {
+                                                    lastSavedFile = targetDir
+                                                    statusText = if (created.isNotEmpty()) {
+                                                        String.format(strings.splitSuccess, created.size, targetDir.absolutePath)
+                                                    } else {
+                                                        strings.splitNoBookmarks
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    statusText = "Split by bookmarks error: ${e.message}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Split by Bookmarks")
+                                }
                             }
                         }
                     }
@@ -3780,6 +4085,8 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     var statusText by remember { mutableStateOf<String?>(null) }
     var lastConvertedTarget by remember { mutableStateOf<File?>(null) }
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
+    var extractedCsvText by remember { mutableStateOf<String?>(null) }
+    var isExtractingCsv by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -4054,6 +4361,130 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(strings.btnConvertToPdfA, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // PDF Table to CSV Extractor Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(strings.tabTableToCsv, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(strings.tableToCsvDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Uses spatial 2D clustering to detect tabular boundaries, headers, and cell alignments without lossy cloud conversion. RFC 4180 compliant.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        isExtractingCsv = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val csv = DesktopPdfEngine.extractTablesToCsv(file)
+                                withContext(Dispatchers.Main) {
+                                    isExtractingCsv = false
+                                    extractedCsvText = csv
+                                    if (csv.isBlank()) {
+                                        statusText = strings.csvNoTablesFound
+                                    } else {
+                                        val lineCount = csv.lines().filter { it.isNotBlank() }.size
+                                        statusText = "Extracted $lineCount table rows from ${file.name}"
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isExtractingCsv = false
+                                    statusText = "Table extraction failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = file != null && !isExtractingCsv,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.GridView, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (isExtractingCsv) "Detecting & Extracting Tables..." else "Extract Tables to CSV", fontWeight = FontWeight.Bold)
+                }
+
+                if (!extractedCsvText.isNullOrBlank()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("CSV Data Preview:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp)
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = extractedCsvText!!.take(2000) + if (extractedCsvText!!.length > 2000) "\n... [truncated preview]" else "",
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(10.dp).verticalScroll(rememberScrollState())
+                                )
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = {
+                                    val outFile = DesktopFileDialog.saveCsv(suggestedName = "${file?.nameWithoutExtension ?: "extracted"}_table.csv") ?: return@Button
+                                    try {
+                                        outFile.writeText(extractedCsvText!!)
+                                        lastConvertedTarget = outFile
+                                        statusText = String.format(strings.csvExportSuccess, outFile.absolutePath)
+                                    } catch (e: Exception) {
+                                        statusText = "Export failed: ${e.message}"
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(strings.btnExportCsv)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    try {
+                                        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(extractedCsvText), null)
+                                        statusText = strings.csvCopied
+                                    } catch (e: Exception) {
+                                        statusText = "Copy failed: ${e.message}"
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(strings.btnCopyCsv)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -4614,6 +5045,8 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var purgeMetadataOpt by remember { mutableStateOf(true) }
     var purgeAttachments by remember { mutableStateOf(true) }
     var repairResult by remember { mutableStateOf<DesktopRepairResult?>(null) }
+    var attachmentsList by remember { mutableStateOf<List<DesktopAttachment>>(emptyList()) }
+    var isLoadingAttachments by remember { mutableStateOf(false) }
 
     var isProcessing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
@@ -4623,26 +5056,33 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     LaunchedEffect(file) {
         if (file != null && file.exists()) {
             isLoadingMetadata = true
+            isLoadingAttachments = true
             scope.launch(Dispatchers.IO) {
                 try {
                     val meta = DesktopPdfEngine.inspectMetadata(file)
                     val threats = DesktopPdfEngine.auditDocumentThreats(file)
+                    val atts = DesktopPdfEngine.listAttachments(file)
                     withContext(Dispatchers.Main) {
                         metadata = meta
                         threatAudit = threats
+                        attachmentsList = atts
                         isLoadingMetadata = false
+                        isLoadingAttachments = false
                     }
                 } catch (_: Exception) {
                     withContext(Dispatchers.Main) {
                         metadata = null
                         threatAudit = null
+                        attachmentsList = emptyList()
                         isLoadingMetadata = false
+                        isLoadingAttachments = false
                     }
                 }
             }
         } else {
             metadata = null
             threatAudit = null
+            attachmentsList = emptyList()
         }
     }
 
@@ -5135,6 +5575,183 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                         Icon(Icons.Rounded.FolderOpen, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Pick Damaged File")
+                    }
+                }
+            }
+        }
+
+        // 5. Embedded File Attachments & Portfolio Studio Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(strings.secAttachmentsTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            strings.secAttachmentsSubtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (attachmentsList.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            if (attachmentsList.isNotEmpty()) String.format(strings.attachmentsCount, attachmentsList.size) else "0 Attachments",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (attachmentsList.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (attachmentsList.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        attachmentsList.forEach { att ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(att.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            "${formatFileSize(att.sizeBytes)} • ${att.mimeType}${if (att.description != null) " • ${att.description}" else ""}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Button(
+                                        onClick = {
+                                            if (file == null) return@Button
+                                            val targetDir = DesktopFileDialog.chooseDirectory() ?: return@Button
+                                            scope.launch(Dispatchers.IO) {
+                                                try {
+                                                    val extracted = DesktopPdfEngine.extractAttachment(file, att.name, targetDir)
+                                                    withContext(Dispatchers.Main) {
+                                                        if (extracted != null) {
+                                                            lastSecurityFile = extracted
+                                                            statusText = "Extracted '${att.name}' to:\n${extracted.absolutePath}"
+                                                        } else {
+                                                            statusText = "Failed to extract '${att.name}'."
+                                                        }
+                                                    }
+                                                } catch (e: Exception) {
+                                                    withContext(Dispatchers.Main) {
+                                                        statusText = "Extraction error: ${e.message}"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Extract", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (file != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            strings.noAttachmentsFound,
+                            modifier = Modifier.padding(14.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            if (file == null) {
+                                statusText = "Please select a PDF document first."
+                                return@Button
+                            }
+                            val toEmbed = DesktopFileDialog.openAnyFile(title = "Select File to Embed into PDF") ?: return@Button
+                            val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_portfolio.pdf") ?: return@Button
+                            isProcessing = true
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val ok = DesktopPdfEngine.embedAttachment(file, toEmbed, outFile)
+                                    val updatedList = DesktopPdfEngine.listAttachments(outFile)
+                                    withContext(Dispatchers.Main) {
+                                        isProcessing = false
+                                        if (ok) {
+                                            lastSecurityFile = outFile
+                                            attachmentsList = updatedList
+                                            statusText = String.format(strings.embedSuccess, outFile.absolutePath)
+                                        } else {
+                                            statusText = "Failed to embed file."
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isProcessing = false
+                                        statusText = "Embed error: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = file != null && !isProcessing,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.btnEmbedFile, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (attachmentsList.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = {
+                                if (file == null) return@OutlinedButton
+                                val targetDir = DesktopFileDialog.chooseDirectory() ?: return@OutlinedButton
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        var count = 0
+                                        attachmentsList.forEach { att ->
+                                            val res = DesktopPdfEngine.extractAttachment(file, att.name, targetDir)
+                                            if (res != null) count++
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            lastSecurityFile = targetDir
+                                            statusText = String.format(strings.extractSuccess, targetDir.absolutePath)
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            statusText = "Batch extraction error: ${e.message}"
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(strings.btnExtractAllAttachments)
+                        }
                     }
                 }
             }
