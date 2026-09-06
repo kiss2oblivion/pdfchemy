@@ -83,6 +83,32 @@ object DesktopFileDialog {
     }
 
     /**
+     * Opens native file dialog to save a CSV file.
+     */
+    fun saveCsv(parent: Frame? = null, suggestedName: String = "extracted_tables.csv"): File? {
+        val dialog = FileDialog(parent, "Save CSV Spreadsheet", FileDialog.SAVE).apply {
+            file = if (suggestedName.lowercase().endsWith(".csv")) suggestedName else "$suggestedName.csv"
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        val target = File(dir, file)
+        return if (target.name.lowercase().endsWith(".csv")) target else File(dir, "${target.name}.csv")
+    }
+
+    /**
+     * Opens native file dialog to select any file for embedding as attachment.
+     */
+    fun openAnyFile(parent: Frame? = null, title: String = "Select File to Embed"): File? {
+        val dialog = FileDialog(parent, title, FileDialog.LOAD).apply {
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        return File(dir, file)
+    }
+
+    /**
      * Opens native directory chooser that works reliably across Windows, Linux, and macOS.
      */
     fun chooseDirectory(parent: Frame? = null): File? {
@@ -107,3 +133,4 @@ object DesktopFileDialog {
         }
     }
 }
+

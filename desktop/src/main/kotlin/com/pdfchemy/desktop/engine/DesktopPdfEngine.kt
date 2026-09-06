@@ -31,6 +31,13 @@ import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.pdmodel.common.PDMetadata
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkInfo
 import org.apache.pdfbox.pdmodel.graphics.color.PDOutputIntent
+import org.apache.pdfbox.multipdf.LayerUtility
+import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecification
+import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile
+import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode
+import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination
 import java.awt.BasicStroke
 import java.awt.Font
 import java.awt.RenderingHints
@@ -40,6 +47,7 @@ import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import javax.imageio.ImageIO
 
@@ -123,6 +131,14 @@ data class DesktopCropConfig(
     val rightPt: Float,
     val bottomPt: Float,
     val applyToAllPages: Boolean = true
+)
+
+// --- ATTACHMENT DATA MODELS ---
+data class DesktopAttachment(
+    val name: String,
+    val sizeBytes: Long,
+    val mimeType: String,
+    val description: String? = null
 )
 
 data class TextAnnotationItem(
@@ -1681,6 +1697,507 @@ object DesktopPdfEngine {
         } catch (e: Exception) {
             e.printStackTrace()
             DesktopCropConfig(28.35f, 28.35f, 28.35f, 28.35f) // 10mm fallback
+        }
+    }
+
+    // ==========================================
+    // 6. PDF TABLE & DATA EXTRACTOR TO CSV
+    // ==========================================
+
+    fun extractTablesToCsv(inputFile: File, pageIndex: Int? = null): String {
+        return PDDocument.load(inputFile).use { doc ->
+            val stripper = object : PDFTextStripper() {
+                init {
+                    sortByPosition = true
+                    wordSeparator = "\t"
+                }
+            }
+            if (pageIndex != null) {
+                stripper.startPage = pageIndex + 1
+                stripper.endPage = pageIndex + 1
+            }
+            val text = stripper.getText(doc)
+            val sb = StringBuilder()
+            val lines = text.lines()
+            for (line in lines) {
+                val trimmed = line.trim()
+                if (trimmed.isEmpty()) continue
+                val cells = trimmed.split(Regex("(\t| {2,})")).filter { it.isNotBlank() }
+                if (cells.isNotEmpty()) {
+                    val csvLine = cells.joinToString(",") { cell ->
+                        val clean = cell.trim()
+                        if (clean.contains(",") || clean.contains("\"") || clean.contains("\n")) {
+                            "\"" + clean.replace("\"", "\"\"") + "\""
+                        } else {
+                            clean
+                        }
+                    }
+                    sb.append(csvLine).append("\n")
+                }
+            }
+            sb.toString()
+        }
+    }
+
+    // ==========================================
+    // 7. AUTO-DESKEW & SCANNER STRAIGHTENER
+    // ==========================================
+
+    fun detectSkewAngle(image: BufferedImage): Float {
+        val targetWidth = 400
+        val scale = targetWidth.toFloat() / image.width.toFloat()
+        val targetHeight = (image.height * scale).toInt().coerceAtLeast(100)
+
+        val smallImg = BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_BYTE_GRAY)
+        val g = smallImg.createGraphics()
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        g.drawImage(image, 0, 0, targetWidth, targetHeight, null)
+        g.dispose()
+
+        // Extract non-white pixel coordinates (foreground text/lines)
+        val points = mutableListOf<Point2D.Float>()
+        for (y in 0 until targetHeight) {
+            for (x in 0 until targetWidth) {
+                val lum = (smallImg.raster.getSample(x, y, 0))
+                if (lum < 200) { // non-white text pixel
+                    points.add(Point2D.Float(x.toFloat(), y.toFloat()))
+                }
+            }
+        }
+        if (points.size < 50) return 0f // Not enough text to compute skew
+
+        var maxVariance = 0.0
+        var bestAngle = 0.0f
+
+        // Search angles from -15.0 deg to +15.0 deg in 0.5 deg steps
+        var angle = -15.0f
+        while (angle <= 15.0f) {
+            val rad = Math.toRadians(angle.toDouble())
+            val sinA = Math.sin(rad)
+            val cosA = Math.cos(rad)
+
+            // Histogram of projected y'
+            val hist = IntArray(targetHeight + 200)
+            val offset = 100
+            for (p in points) {
+                val yRot = ((-p.x * sinA + p.y * cosA) + offset).toInt()
+                if (yRot in hist.indices) {
+                    hist[yRot]++
+                }
+            }
+
+            // Compute variance of the histogram
+            var sum = 0.0
+            var sumSq = 0.0
+            var count = 0
+            for (h in hist) {
+                sum += h
+                sumSq += (h * h)
+                count++
+            }
+            val variance = (sumSq / count) - (sum / count) * (sum / count)
+            if (variance > maxVariance) {
+                maxVariance = variance
+                bestAngle = angle
+            }
+            angle += 0.5f
+        }
+
+        return bestAngle
+    }
+
+    fun deskewDocument(inputFile: File, outputFile: File, targetPages: Set<Int>? = null): Int {
+        PDDocument.load(inputFile).use { doc ->
+            val renderer = PDFRenderer(doc)
+            var deskewedCount = 0
+
+            for (i in 0 until doc.numberOfPages) {
+                if (targetPages != null && i !in targetPages) continue
+
+                val bimg = renderer.renderImageWithDPI(i, 100f)
+                val skewAngle = detectSkewAngle(bimg)
+
+                // If skew is significant (> 0.4 degrees)
+                if (Math.abs(skewAngle) >= 0.4f) {
+                    val page = doc.getPage(i)
+                    val mb = page.mediaBox
+                    val cx = mb.width / 2f
+                    val cy = mb.height / 2f
+                    val rad = Math.toRadians(-skewAngle.toDouble())
+
+                    // Prepend rotation transform around center
+                    PDPageContentStream(doc, page, PDPageContentStream.AppendMode.PREPEND, false).use { cs ->
+                        cs.saveGraphicsState()
+                        cs.transform(Matrix.getRotateInstance(rad, cx, cy))
+                    }
+                    // Append restore graphics state
+                    PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, false).use { cs ->
+                        cs.restoreGraphicsState()
+                    }
+                    deskewedCount++
+                }
+            }
+            doc.save(outputFile)
+            return deskewedCount
+        }
+    }
+
+    // ==========================================
+    // 8. BOOKLET CREATOR & N-UP IMPOSITION
+    // ==========================================
+
+    fun generateBooklet(inputFile: File, outputFile: File, drawFoldGuide: Boolean = true): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { srcDoc ->
+                val origPageCount = srcDoc.numberOfPages
+                if (origPageCount == 0) return false
+
+                val paddedTotal = Math.ceil(origPageCount / 4.0).toInt() * 4
+                val sheetCount = paddedTotal / 4
+
+                PDDocument().use { outDoc ->
+                    val layerUtil = LayerUtility(outDoc)
+                    val sheetWidth = 842f
+                    val sheetHeight = 595f
+                    val sheetRect = PDRectangle(sheetWidth, sheetHeight)
+                    val margin = 20f
+                    val halfWidth = (sheetWidth - (margin * 2)) / 2f
+                    val contentHeight = sheetHeight - (margin * 2)
+
+                    for (k in 0 until sheetCount) {
+                        // 1. Front sheet: Left = paddedTotal - 1 - 2k, Right = 2k
+                        val frontLeft = paddedTotal - 1 - (2 * k)
+                        val frontRight = 2 * k
+                        val frontPage = PDPage(sheetRect)
+                        outDoc.addPage(frontPage)
+
+                        PDPageContentStream(outDoc, frontPage).use { cs ->
+                            if (frontLeft < origPageCount) {
+                                drawImportedPage(srcDoc, layerUtil, cs, frontLeft, margin, margin, halfWidth - 8f, contentHeight)
+                            }
+                            if (frontRight < origPageCount) {
+                                drawImportedPage(srcDoc, layerUtil, cs, frontRight, margin + halfWidth + 8f, margin, halfWidth - 8f, contentHeight)
+                            }
+                            if (drawFoldGuide) {
+                                drawCenterFoldGuide(cs, sheetWidth / 2f, margin, sheetHeight - margin)
+                            }
+                        }
+
+                        // 2. Back sheet: Left = 2k + 1, Right = paddedTotal - 1 - (2k + 1)
+                        val backLeft = (2 * k) + 1
+                        val backRight = paddedTotal - 1 - ((2 * k) + 1)
+                        val backPage = PDPage(sheetRect)
+                        outDoc.addPage(backPage)
+
+                        PDPageContentStream(outDoc, backPage).use { cs ->
+                            if (backLeft < origPageCount) {
+                                drawImportedPage(srcDoc, layerUtil, cs, backLeft, margin, margin, halfWidth - 8f, contentHeight)
+                            }
+                            if (backRight < origPageCount) {
+                                drawImportedPage(srcDoc, layerUtil, cs, backRight, margin + halfWidth + 8f, margin, halfWidth - 8f, contentHeight)
+                            }
+                            if (drawFoldGuide) {
+                                drawCenterFoldGuide(cs, sheetWidth / 2f, margin, sheetHeight - margin)
+                            }
+                        }
+                    }
+                    outDoc.save(outputFile)
+                }
+                true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun generateNUp(inputFile: File, outputFile: File, pagesPerSheet: Int = 2): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { srcDoc ->
+                val totalPages = srcDoc.numberOfPages
+                if (totalPages == 0) return false
+
+                PDDocument().use { outDoc ->
+                    val layerUtil = LayerUtility(outDoc)
+
+                    if (pagesPerSheet == 2) {
+                        // 2 pages per sheet -> Landscape A4 (842 x 595)
+                        val sheetW = 842f
+                        val sheetH = 595f
+                        val margin = 20f
+                        val halfW = (sheetW - margin * 2) / 2f
+                        val contentH = sheetH - margin * 2
+
+                        var i = 0
+                        while (i < totalPages) {
+                            val sheetPage = PDPage(PDRectangle(sheetW, sheetH))
+                            outDoc.addPage(sheetPage)
+
+                            PDPageContentStream(outDoc, sheetPage).use { cs ->
+                                drawImportedPage(srcDoc, layerUtil, cs, i, margin, margin, halfW - 6f, contentH)
+                                if (i + 1 < totalPages) {
+                                    drawImportedPage(srcDoc, layerUtil, cs, i + 1, margin + halfW + 6f, margin, halfW - 6f, contentH)
+                                }
+                            }
+                            i += 2
+                        }
+                    } else {
+                        // 4 pages per sheet -> Portrait A4 (595 x 842)
+                        val sheetW = 595f
+                        val sheetH = 842f
+                        val margin = 16f
+                        val halfW = (sheetW - margin * 2) / 2f
+                        val halfH = (sheetH - margin * 2) / 2f
+
+                        var i = 0
+                        while (i < totalPages) {
+                            val sheetPage = PDPage(PDRectangle(sheetW, sheetH))
+                            outDoc.addPage(sheetPage)
+
+                            PDPageContentStream(outDoc, sheetPage).use { cs ->
+                                if (i < totalPages) drawImportedPage(srcDoc, layerUtil, cs, i, margin, margin + halfH, halfW - 4f, halfH - 4f)
+                                if (i + 1 < totalPages) drawImportedPage(srcDoc, layerUtil, cs, i + 1, margin + halfW, margin + halfH, halfW - 4f, halfH - 4f)
+                                if (i + 2 < totalPages) drawImportedPage(srcDoc, layerUtil, cs, i + 2, margin, margin, halfW - 4f, halfH - 4f)
+                                if (i + 3 < totalPages) drawImportedPage(srcDoc, layerUtil, cs, i + 3, margin + halfW, margin, halfW - 4f, halfH - 4f)
+                            }
+                            i += 4
+                        }
+                    }
+                    outDoc.save(outputFile)
+                }
+                true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private fun drawImportedPage(
+        srcDoc: PDDocument,
+        layerUtil: LayerUtility,
+        cs: PDPageContentStream,
+        pageIndex: Int,
+        x: Float,
+        y: Float,
+        availW: Float,
+        availH: Float
+    ) {
+        val form = layerUtil.importPageAsForm(srcDoc, pageIndex)
+        val origW = form.bBox.width
+        val origH = form.bBox.height
+        val scale = Math.min(availW / origW, availH / origH)
+
+        val finalW = origW * scale
+        val finalH = origH * scale
+        val offsetX = x + (availW - finalW) / 2f
+        val offsetY = y + (availH - finalH) / 2f
+
+        cs.saveGraphicsState()
+        cs.transform(Matrix.getTranslateInstance(offsetX, offsetY))
+        cs.transform(Matrix.getScaleInstance(scale, scale))
+        cs.drawForm(form)
+        cs.restoreGraphicsState()
+    }
+
+    private fun drawCenterFoldGuide(cs: PDPageContentStream, x: Float, topY: Float, bottomY: Float) {
+        cs.saveGraphicsState()
+        cs.setStrokingColor(180, 180, 180)
+        cs.setLineWidth(0.5f)
+        cs.setLineDashPattern(floatArrayOf(4f, 4f), 0f)
+        cs.moveTo(x, topY)
+        cs.lineTo(x, bottomY)
+        cs.stroke()
+        cs.restoreGraphicsState()
+    }
+
+    // ==========================================
+    // 9. BATCH SPLIT BY BLANK PAGES & BOOKMARKS
+    // ==========================================
+
+    fun splitByBlankPages(inputFile: File, outputDir: File, whiteThreshold: Float = 0.999f): List<File> {
+        val outputFiles = mutableListOf<File>()
+        outputDir.mkdirs()
+
+        PDDocument.load(inputFile).use { doc ->
+            val totalPages = doc.numberOfPages
+            if (totalPages == 0) return emptyList()
+
+            val renderer = PDFRenderer(doc)
+            val splitGroups = mutableListOf<MutableList<Int>>()
+            var currentGroup = mutableListOf<Int>()
+
+            for (i in 0 until totalPages) {
+                val bimg = renderer.renderImageWithDPI(i, 36f)
+                val w = bimg.width
+                val h = bimg.height
+                var nonWhitePixels = 0
+                val totalPixels = w * h
+
+                for (y in 0 until h) {
+                    for (x in 0 until w) {
+                        val rgb = bimg.getRGB(x, y)
+                        val r = (rgb shr 16) and 0xFF
+                        val g = (rgb shr 8) and 0xFF
+                        val b = rgb and 0xFF
+                        if (r < 240 || g < 240 || b < 240) {
+                            nonWhitePixels++
+                        }
+                    }
+                }
+
+                val whiteRatio = (totalPixels - nonWhitePixels).toFloat() / totalPixels.toFloat()
+                val isBlank = whiteRatio >= whiteThreshold
+
+                if (isBlank) {
+                    if (currentGroup.isNotEmpty()) {
+                        splitGroups.add(currentGroup)
+                        currentGroup = mutableListOf()
+                    }
+                } else {
+                    currentGroup.add(i)
+                }
+            }
+            if (currentGroup.isNotEmpty()) {
+                splitGroups.add(currentGroup)
+            }
+
+            for ((idx, group) in splitGroups.withIndex()) {
+                val outFile = File(outputDir, "${inputFile.nameWithoutExtension}_part_${idx + 1}.pdf")
+                PDDocument().use { subDoc ->
+                    for (pIdx in group) {
+                        subDoc.importPage(doc.getPage(pIdx))
+                    }
+                    subDoc.save(outFile)
+                }
+                outputFiles.add(outFile)
+            }
+        }
+        return outputFiles
+    }
+
+    fun splitByBookmarks(inputFile: File, outputDir: File): List<File> {
+        val outputFiles = mutableListOf<File>()
+        outputDir.mkdirs()
+
+        PDDocument.load(inputFile).use { doc ->
+            val outline = doc.documentCatalog.documentOutline
+            if (outline == null || outline.firstChild == null) {
+                return emptyList()
+            }
+
+            val bookmarks = mutableListOf<Pair<String, Int>>()
+            var item: PDOutlineItem? = outline.firstChild
+            while (item != null) {
+                val title = item.title?.replace(Regex("[^a-zA-Z0-9_\\-]"), "_") ?: "Chapter"
+                val dest = item.destination
+                val page = if (dest is PDPageDestination) dest.page else null
+                val pIdx = if (page != null) doc.pages.indexOf(page).coerceAtLeast(0) else 0
+                bookmarks.add(title to pIdx)
+                item = item.nextSibling
+            }
+
+            if (bookmarks.isEmpty()) return emptyList()
+
+            for (i in 0 until bookmarks.size) {
+                val (title, startPage) = bookmarks[i]
+                val endPage = if (i + 1 < bookmarks.size) bookmarks[i + 1].second else doc.numberOfPages
+                if (startPage >= endPage && endPage > 0) continue
+
+                val outFile = File(outputDir, "${inputFile.nameWithoutExtension}_${i + 1}_$title.pdf")
+                PDDocument().use { subDoc ->
+                    for (p in startPage until endPage) {
+                        subDoc.addPage(subDoc.importPage(doc.getPage(p)))
+                    }
+                    subDoc.save(outFile)
+                }
+                outputFiles.add(outFile)
+            }
+        }
+        return outputFiles
+    }
+
+    // ==========================================
+    // 10. EMBEDDED FILE ATTACHMENTS & PORTFOLIO
+    // ==========================================
+
+    fun listAttachments(inputFile: File): List<DesktopAttachment> {
+        val list = mutableListOf<DesktopAttachment>()
+        PDDocument.load(inputFile).use { doc ->
+            val names = doc.documentCatalog.names
+            val embeddedFiles = names?.embeddedFiles
+            if (embeddedFiles != null) {
+                val map = embeddedFiles.names ?: emptyMap()
+                for ((key, spec) in map) {
+                    if (spec is PDComplexFileSpecification) {
+                        val ef = spec.embeddedFile
+                        val size = ef?.size?.toLong() ?: 0L
+                        val mime = ef?.subtype ?: "application/octet-stream"
+                        val name = spec.filename ?: key
+                        list.add(DesktopAttachment(name = name, sizeBytes = size, mimeType = mime))
+                    }
+                }
+            }
+        }
+        return list
+    }
+
+    fun extractAttachment(inputFile: File, attachmentName: String, outputDir: File): File? {
+        outputDir.mkdirs()
+        PDDocument.load(inputFile).use { doc ->
+            val names = doc.documentCatalog.names
+            val embeddedFiles = names?.embeddedFiles ?: return null
+            val map = embeddedFiles.names ?: return null
+
+            for ((key, spec) in map) {
+                if (spec is PDComplexFileSpecification) {
+                    val name = spec.filename ?: key
+                    if (name.equals(attachmentName, ignoreCase = true)) {
+                        val ef = spec.embeddedFile ?: return null
+                        val outFile = File(outputDir, name)
+                        ef.createInputStream().use { ins ->
+                            outFile.writeBytes(ins.readBytes())
+                        }
+                        return outFile
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    fun embedAttachment(inputFile: File, attachmentFile: File, outputFile: File): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                var names = doc.documentCatalog.names
+                if (names == null) {
+                    names = PDDocumentNameDictionary(doc.documentCatalog)
+                    doc.documentCatalog.names = names
+                }
+
+                var embeddedFiles = names.embeddedFiles
+                if (embeddedFiles == null) {
+                    embeddedFiles = PDEmbeddedFilesNameTreeNode()
+                    names.embeddedFiles = embeddedFiles
+                }
+
+                val currentMap = (embeddedFiles.names ?: mutableMapOf()).toMutableMap()
+                val fs = PDComplexFileSpecification()
+                fs.file = attachmentFile.name
+                FileInputStream(attachmentFile).use { fis ->
+                    val ef = PDEmbeddedFile(doc, fis)
+                    ef.size = attachmentFile.length().toInt()
+                    fs.embeddedFile = ef
+                }
+                currentMap[attachmentFile.name] = fs
+                embeddedFiles.names = currentMap
+
+                doc.save(outputFile)
+                true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
     }
 }
