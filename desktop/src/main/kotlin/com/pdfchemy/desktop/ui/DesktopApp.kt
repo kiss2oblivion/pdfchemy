@@ -58,6 +58,11 @@ import com.pdfchemy.desktop.engine.AcroFieldType
 import com.pdfchemy.desktop.engine.DesktopAcroField
 import com.pdfchemy.desktop.engine.PageDiff
 import com.pdfchemy.desktop.engine.PdfDiffSummary
+import com.pdfchemy.desktop.engine.DesktopBatesConfig
+import com.pdfchemy.desktop.engine.DesktopBatesPosition
+import com.pdfchemy.desktop.engine.DesktopSanitizeResult
+import com.pdfchemy.desktop.engine.DesktopRepairResult
+import com.pdfchemy.desktop.engine.DesktopCropConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -841,6 +846,15 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     var lastSavedFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
+    var showCropDialog by remember { mutableStateOf(false) }
+    var cropPresetIndex by remember { mutableStateOf(0) }
+    var cropLeftPt by remember { mutableStateOf(28.35f) }
+    var cropRightPt by remember { mutableStateOf(28.35f) }
+    var cropTopPt by remember { mutableStateOf(28.35f) }
+    var cropBottomPt by remember { mutableStateOf(28.35f) }
+    var cropApplyToAll by remember { mutableStateOf(true) }
+    var isDetectingCrop by remember { mutableStateOf(false) }
+
     LaunchedEffect(file) {
         selectedPageIndices = emptySet()
         if (file != null) {
@@ -880,11 +894,12 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
         try { focusRequester.requestFocus() } catch (_: Exception) {}
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .focusRequester(focusRequester)
-            .focusable()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
+                .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when {
@@ -1013,6 +1028,14 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                         Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Split to Folder")
+                    }
+
+                    OutlinedButton(onClick = {
+                        showCropDialog = true
+                    }) {
+                        Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.toolCropTitle)
                     }
 
                     Button(
@@ -1432,6 +1455,222 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                 } else {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+        if (showCropDialog && file != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(onClick = { showCropDialog = false }),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .width(520.dp)
+                        .clickable(enabled = false, onClick = {})
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Rounded.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(strings.toolCropTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(strings.toolCropDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { showCropDialog = false }) {
+                                Text("✕", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Presets Row
+                        Text("Presets", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            FilterChip(
+                                selected = cropPresetIndex == 1,
+                                onClick = {
+                                    cropPresetIndex = 1
+                                    cropLeftPt = 28.35f
+                                    cropRightPt = 28.35f
+                                    cropTopPt = 28.35f
+                                    cropBottomPt = 28.35f
+                                },
+                                label = { Text(strings.cropPreset10mm, fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = cropPresetIndex == 2,
+                                onClick = {
+                                    cropPresetIndex = 2
+                                    cropLeftPt = 42.52f
+                                    cropRightPt = 42.52f
+                                    cropTopPt = 42.52f
+                                    cropBottomPt = 42.52f
+                                },
+                                label = { Text(strings.cropPreset15mm, fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = cropPresetIndex == 3,
+                                onClick = {
+                                    cropPresetIndex = 3
+                                    cropLeftPt = 56.69f
+                                    cropRightPt = 56.69f
+                                    cropTopPt = 56.69f
+                                    cropBottomPt = 56.69f
+                                },
+                                label = { Text(strings.cropPreset20mm, fontSize = 11.sp) }
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                isDetectingCrop = true
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        val firstSelected = selectedPageIndices.minOrNull() ?: 0
+                                        val detected = DesktopPdfEngine.detectContentCrop(file, pageIndex = firstSelected)
+                                        withContext(Dispatchers.Main) {
+                                            cropPresetIndex = 0
+                                            cropLeftPt = detected.leftPt
+                                            cropRightPt = detected.rightPt
+                                            cropTopPt = detected.topPt
+                                            cropBottomPt = detected.bottomPt
+                                            isDetectingCrop = false
+                                        }
+                                    } catch (_: Exception) {
+                                        withContext(Dispatchers.Main) { isDetectingCrop = false }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isDetectingCrop
+                        ) {
+                            Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isDetectingCrop) "Detecting content margins..." else strings.cropPresetAuto)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = "%.1f".format(cropLeftPt),
+                                onValueChange = {
+                                    cropLeftPt = it.toFloatOrNull() ?: cropLeftPt
+                                    cropPresetIndex = 0
+                                },
+                                label = { Text("Left (pt)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = "%.1f".format(cropTopPt),
+                                onValueChange = {
+                                    cropTopPt = it.toFloatOrNull() ?: cropTopPt
+                                    cropPresetIndex = 0
+                                },
+                                label = { Text("Top (pt)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = "%.1f".format(cropRightPt),
+                                onValueChange = {
+                                    cropRightPt = it.toFloatOrNull() ?: cropRightPt
+                                    cropPresetIndex = 0
+                                },
+                                label = { Text("Right (pt)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = "%.1f".format(cropBottomPt),
+                                onValueChange = {
+                                    cropBottomPt = it.toFloatOrNull() ?: cropBottomPt
+                                    cropPresetIndex = 0
+                                },
+                                label = { Text("Bottom (pt)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = cropApplyToAll,
+                                onCheckedChange = { cropApplyToAll = it }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (cropApplyToAll || selectedPageIndices.isEmpty())
+                                    strings.cropApplyAll
+                                else
+                                    strings.cropApplyCurrent,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = { showCropDialog = false }) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    showCropDialog = false
+                                    val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_cropped.pdf") ?: return@Button
+                                    val config = DesktopCropConfig(
+                                        leftPt = cropLeftPt,
+                                        topPt = cropTopPt,
+                                        rightPt = cropRightPt,
+                                        bottomPt = cropBottomPt,
+                                        applyToAllPages = cropApplyToAll || selectedPageIndices.isEmpty()
+                                    )
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            DesktopPdfEngine.cropMargins(file, outFile, config)
+                                            withContext(Dispatchers.Main) {
+                                                lastSavedFile = outFile
+                                                statusText = strings.cropSuccess.format(outFile.name) + "\n${outFile.absolutePath}"
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                statusText = "Crop failed: ${e.message}"
+                                            }
+                                        }
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Rounded.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(strings.btnApplyCrop, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -2029,7 +2268,7 @@ private fun MergeView() {
 // -------------------------------------------------------------------------------------------------
 // 3B. SIGN & STAMP VIEW (DIGITAL SIGNATURES, PNG SEALS & BUSINESS STAMPS)
 // -------------------------------------------------------------------------------------------------
-private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE, ACRO_FORM }
+private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE, ACRO_FORM, BATES }
 private enum class FormAnnotationTool { TEXT, CHECK, CROSS, DATE }
 
 private enum class SignStampPos(val xRatio: Float, val yRatio: Float) {
@@ -2159,6 +2398,13 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     val acroFormValues = remember(file) { mutableStateMapOf<String, String>() }
     var flattenOnSave by remember { mutableStateOf(true) }
 
+    // Legal Bates Stamping states
+    var batesPrefix by remember { mutableStateOf("CASE-2026-") }
+    var batesSuffix by remember { mutableStateOf("") }
+    var batesStartNum by remember { mutableStateOf(1) }
+    var batesDigits by remember { mutableStateOf(6) }
+    var batesPosition by remember { mutableStateOf(DesktopBatesPosition.BOTTOM_RIGHT) }
+
     LaunchedEffect(file) {
         withContext(Dispatchers.IO) {
             try {
@@ -2282,7 +2528,8 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             Triple(SignTabMode.UPLOAD, strings.modeUpload, Icons.Rounded.CloudUpload),
                             Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield),
                             Triple(SignTabMode.TYPE, strings.modeType, Icons.AutoMirrored.Rounded.Notes),
-                            Triple(SignTabMode.ACRO_FORM, strings.modeAcroForm, Icons.Rounded.PictureAsPdf)
+                            Triple(SignTabMode.ACRO_FORM, strings.modeAcroForm, Icons.Rounded.PictureAsPdf),
+                            Triple(SignTabMode.BATES, strings.modeBates, Icons.Rounded.Straighten)
                         ).forEach { (mode, label, icon) ->
                             val isSel = selectedMode == mode
                             FilledTonalButton(
@@ -2293,11 +2540,11 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                     containerColor = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     contentColor = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                 ),
-                                contentPadding = PaddingValues(horizontal = 8.dp)
+                                contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(label, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium)
+                                Icon(icon, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(label, fontSize = 10.5.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -2763,6 +3010,97 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         }
                     }
 
+                    // Mode 6: LEGAL BATES STAMPING
+                    if (selectedMode == SignTabMode.BATES) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(strings.modeBates, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Sequential legal numbering across all pages with zero-padding and customizable placement.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OutlinedTextField(
+                                    value = batesPrefix,
+                                    onValueChange = { batesPrefix = it },
+                                    label = { Text(strings.batesPrefix, fontSize = 11.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = batesSuffix,
+                                    onValueChange = { batesSuffix = it },
+                                    label = { Text(strings.batesSuffix, fontSize = 11.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                            }
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                OutlinedTextField(
+                                    value = batesStartNum.toString(),
+                                    onValueChange = { batesStartNum = it.toIntOrNull() ?: 1 },
+                                    label = { Text(strings.batesStartNum, fontSize = 11.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = batesDigits.toString(),
+                                    onValueChange = { batesDigits = (it.toIntOrNull() ?: 6).coerceIn(1, 10) },
+                                    label = { Text(strings.batesDigits, fontSize = 11.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                            }
+
+                            Text("Bates Placement:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    Pair(DesktopBatesPosition.BOTTOM_RIGHT, "Bottom Right"),
+                                    Pair(DesktopBatesPosition.BOTTOM_CENTER, "Bottom Center"),
+                                    Pair(DesktopBatesPosition.BOTTOM_LEFT, "Bottom Left")
+                                ).forEach { (pos, label) ->
+                                    FilterChip(
+                                        selected = batesPosition == pos,
+                                        onClick = { batesPosition = pos },
+                                        label = { Text(label, fontSize = 10.sp) }
+                                    )
+                                }
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    Pair(DesktopBatesPosition.TOP_RIGHT, "Top Right"),
+                                    Pair(DesktopBatesPosition.TOP_CENTER, "Top Center"),
+                                    Pair(DesktopBatesPosition.TOP_LEFT, "Top Left")
+                                ).forEach { (pos, label) ->
+                                    FilterChip(
+                                        selected = batesPosition == pos,
+                                        onClick = { batesPosition = pos },
+                                        label = { Text(label, fontSize = 10.sp) }
+                                    )
+                                }
+                            }
+
+                            val sampleNum = "%0${batesDigits}d".format(batesStartNum)
+                            val sampleText = "$batesPrefix$sampleNum$batesSuffix"
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(strings.batesPreviewSample.format(sampleText), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                    Text("Applies to all $totalPages pages", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                     // PAGE & POSITION CONTROLS
@@ -2795,7 +3133,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             }
                         }
 
-                        if (selectedMode != SignTabMode.TYPE && selectedMode != SignTabMode.ACRO_FORM) {
+                        if (selectedMode != SignTabMode.TYPE && selectedMode != SignTabMode.ACRO_FORM && selectedMode != SignTabMode.BATES) {
                             // Position Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -2953,10 +3291,51 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         SignTabMode.STAMP -> true
                         SignTabMode.TYPE -> placedAnnotations.isNotEmpty() || enableWatermark || enablePageNumbers
                         SignTabMode.ACRO_FORM -> acroFields.isNotEmpty()
+                        SignTabMode.BATES -> true
                     }
 
                     Button(
                         onClick = {
+                            if (selectedMode == SignTabMode.BATES) {
+                                val target = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_bates.pdf")
+                                if (target != null) {
+                                    isProcessing = true
+                                    statusText = null
+                                    isError = false
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            val config = DesktopBatesConfig(
+                                                prefix = batesPrefix,
+                                                suffix = batesSuffix,
+                                                startNumber = batesStartNum,
+                                                digits = batesDigits,
+                                                position = batesPosition,
+                                                fontSize = 10f
+                                            )
+                                            val ok = DesktopPdfEngine.applyBatesStamping(file, target, config)
+                                            withContext(Dispatchers.Main) {
+                                                isProcessing = false
+                                                if (ok && target.exists() && target.length() > 0) {
+                                                    signedFile = target
+                                                    statusText = strings.batesSuccess.format(target.name)
+                                                    isError = false
+                                                } else {
+                                                    statusText = "Failed to apply Bates numbering."
+                                                    isError = true
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                isProcessing = false
+                                                statusText = "Error: ${e.message}"
+                                                isError = true
+                                            }
+                                        }
+                                    }
+                                }
+                                return@Button
+                            }
+
                             if (selectedMode == SignTabMode.ACRO_FORM) {
                                 val defaultName = if (flattenOnSave) "${file.nameWithoutExtension}_flattened.pdf" else "${file.nameWithoutExtension}_filled.pdf"
                                 val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
@@ -3133,6 +3512,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                 when (selectedMode) {
                                     SignTabMode.TYPE -> strings.btnAnnotateAndSave
                                     SignTabMode.ACRO_FORM -> if (flattenOnSave) strings.btnFlattenForm else "Save Form Data"
+                                    SignTabMode.BATES -> strings.btnApplyBates
                                     else -> strings.btnSignAndSave
                                 },
                                 fontWeight = FontWeight.Bold,
@@ -3315,6 +3695,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                         SignTabMode.UPLOAD -> "🖼️ Seal"
                                         SignTabMode.STAMP -> selectedStamp.title
                                         SignTabMode.ACRO_FORM -> "📋 Form"
+                                        SignTabMode.BATES -> "⚖️ $batesPrefix${"%0${batesDigits}d".format(batesStartNum)}$batesSuffix"
                                         else -> ""
                                     },
                                     fontSize = 10.sp,
@@ -3608,6 +3989,71 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Extract Plain Text")
+                }
+            }
+        }
+
+        // PDF to PDF/A-1b Archival Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(strings.tabPdfToPdfA, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(strings.pdfaDescription, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Compliant with ISO 19005-1 (PDF/A-1b). Embeds standard device-independent sRGB OutputIntent and compliant XMP pdfaid metadata.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_pdfa.pdf") ?: return@Button
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val ok = DesktopPdfEngine.convertToPdfA(file, outFile)
+                                withContext(Dispatchers.Main) {
+                                    if (ok) {
+                                        lastConvertedTarget = outFile
+                                        statusText = strings.pdfaSuccess.format(outFile.absolutePath)
+                                    } else {
+                                        statusText = "PDF/A conversion failed."
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Conversion error: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = file != null,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(strings.btnConvertToPdfA, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -4163,6 +4609,12 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var metadata by remember { mutableStateOf<DesktopPdfMetadata?>(null) }
     var isLoadingMetadata by remember { mutableStateOf(false) }
 
+    var threatAudit by remember { mutableStateOf<DesktopSanitizeResult?>(null) }
+    var purgeJs by remember { mutableStateOf(true) }
+    var purgeMetadataOpt by remember { mutableStateOf(true) }
+    var purgeAttachments by remember { mutableStateOf(true) }
+    var repairResult by remember { mutableStateOf<DesktopRepairResult?>(null) }
+
     var isProcessing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
     var lastSecurityFile by remember { mutableStateOf<File?>(null) }
@@ -4174,19 +4626,23 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
             scope.launch(Dispatchers.IO) {
                 try {
                     val meta = DesktopPdfEngine.inspectMetadata(file)
+                    val threats = DesktopPdfEngine.auditDocumentThreats(file)
                     withContext(Dispatchers.Main) {
                         metadata = meta
+                        threatAudit = threats
                         isLoadingMetadata = false
                     }
                 } catch (_: Exception) {
                     withContext(Dispatchers.Main) {
                         metadata = null
+                        threatAudit = null
                         isLoadingMetadata = false
                     }
                 }
             }
         } else {
             metadata = null
+            threatAudit = null
         }
     }
 
@@ -4256,7 +4712,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
             }
         }
 
-        // 1. Metadata Inspector & Privacy Stripper Card
+        // 1. Deep Document Sanitizer & Threat Scrubber Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -4269,28 +4725,29 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(strings.inspectMetadata, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(strings.sanitizeTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text(
-                            "Inspect and permanently strip hidden author details, software fingerprints, and tracking XMP packets.",
+                            strings.sanitizeSubtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    val threatsCount = threatAudit?.threatsFound ?: 0
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = if (metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else Color(0xFF00E676).copy(alpha = 0.15f)
+                        color = if (threatsCount > 0 || metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else Color(0xFF00E676).copy(alpha = 0.15f)
                     ) {
                         Text(
-                            if (metadata?.hasAnyMetadata == true) "Metadata Detected" else "Clean / Unset",
+                            if (threatsCount > 0) "$threatsCount Threat(s) Detected" else if (metadata?.hasAnyMetadata == true) "Metadata Present" else "Clean Document",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error else Color(0xFF00C853)
+                            color = if (threatsCount > 0 || metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error else Color(0xFF00C853)
                         )
                     }
                 }
 
-                if (file != null && metadata != null) {
+                if (file != null && (threatAudit != null || metadata != null)) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                         shape = RoundedCornerShape(12.dp),
@@ -4298,26 +4755,37 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Author:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(metadata?.author ?: "(None / Anonymous)", style = MaterialTheme.typography.bodySmall, fontWeight = if (metadata?.author != null) FontWeight.Bold else FontWeight.Normal)
+                                Text("JavaScript Code Hooks:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if ((threatAudit?.jsCount ?: 0) > 0) "⚠️ ${threatAudit?.jsCount} Detected" else "✓ Clean", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Title / Subject:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(metadata?.title ?: metadata?.subject ?: "(None)", style = MaterialTheme.typography.bodySmall)
+                                Text("Launch & Form Actions:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if ((threatAudit?.launchActionsCount ?: 0) > 0) "⚠️ ${threatAudit?.launchActionsCount} Detected" else "✓ Clean", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Software / Creator:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(metadata?.creator ?: metadata?.producer ?: "(None)", style = MaterialTheme.typography.bodySmall)
+                                Text("Embedded File Attachments:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if ((threatAudit?.attachmentsPurged ?: 0) > 0) "⚠️ ${threatAudit?.attachmentsPurged} Embedded" else "✓ None", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Creation Date:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(metadata?.creationDate ?: "(None)", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("XMP Package:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(if (metadata?.hasXmpMetadata == true) "Present (Embedded)" else "None", style = MaterialTheme.typography.bodySmall)
+                                Text("Author & Software Trackers:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(metadata?.author ?: metadata?.creator ?: if (metadata?.hasAnyMetadata == true) "Present" else "✓ Anonymous", style = MaterialTheme.typography.bodySmall)
                             }
                         }
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = purgeJs, onCheckedChange = { purgeJs = it })
+                        Text("Purge JS & Launch", fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = purgeMetadataOpt, onCheckedChange = { purgeMetadataOpt = it })
+                        Text("Wipe Metadata & UUIDs", fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = purgeAttachments, onCheckedChange = { purgeAttachments = it })
+                        Text("Strip Attachments", fontSize = 11.sp)
                     }
                 }
 
@@ -4331,18 +4799,27 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                         isProcessing = true
                         scope.launch(Dispatchers.IO) {
                             try {
-                                DesktopPdfEngine.stripMetadata(file, outFile)
+                                DesktopPdfEngine.sanitizeDocument(
+                                    inputFile = file,
+                                    outputFile = outFile,
+                                    purgeJs = purgeJs,
+                                    purgeActions = purgeJs,
+                                    purgeMetadata = purgeMetadataOpt,
+                                    purgeAttachments = purgeAttachments
+                                )
                                 val newMeta = DesktopPdfEngine.inspectMetadata(outFile)
+                                val newThreats = DesktopPdfEngine.auditDocumentThreats(outFile)
                                 withContext(Dispatchers.Main) {
                                     isProcessing = false
                                     metadata = newMeta
+                                    threatAudit = newThreats
                                     lastSecurityFile = outFile
-                                    statusText = "All metadata stripped cleanly! Zero tracking traces remaining.\nSaved to: ${outFile.absolutePath}"
+                                    statusText = strings.sanitizeSuccess.format(outFile.name)
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
                                     isProcessing = false
-                                    statusText = "Metadata stripping failed: ${e.message}"
+                                    statusText = "Sanitization failed: ${e.message}"
                                 }
                             }
                         }
@@ -4353,7 +4830,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                 ) {
                     Icon(Icons.Rounded.Shield, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(strings.wipeMetadata, fontWeight = FontWeight.Bold)
+                    Text(strings.btnSanitizeDocument, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -4570,6 +5047,94 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                         Icon(Icons.Rounded.LockOpen, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Remove Password")
+                    }
+                }
+            }
+        }
+
+        // 4. PDF Recovery & Repair Studio Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(strings.repairTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    strings.repairSubtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (repairResult != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                strings.repairDiagnosticsTitle,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            repairResult!!.issuesRepaired.forEach { issue ->
+                                Text("• $issue", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                "Pages Recovered: ${repairResult!!.pagesRecovered} | Output Size: ${formatFileSize(repairResult!!.repairedSize)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            val targetFile = file ?: DesktopFileDialog.openPdf() ?: run {
+                                statusText = "Please choose a corrupted or damaged PDF to repair."
+                                return@Button
+                            }
+                            val outFile = DesktopFileDialog.savePdf(suggestedName = "${targetFile.nameWithoutExtension}_repaired.pdf") ?: return@Button
+                            isProcessing = true
+                            scope.launch(Dispatchers.IO) {
+                                val result = DesktopPdfEngine.repairCorruptedPdf(targetFile, outFile)
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    repairResult = result
+                                    if (result.isSuccess) {
+                                        lastSecurityFile = outFile
+                                        statusText = strings.repairSuccess.format(result.pagesRecovered, outFile.absolutePath)
+                                    } else {
+                                        statusText = strings.repairFailed.format(result.issuesRepaired.firstOrNull() ?: "Corrupted stream")
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isProcessing,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Tune, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.btnRepairPdf, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val picked = DesktopFileDialog.openPdf()
+                            if (picked != null) onFileChange(picked)
+                        },
+                        modifier = Modifier.height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Pick Damaged File")
                     }
                 }
             }

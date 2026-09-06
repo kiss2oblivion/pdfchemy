@@ -386,4 +386,114 @@ class DesktopPdfEngineTest {
         assertFalse(summary.pageDiffs[0].isIdentical)
         assertTrue(summary.totalAddedLines > 0)
     }
+
+    @Test
+    fun testBatesStamping() {
+        val pdf = createTestPdf(pages = 3, text = "Evidence Exhibit")
+        val outPdf = tempFolder.newFile("bates_stamped.pdf")
+
+        val config = DesktopBatesConfig(
+            prefix = "CASE-2026-",
+            suffix = "-EVID",
+            startNumber = 101,
+            digits = 5,
+            position = DesktopBatesPosition.BOTTOM_RIGHT,
+            fontSize = 10f
+        )
+
+        val success = DesktopPdfEngine.applyBatesStamping(pdf, outPdf, config)
+        assertTrue(success)
+
+        val extractedText = DesktopPdfEngine.extractText(outPdf)
+        assertTrue(extractedText.contains("CASE-2026-00101-EVID"))
+        assertTrue(extractedText.contains("CASE-2026-00102-EVID"))
+        assertTrue(extractedText.contains("CASE-2026-00103-EVID"))
+    }
+
+    @Test
+    fun testSanitizeDocument() {
+        val pdf = tempFolder.newFile("threat_test.pdf")
+        val doc = PDDocument()
+        val page = PDPage()
+        doc.addPage(page)
+        doc.documentInformation.author = "Confidential Leaker"
+        doc.documentInformation.title = "Internal Memo"
+        doc.documentCatalog.cosObject.setString(org.apache.pdfbox.cos.COSName.getPDFName("JavaScript"), "app.alert('pwned');")
+        doc.save(pdf)
+        doc.close()
+
+        val audit = DesktopPdfEngine.auditDocumentThreats(pdf)
+        assertTrue(audit.threatsFound > 0)
+
+        val cleanPdf = tempFolder.newFile("sanitized.pdf")
+        val result = DesktopPdfEngine.sanitizeDocument(pdf, cleanPdf)
+        assertTrue(result.threatsFound > 0)
+
+        PDDocument.load(cleanPdf).use { cleanDoc ->
+            assertNull(cleanDoc.documentInformation.author)
+            assertNull(cleanDoc.documentInformation.title)
+            assertNull(cleanDoc.documentCatalog.cosObject.getDictionaryObject(org.apache.pdfbox.cos.COSName.getPDFName("JavaScript")))
+        }
+    }
+
+    @Test
+    fun testRepairCorruptedPdf() {
+        val validPdf = createTestPdf(pages = 2, text = "Salvageable Document Content")
+        val validBytes = validPdf.readBytes()
+
+        // Intentionally damage the file by prepending junk and corrupting trailer
+        val corruptBytes = "GARBAGE_HEADER_CORRUPTION_DATA\n".toByteArray(Charsets.US_ASCII) + validBytes.dropLast(20).toByteArray()
+        val damagedFile = tempFolder.newFile("damaged.pdf")
+        damagedFile.writeBytes(corruptBytes)
+
+        val repairedFile = tempFolder.newFile("repaired.pdf")
+        val repairResult = DesktopPdfEngine.repairCorruptedPdf(damagedFile, repairedFile)
+
+        assertTrue(repairResult.isSuccess)
+        assertTrue(repairResult.pagesRecovered >= 1)
+        assertTrue(repairResult.issuesRepaired.isNotEmpty())
+        assertTrue(repairedFile.exists() && repairedFile.length() > 0)
+    }
+
+    @Test
+    fun testConvertToPdfA() {
+        val pdf = createTestPdf(pages = 2, text = "Archival Document")
+        val outPdf = tempFolder.newFile("archival_pdfa.pdf")
+
+        val success = DesktopPdfEngine.convertToPdfA(pdf, outPdf)
+        assertTrue(success)
+
+        PDDocument.load(outPdf).use { doc ->
+            assertTrue(doc.documentCatalog.outputIntents.isNotEmpty())
+            assertNotNull(doc.documentCatalog.metadata)
+            assertNotNull(doc.documentCatalog.markInfo)
+            assertTrue(doc.documentCatalog.markInfo.isMarked)
+        }
+    }
+
+    @Test
+    fun testCropMargins() {
+        val pdf = createTestPdf(pages = 2, text = "Crop Test")
+        val outPdf = tempFolder.newFile("cropped.pdf")
+
+        val config = DesktopCropConfig(
+            leftPt = 36f,
+            topPt = 36f,
+            rightPt = 36f,
+            bottomPt = 36f,
+            applyToAllPages = true
+        )
+
+        val success = DesktopPdfEngine.cropMargins(pdf, outPdf, config)
+        assertTrue(success)
+
+        PDDocument.load(outPdf).use { doc ->
+            val page = doc.getPage(0)
+            val mb = page.mediaBox
+            val cb = page.cropBox
+            assertEquals(mb.width - 72f, cb.width, 1.0f)
+            assertEquals(mb.height - 72f, cb.height, 1.0f)
+        }
+    }
 }
+

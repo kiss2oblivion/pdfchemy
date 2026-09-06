@@ -243,7 +243,60 @@ data class DesktopStrings(
     val compareDiffCount: String = "%1\$d Modifications Found",
     val compareChooseDocA: String = "Choose Document A",
     val compareChooseDocB: String = "Choose Document B"
-)
+) {
+    // 1. Legal Bates Stamping
+    var modeBates: String = "Legal Bates Stamping"
+    var batesPrefix: String = "Prefix (e.g. EXHIBIT-)"
+    var batesSuffix: String = "Suffix (e.g. -CONFIDENTIAL)"
+    var batesStartNum: String = "Start Number"
+    var batesDigits: String = "Digits Padding"
+    var batesPosition: String = "Position"
+    var btnApplyBates: String = "Apply Bates Numbering & Save"
+    var batesSuccess: String = "Bates numbers applied successfully: %1\$s"
+    var batesPreviewSample: String = "Preview: %1\$s"
+
+    // 2. Deep Document Sanitizer
+    var secModeSanitize: String = "Sanitize & Scrub"
+    var secModeProtect: String = "Encrypt & Lock"
+    var secModeUnlock: String = "Decrypt & Unlock"
+    var secModeRepair: String = "Repair Corrupted PDF"
+    var sanitizeTitle: String = "Deep Document Sanitizer & Threat Scrubber"
+    var sanitizeSubtitle: String = "Strip malicious JavaScript, tracking metadata, launch actions, and hidden review annotations."
+    var sanitizeThreatAudit: String = "Security Threat Audit"
+    var threatJsFound: String = "%1\$d JavaScript triggers detected"
+    var threatActionsFound: String = "%1\$d external launch / form actions detected"
+    var threatAttachmentsFound: String = "%1\$d embedded file attachments detected"
+    var threatMetadataFound: String = "Document tracking metadata & IDs present"
+    var threatsClean: String = "Zero dynamic threats detected. Document is clean."
+    var btnSanitizeDocument: String = "Scrub & Sanitize Document"
+    var sanitizeSuccess: String = "Document scrubbed and sanitized: %1\$s"
+
+    // 3. PDF Recovery & Repair Studio
+    var repairTitle: String = "PDF Recovery & Repair Studio"
+    var repairSubtitle: String = "Reconstruct damaged headers, corrupted cross-reference tables, and truncated trailers."
+    var btnRepairPdf: String = "Repair & Rebuild Document"
+    var repairSuccess: String = "PDF successfully repaired (%1\$d pages recovered): %2\$s"
+    var repairFailed: String = "Unable to repair document: %1\$s"
+    var repairDiagnosticsTitle: String = "Reconstruction Log"
+
+    // 4. PDF/A Archival Converter
+    var tabPdfToPdfA: String = "PDF to PDF/A-1b (Archival)"
+    var pdfaDescription: String = "Converts document to ISO 19005-1b archival standard with embedded sRGB OutputIntent and compliant XMP metadata (required for courts & government submissions)."
+    var btnConvertToPdfA: String = "Convert to PDF/A-1b & Save"
+    var pdfaSuccess: String = "Converted to ISO 19005-1b PDF/A: %1\$s"
+
+    // 5. Margin Cropper & CropBox
+    var toolCropTitle: String = "Crop & Margin Trimmer"
+    var toolCropDesc: String = "Trim scanner margins, black edges, and white borders losslessly."
+    var cropPreset10mm: String = "Trim 10mm (Clean Scanner Edges)"
+    var cropPreset15mm: String = "Trim 15mm Margins"
+    var cropPreset20mm: String = "Trim 20mm Margins"
+    var cropPresetAuto: String = "Auto-Detect Content Margins"
+    var cropApplyAll: String = "Apply to All Pages"
+    var cropApplyCurrent: String = "Apply to Current Page Only"
+    var btnApplyCrop: String = "Crop Margins & Save"
+    var cropSuccess: String = "Margins cropped successfully: %1\$s"
+}
 
 /**
  * Compile-time storage and resolver for all 20 languages / 21 locales.
