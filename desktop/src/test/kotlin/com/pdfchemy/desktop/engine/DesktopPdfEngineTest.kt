@@ -133,4 +133,63 @@ class DesktopPdfEngineTest {
         val text = DesktopPdfEngine.extractText(decrypted)
         assertTrue(text.contains("Secret Password Test"))
     }
+
+    @Test
+    fun testStampDocument_BusinessStamp() {
+        val pdf = createTestPdf(pages = 2, text = "Official Contract")
+        val stamped = tempFolder.newFile("stamped_contract.pdf")
+
+        val stampImage = DesktopPdfEngine.createBusinessStamp(
+            title = "CONFORM CU ORIGINALUL",
+            subtext = "2026-09-06",
+            colorHex = "#1E3A8A"
+        )
+        assertNotNull(stampImage)
+        assertEquals(480, stampImage.width)
+        assertEquals(180, stampImage.height)
+
+        val success = DesktopPdfEngine.stampDocument(
+            inputFile = pdf,
+            outputFile = stamped,
+            pageIndex = 0,
+            stampImage = stampImage,
+            xRatio = 0.6f,
+            yRatio = 0.8f,
+            widthRatio = 0.35f
+        )
+        assertTrue(success)
+        assertTrue(stamped.exists() && stamped.length() > pdf.length())
+        assertEquals(2, DesktopPdfEngine.getPageCount(stamped))
+    }
+
+    @Test
+    fun testStampDocument_RenderedSignature() {
+        val pdf = createTestPdf(pages = 1, text = "Sign Here")
+        val signed = tempFolder.newFile("signed_doc.pdf")
+
+        val strokes = listOf(
+            listOf(java.awt.geom.Point2D.Float(10f, 10f), java.awt.geom.Point2D.Float(50f, 60f), java.awt.geom.Point2D.Float(100f, 20f)),
+            listOf(java.awt.geom.Point2D.Float(120f, 80f), java.awt.geom.Point2D.Float(180f, 90f))
+        )
+        val sigImage = DesktopPdfEngine.renderStrokesToImage(
+            strokes = strokes,
+            canvasWidth = 300,
+            canvasHeight = 120,
+            colorHex = "#1E3A8A"
+        )
+        assertNotNull(sigImage)
+
+        val success = DesktopPdfEngine.stampDocument(
+            inputFile = pdf,
+            outputFile = signed,
+            pageIndex = 0,
+            stampImage = sigImage,
+            xRatio = 0.7f,
+            yRatio = 0.85f,
+            widthRatio = 0.30f
+        )
+        assertTrue(success)
+        assertTrue(signed.exists() && signed.length() > pdf.length())
+        assertEquals(1, DesktopPdfEngine.getPageCount(signed))
+    }
 }
