@@ -675,7 +675,12 @@ fun PdfToImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             }
                             Slider(
                                 value = qualitySlider,
-                                onValueChange = { qualitySlider = it },
+                                onValueChange = { newValue ->
+                                    if (newValue.toInt() != qualitySlider.toInt()) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    qualitySlider = newValue
+                                },
                                 valueRange = 40f..100f
                             )
                         }

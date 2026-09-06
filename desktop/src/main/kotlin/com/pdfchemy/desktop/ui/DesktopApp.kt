@@ -17,7 +17,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,6 +39,7 @@ import com.pdfchemy.desktop.i18n.DesktopLanguage
 import com.pdfchemy.desktop.i18n.DesktopLocalization
 import com.pdfchemy.desktop.i18n.DesktopStrings
 import com.pdfchemy.desktop.engine.DesktopPdfEngine
+import com.pdfchemy.desktop.engine.DesktopPdfMetadata
 import com.pdfchemy.desktop.engine.PageItemSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,22 +73,28 @@ fun DesktopApp(
     initialFile: File? = null,
     initialShowSetup: Boolean = false,
     isDarkTheme: Boolean = true,
-    onToggleTheme: () -> Unit = {}
+    onToggleTheme: () -> Unit = {},
+    currentTab: DesktopNavTab = DesktopNavTab.HOME,
+    onTabChange: (DesktopNavTab) -> Unit = {}
 ) {
     val currentLang by DesktopLocalization.currentLanguageState
     val strings = DesktopLocalization.strings
     var showSetupDialog by remember { mutableStateOf(initialShowSetup) }
     var showLanguageMenu by remember { mutableStateOf(false) }
 
-    var activeTab by remember { mutableStateOf(DesktopNavTab.HOME) }
+    var activeTab by remember { mutableStateOf(currentTab) }
+    LaunchedEffect(currentTab) {
+        activeTab = currentTab
+    }
+
     var selectedFile by remember { mutableStateOf<File?>(initialFile) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showManifestoDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(initialFile) {
-        if (initialFile != null) {
-            selectedFile = initialFile
+    LaunchedEffect(selectedFile) {
+        if (selectedFile != null && selectedFile!!.exists()) {
+            RecentDocumentsManager.addRecent(selectedFile!!)
         }
     }
 
@@ -240,7 +255,7 @@ fun DesktopApp(
                 DesktopNavTab.values().forEach { tab ->
                     NavigationRailItem(
                         selected = activeTab == tab,
-                        onClick = { activeTab = tab },
+                        onClick = { activeTab = tab; onTabChange(tab) },
                         icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
                         label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     )
@@ -269,7 +284,7 @@ fun DesktopApp(
             ) {
                 when (activeTab) {
                     DesktopNavTab.HOME -> HomeView(
-                        onSelectTab = { activeTab = it },
+                        onSelectTab = { activeTab = it; onTabChange(it) },
                         selectedFile = selectedFile,
                         onSelectFile = { selectedFile = it },
                         onOpenManifesto = { showManifestoDialog = true }
@@ -303,11 +318,12 @@ private fun HomeView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Hero Drag & Drop Banner
+        // Hero Drag & Drop Visual Dropzone Banner
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
         ) {
             Row(
                 modifier = Modifier
@@ -316,26 +332,37 @@ private fun HomeView(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(strings.homeHeroTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        strings.homeHeroSubtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (selectedFile != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                String.format(strings.activeDocument, selectedFile.name, formatFileSize(selectedFile.length())),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        modifier = Modifier.size(52.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(strings.homeHeroTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Drag & Drop any PDF anywhere onto this window, or click Browse to select.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (selectedFile != null) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    String.format(strings.activeDocument, selectedFile.name, formatFileSize(selectedFile.length())),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -351,6 +378,79 @@ private fun HomeView(
                     Icon(Icons.Rounded.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(strings.selectPdf, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Recent Documents Tray
+        var recentsList by remember { mutableStateOf(RecentDocumentsManager.getRecents()) }
+        LaunchedEffect(selectedFile) {
+            recentsList = RecentDocumentsManager.getRecents()
+        }
+
+        if (recentsList.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text("Recent Documents", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(
+                        onClick = {
+                            RecentDocumentsManager.clearRecents()
+                            recentsList = emptyList()
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Clear Recents", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    recentsList.take(3).forEach { recentFile ->
+                        val isCurrent = selectedFile?.absolutePath == recentFile.absolutePath
+                        Card(
+                            onClick = { onSelectFile(recentFile) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isCurrent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
+                            ),
+                            border = BorderStroke(
+                                if (isCurrent) 1.5.dp else 1.dp,
+                                if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        recentFile.name,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Text(formatFileSize(recentFile.length()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        if (isCurrent) "Active" else "Load Document",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -456,6 +556,7 @@ private data class ToolItem(val title: String, val desc: String, val icon: Image
 private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
     var pageItems by remember { mutableStateOf<List<PageItemSpec>>(emptyList()) }
+    var selectedPageIndices by remember { mutableStateOf<Set<Int>>(emptySet()) }
     val thumbnails = remember { mutableStateMapOf<Int, ImageBitmap>() }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
@@ -463,6 +564,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(file) {
+        selectedPageIndices = emptySet()
         if (file != null) {
             thumbnails.clear()
             isLoadingThumbnails = true
@@ -504,7 +606,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
             Column {
                 Text("Visual Page Studio", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    if (file != null) "${file.name} — ${pageItems.size} pages" else "Load a document to organize and reorder pages visually",
+                    if (file != null) "${file.name} — ${pageItems.size} pages • ${String.format(java.util.Locale.US, "%.1f", file.length() / (1024.0 * 1024.0))} MB" else "Load a document to organize and reorder pages visually",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -517,6 +619,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                             val count = DesktopPdfEngine.getPageCount(file)
                             withContext(Dispatchers.Main) {
                                 pageItems = (0 until count).map { PageItemSpec(originalPageIndex = it, rotation = 0) }
+                                selectedPageIndices = emptySet()
                             }
                         }
                     }) {
@@ -531,6 +634,36 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Rotate All 90°")
+                    }
+
+                    OutlinedButton(onClick = {
+                        pageItems = pageItems.reversed()
+                        selectedPageIndices = selectedPageIndices.map { pageItems.size - 1 - it }.toSet()
+                    }) {
+                        Text("⇄", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Reverse")
+                    }
+
+                    OutlinedButton(onClick = {
+                        val targetDir = DesktopFileDialog.chooseDirectory() ?: return@OutlinedButton
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val created = DesktopPdfEngine.splitPdf(file, targetDir, splitEveryNPages = 1)
+                                withContext(Dispatchers.Main) {
+                                    lastSavedFile = targetDir
+                                    statusText = "Split ${file.name} into ${created.size} separate PDF pages in:\n${targetDir.absolutePath}"
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    statusText = "Split failed: ${e.message}"
+                                }
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Split to Folder")
                     }
 
                     Button(
@@ -560,6 +693,143 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
             }
         }
 
+        // Multi-Select Contextual Action Bar
+        if (file != null && pageItems.isNotEmpty()) {
+            Surface(
+                color = if (selectedPageIndices.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, if (selectedPageIndices.isNotEmpty()) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(
+                            onClick = {
+                                selectedPageIndices = if (selectedPageIndices.size == pageItems.size) {
+                                    emptySet()
+                                } else {
+                                    pageItems.indices.toSet()
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(if (selectedPageIndices.size == pageItems.size) "Deselect All" else "Select All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                selectedPageIndices = pageItems.indices.filter { it !in selectedPageIndices }.toSet()
+                            },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("⇄ Invert", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (selectedPageIndices.isNotEmpty()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    "${selectedPageIndices.size} selected",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Text("Select pages to rotate, delete, or extract into a separate PDF", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    if (selectedPageIndices.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedButton(
+                                onClick = {
+                                    pageItems = pageItems.mapIndexed { idx, item ->
+                                        if (idx in selectedPageIndices) item.copy(rotation = (item.rotation + 90) % 360) else item
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Rotate Selected", fontSize = 12.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    val newItems = mutableListOf<PageItemSpec>()
+                                    pageItems.forEachIndexed { idx, item ->
+                                        newItems.add(item)
+                                        if (idx in selectedPageIndices) {
+                                            newItems.add(item.copy())
+                                        }
+                                    }
+                                    pageItems = newItems
+                                    selectedPageIndices = emptySet()
+                                },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Duplicate Selected", fontSize = 12.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    pageItems = pageItems.filterIndexed { idx, _ -> idx !in selectedPageIndices }
+                                    selectedPageIndices = emptySet()
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Delete Selected", fontSize = 12.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_extracted.pdf") ?: return@Button
+                                    val itemsToExtract = pageItems.filterIndexed { idx, _ -> idx in selectedPageIndices }
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            DesktopPdfEngine.saveReorderedPdf(file, outFile, itemsToExtract)
+                                            withContext(Dispatchers.Main) {
+                                                lastSavedFile = outFile
+                                                statusText = "Extracted ${itemsToExtract.size} pages into:\n${outFile.absolutePath}"
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                statusText = "Extraction failed: ${e.message}"
+                                            }
+                                        }
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Extract to New PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (statusText != null) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
@@ -574,6 +844,15 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (lastSavedFile != null && lastSavedFile!!.exists()) {
+                            if (!lastSavedFile!!.isDirectory) {
+                                Button(
+                                    onClick = { openDocument(lastSavedFile!!) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text("📄 Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                             OutlinedButton(
                                 onClick = { openFileInExplorer(lastSavedFile!!) },
                                 shape = RoundedCornerShape(8.dp),
@@ -648,11 +927,18 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                     val item = pageItems[index]
                                     val thumb = thumbnails[item.originalPageIndex]
 
+                                    val isSelected = index in selectedPageIndices
+
                                     Card(
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(14.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                        ),
+                                        border = BorderStroke(
+                                            if (isSelected) 2.dp else 1.dp,
+                                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                        )
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(10.dp),
@@ -664,11 +950,29 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Surface(
-                                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                                    shape = RoundedCornerShape(6.dp)
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                                 ) {
-                                                    Text("Page ${index + 1}", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                    Checkbox(
+                                                        checked = isSelected,
+                                                        onCheckedChange = { checked ->
+                                                            selectedPageIndices = if (checked) selectedPageIndices + index else selectedPageIndices - index
+                                                        },
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Surface(
+                                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
+                                                        shape = RoundedCornerShape(6.dp)
+                                                    ) {
+                                                        Text(
+                                                            "Page ${index + 1}",
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
                                                 }
                                                 if (item.rotation != 0) {
                                                     Text("${item.rotation}°", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
@@ -679,7 +983,10 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(180.dp)
-                                                    .background(Color.White, RoundedCornerShape(8.dp)),
+                                                    .background(Color.White, RoundedCornerShape(8.dp))
+                                                    .clickable {
+                                                        selectedPageIndices = if (isSelected) selectedPageIndices - index else selectedPageIndices + index
+                                                    },
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (thumb != null) {
@@ -706,6 +1013,13 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                             mutable[index] = mutable[index - 1]
                                                             mutable[index - 1] = tmp
                                                             pageItems = mutable
+                                                            selectedPageIndices = selectedPageIndices.map {
+                                                                when (it) {
+                                                                    index -> index - 1
+                                                                    index - 1 -> index
+                                                                    else -> it
+                                                                }
+                                                            }.toSet()
                                                         }
                                                     },
                                                     enabled = index > 0,
@@ -730,6 +1044,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                         val mutable = pageItems.toMutableList()
                                                         mutable.add(index + 1, item.copy())
                                                         pageItems = mutable
+                                                        selectedPageIndices = emptySet()
                                                     },
                                                     modifier = Modifier.size(32.dp)
                                                 ) {
@@ -739,6 +1054,7 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                 IconButton(
                                                     onClick = {
                                                         pageItems = pageItems.filterIndexed { i, _ -> i != index }
+                                                        selectedPageIndices = selectedPageIndices.filter { it != index }.map { if (it > index) it - 1 else it }.toSet()
                                                     },
                                                     modifier = Modifier.size(32.dp)
                                                 ) {
@@ -753,6 +1069,13 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                                             mutable[index] = mutable[index + 1]
                                                             mutable[index + 1] = tmp
                                                             pageItems = mutable
+                                                            selectedPageIndices = selectedPageIndices.map {
+                                                                when (it) {
+                                                                    index -> index + 1
+                                                                    index + 1 -> index
+                                                                    else -> it
+                                                                }
+                                                            }.toSet()
                                                         }
                                                     },
                                                     enabled = index < pageItems.size - 1,
@@ -881,7 +1204,8 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(0.5f to "500 KB", 1.0f to "1 MB", 2.0f to "2 MB (Government/Email)", 5.0f to "5 MB").forEach { (mb, label) ->
-                                AssistChip(
+                                FilterChip(
+                                    selected = kotlin.math.abs(targetMb - mb) < 0.05f,
                                     onClick = { targetMb = mb },
                                     label = { Text(label) }
                                 )
@@ -984,6 +1308,13 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (lastCompressedFile != null && lastCompressedFile!!.exists()) {
+                                Button(
+                                    onClick = { openDocument(lastCompressedFile!!) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text("📄 Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                                 OutlinedButton(
                                     onClick = { openFileInExplorer(lastCompressedFile!!) },
                                     shape = RoundedCornerShape(8.dp),
@@ -1055,7 +1386,19 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                 }
 
                 if (selectedImages.isNotEmpty()) {
-                    Text("${selectedImages.size} images selected:", fontWeight = FontWeight.SemiBold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${selectedImages.size} images selected:", fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = { selectedImages = emptyList() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("✕ Clear All", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         selectedImages.forEachIndexed { i, img ->
                             Surface(
@@ -1068,9 +1411,42 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("${i + 1}. ${img.name}", style = MaterialTheme.typography.bodyMedium)
-                                    IconButton(onClick = { selectedImages = selectedImages.filterIndexed { idx, _ -> idx != i } }) {
-                                        Icon(Icons.Rounded.Close, contentDescription = "Remove")
+                                    Text("${i + 1}. ${img.name}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = {
+                                                if (i > 0) {
+                                                    val list = selectedImages.toMutableList()
+                                                    val item = list.removeAt(i)
+                                                    list.add(i - 1, item)
+                                                    selectedImages = list
+                                                }
+                                            },
+                                            enabled = i > 0,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Text("▲", fontSize = 12.sp)
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                if (i < selectedImages.size - 1) {
+                                                    val list = selectedImages.toMutableList()
+                                                    val item = list.removeAt(i)
+                                                    list.add(i + 1, item)
+                                                    selectedImages = list
+                                                }
+                                            },
+                                            enabled = i < selectedImages.size - 1,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Text("▼", fontSize = 12.sp)
+                                        }
+                                        IconButton(
+                                            onClick = { selectedImages = selectedImages.filterIndexed { idx, _ -> idx != i } },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                        }
                                     }
                                 }
                             }
@@ -1202,6 +1578,15 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (lastConvertedTarget != null && lastConvertedTarget!!.exists()) {
+                            if (lastConvertedTarget!!.isFile) {
+                                Button(
+                                    onClick = { openDocument(lastConvertedTarget!!) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Text("📄 Open Output", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                             OutlinedButton(
                                 onClick = { openFileInExplorer(lastConvertedTarget!!) },
                                 shape = RoundedCornerShape(8.dp),
@@ -1273,7 +1658,20 @@ private fun BatchQueueView() {
                 }
 
                 if (queueFiles.isNotEmpty()) {
-                    Text("${queueFiles.size} documents in queue:", fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${queueFiles.size} documents in queue:", fontWeight = FontWeight.Bold)
+                        TextButton(
+                            onClick = { queueFiles = emptyList() },
+                            enabled = !isProcessing,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("✕ Clear Queue", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         queueFiles.forEachIndexed { idx, f ->
                             Surface(
@@ -1286,9 +1684,43 @@ private fun BatchQueueView() {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("${idx + 1}. ${f.name} (${formatFileSize(f.length())})", style = MaterialTheme.typography.bodyMedium)
-                                    IconButton(onClick = { queueFiles = queueFiles.filterIndexed { i, _ -> i != idx } }) {
-                                        Icon(Icons.Rounded.Close, contentDescription = "Remove")
+                                    Text("${idx + 1}. ${f.name} (${formatFileSize(f.length())})", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = {
+                                                if (idx > 0) {
+                                                    val list = queueFiles.toMutableList()
+                                                    val item = list.removeAt(idx)
+                                                    list.add(idx - 1, item)
+                                                    queueFiles = list
+                                                }
+                                            },
+                                            enabled = !isProcessing && idx > 0,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Text("▲", fontSize = 12.sp)
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                if (idx < queueFiles.size - 1) {
+                                                    val list = queueFiles.toMutableList()
+                                                    val item = list.removeAt(idx)
+                                                    list.add(idx + 1, item)
+                                                    queueFiles = list
+                                                }
+                                            },
+                                            enabled = !isProcessing && idx < queueFiles.size - 1,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Text("▼", fontSize = 12.sp)
+                                        }
+                                        IconButton(
+                                            onClick = { queueFiles = queueFiles.filterIndexed { i, _ -> i != idx } },
+                                            enabled = !isProcessing,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                        }
                                     }
                                 }
                             }
@@ -1299,7 +1731,7 @@ private fun BatchQueueView() {
                         LinearProgressIndicator(progress = { currentProgress }, modifier = Modifier.fillMaxWidth())
                     }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = {
                                 val outDir = DesktopFileDialog.chooseDirectory() ?: return@Button
@@ -1307,7 +1739,43 @@ private fun BatchQueueView() {
                                 scope.launch(Dispatchers.IO) {
                                     try {
                                         var count = 0
-                                        queueFiles.forEachIndexed { i, f ->
+                                        val targetBytes = 2 * 1024 * 1024L
+                                        queueFiles.forEachIndexed { _, f ->
+                                            val outFile = File(outDir, "${f.nameWithoutExtension}_under2MB.pdf")
+                                            DesktopPdfEngine.compressToTargetSize(f, outFile, targetBytes)
+                                            count++
+                                            currentProgress = count.toFloat() / queueFiles.size.toFloat()
+                                        }
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            lastBatchTarget = outDir
+                                            statusText = "Bureaucracy batch complete! All ${queueFiles.size} files guaranteed under 2MB, saved to:\n${outDir.absolutePath}"
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Batch failed: ${e.message}"
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isProcessing,
+                            modifier = Modifier.weight(1.2f).height(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.Speed, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("All Under 2MB (Portal)")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val outDir = DesktopFileDialog.chooseDirectory() ?: return@OutlinedButton
+                                isProcessing = true
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        var count = 0
+                                        queueFiles.forEachIndexed { _, f ->
                                             val outFile = File(outDir, "${f.nameWithoutExtension}_compressed.pdf")
                                             DesktopPdfEngine.compressPdf(f, outFile)
                                             count++
@@ -1332,7 +1800,7 @@ private fun BatchQueueView() {
                         ) {
                             Icon(Icons.Rounded.Speed, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Batch Compress All")
+                            Text("Standard Compress")
                         }
 
                         OutlinedButton(
@@ -1361,7 +1829,7 @@ private fun BatchQueueView() {
                         ) {
                             Icon(Icons.AutoMirrored.Rounded.CallMerge, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Merge All Into One")
+                            Text("Merge Into One")
                         }
                     }
                 }
@@ -1382,6 +1850,15 @@ private fun BatchQueueView() {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (lastBatchTarget != null && lastBatchTarget!!.exists()) {
+                            if (lastBatchTarget!!.isFile) {
+                                Button(
+                                    onClick = { openDocument(lastBatchTarget!!) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Text("📄 Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                             OutlinedButton(
                                 onClick = { openFileInExplorer(lastBatchTarget!!) },
                                 shape = RoundedCornerShape(8.dp),
@@ -1415,10 +1892,13 @@ private fun BatchQueueView() {
 private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
     var extractedText by remember { mutableStateOf<String?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
     var fontSizeSp by remember { mutableFloatStateOf(16f) }
+    val focusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(file) {
+        searchQuery = ""
         if (file != null) {
             scope.launch(Dispatchers.IO) {
                 try {
@@ -1428,10 +1908,64 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
                     withContext(Dispatchers.Main) { extractedText = "Could not extract text: ${e.message}" }
                 }
             }
+        } else {
+            extractedText = null
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val matches = remember(extractedText, searchQuery) {
+        val text = extractedText
+        if (text.isNullOrBlank() || searchQuery.isBlank()) emptyList()
+        else {
+            try {
+                Regex(Regex.escape(searchQuery), RegexOption.IGNORE_CASE).findAll(text).toList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+    var currentMatchIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(matches) {
+        currentMatchIndex = 0
+    }
+
+    val annotatedText = remember(extractedText, searchQuery, currentMatchIndex) {
+        val text = extractedText ?: return@remember AnnotatedString("")
+        if (searchQuery.isBlank() || matches.isEmpty()) {
+            AnnotatedString(text)
+        } else {
+            buildAnnotatedString {
+                append(text)
+                for ((idx, match) in matches.withIndex()) {
+                    val isActive = idx == currentMatchIndex
+                    addStyle(
+                        SpanStyle(
+                            background = if (isActive) Color(0xFFFF5722) else Color(0xFFFFD54F), // Active is fiery orange, others golden yellow
+                            color = if (isActive) Color.White else Color.Black,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        start = match.range.first,
+                        end = match.range.last + 1
+                    )
+                }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.isCtrlPressed && event.key == Key.F) {
+                    focusRequester.requestFocus()
+                    true
+                } else {
+                    false
+                }
+            },
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1458,6 +1992,101 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
             }
         }
 
+        // Search & Filter Toolbar
+        if (file != null && extractedText != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, if (searchQuery.isNotBlank()) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("🔍", fontSize = 16.sp)
+
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Find text in document... (Ctrl+F, Enter for next)") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester)
+                            .onPreviewKeyEvent { keyEvent ->
+                                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
+                                    if (matches.isNotEmpty()) {
+                                        if (keyEvent.isShiftPressed) {
+                                            currentMatchIndex = (currentMatchIndex - 1 + matches.size) % matches.size
+                                        } else {
+                                            currentMatchIndex = (currentMatchIndex + 1) % matches.size
+                                        }
+                                    }
+                                    true
+                                } else false
+                            },
+                        singleLine = true,
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                                    Text("✕", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    if (searchQuery.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            IconButton(
+                                onClick = {
+                                    if (matches.isNotEmpty()) {
+                                        currentMatchIndex = (currentMatchIndex - 1 + matches.size) % matches.size
+                                    }
+                                },
+                                enabled = matches.isNotEmpty(),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Text("▲", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (matches.isNotEmpty()) {
+                                        currentMatchIndex = (currentMatchIndex + 1) % matches.size
+                                    }
+                                },
+                                enabled = matches.isNotEmpty(),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Text("▼", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Surface(
+                                color = if (matches.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    if (matches.isNotEmpty()) "${currentMatchIndex + 1} of ${matches.size}" else "0 matches",
+                                    color = if (matches.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Surface(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -1477,7 +2106,7 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
-                            text = extractedText!!,
+                            text = annotatedText,
                             fontSize = fontSizeSp.sp,
                             lineHeight = (fontSizeSp * 1.6f).sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1499,13 +2128,320 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
 private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
     var password by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var redactQuery by remember { mutableStateOf("") }
+    var overlayText by remember { mutableStateOf("REDACTED") }
+    var forensicSanitize by remember { mutableStateOf(true) }
+
+    var metadata by remember { mutableStateOf<DesktopPdfMetadata?>(null) }
+    var isLoadingMetadata by remember { mutableStateOf(false) }
+
+    var isProcessing by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf<String?>(null) }
     var lastSecurityFile by remember { mutableStateOf<File?>(null) }
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    LaunchedEffect(file) {
+        if (file != null && file.exists()) {
+            isLoadingMetadata = true
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val meta = DesktopPdfEngine.inspectMetadata(file)
+                    withContext(Dispatchers.Main) {
+                        metadata = meta
+                        isLoadingMetadata = false
+                    }
+                } catch (_: Exception) {
+                    withContext(Dispatchers.Main) {
+                        metadata = null
+                        isLoadingMetadata = false
+                    }
+                }
+            }
+        } else {
+            metadata = null
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
         Text(strings.securityTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
+        // Document Selection Bar
+        if (file == null) {
+            Card(
+                modifier = Modifier.fillMaxWidth().height(180.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Rounded.Shield, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(strings.selectPdf, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = {
+                        val f = DesktopFileDialog.openPdf()
+                        if (f != null) onFileChange(f)
+                    }) {
+                        Text(strings.openPdf)
+                    }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        Column {
+                            Text(file.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                            Text(formatFileSize(file.length()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    OutlinedButton(onClick = {
+                        val f = DesktopFileDialog.openPdf()
+                        if (f != null) onFileChange(f)
+                    }) {
+                        Text("Change PDF")
+                    }
+                }
+            }
+        }
+
+        // 1. Metadata Inspector & Privacy Stripper Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(strings.inspectMetadata, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Inspect and permanently strip hidden author details, software fingerprints, and tracking XMP packets.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else Color(0xFF00E676).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            if (metadata?.hasAnyMetadata == true) "Metadata Detected" else "Clean / Unset",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (metadata?.hasAnyMetadata == true) MaterialTheme.colorScheme.error else Color(0xFF00C853)
+                        )
+                    }
+                }
+
+                if (file != null && metadata != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Author:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(metadata?.author ?: "(None / Anonymous)", style = MaterialTheme.typography.bodySmall, fontWeight = if (metadata?.author != null) FontWeight.Bold else FontWeight.Normal)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Title / Subject:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(metadata?.title ?: metadata?.subject ?: "(None)", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Software / Creator:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(metadata?.creator ?: metadata?.producer ?: "(None)", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Creation Date:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(metadata?.creationDate ?: "(None)", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("XMP Package:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if (metadata?.hasXmpMetadata == true) "Present (Embedded)" else "None", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_sanitized.pdf") ?: return@Button
+                        isProcessing = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                DesktopPdfEngine.stripMetadata(file, outFile)
+                                val newMeta = DesktopPdfEngine.inspectMetadata(outFile)
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    metadata = newMeta
+                                    lastSecurityFile = outFile
+                                    statusText = "All metadata stripped cleanly! Zero tracking traces remaining.\nSaved to: ${outFile.absolutePath}"
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    statusText = "Metadata stripping failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isProcessing && file != null,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.Shield, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(strings.wipeMetadata, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // 2. Forensic Redaction (Permanent Blackout) Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("Forensic Text Redaction (Permanent Blackout)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    "Search confidential words, CNP, SSN, or IBAN numbers. Draws opaque black boxes and rasterizes the page so the text layer cannot be highlighted, recovered, or extracted via scrapers.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = redactQuery,
+                        onValueChange = { redactQuery = it },
+                        label = { Text("Word or Phrase to Redact (e.g. CNP / Name)") },
+                        modifier = Modifier.weight(1.4f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = overlayText,
+                        onValueChange = { overlayText = it },
+                        label = { Text("Overlay Box Label") },
+                        modifier = Modifier.weight(0.8f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Quick Presets:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf("CNP", "IBAN", "CONFIDENTIAL", "SSN").forEach { preset ->
+                        AssistChip(
+                            onClick = { redactQuery = preset },
+                            label = { Text(preset, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("Forensic Vector Sanitization", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        Text("Rasterizes redacted pages to obliterate underlying text bytes completely.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = forensicSanitize,
+                        onCheckedChange = { forensicSanitize = it }
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        if (redactQuery.isBlank()) {
+                            statusText = "Please enter text or number to redact."
+                            return@Button
+                        }
+                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_redacted.pdf") ?: return@Button
+                        isProcessing = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val matches = DesktopPdfEngine.redactPdf(
+                                    inputFile = file,
+                                    outputFile = outFile,
+                                    query = redactQuery.trim(),
+                                    overlayText = overlayText.trim(),
+                                    forensicSanitize = forensicSanitize
+                                )
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    lastSecurityFile = outFile
+                                    statusText = if (matches > 0) {
+                                        "Success! Redacted $matches occurrence(s) across document.\nSaved to: ${outFile.absolutePath}"
+                                    } else {
+                                        "No occurrences of '$redactQuery' found in document text."
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    statusText = "Redaction failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isProcessing && file != null,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Redact & Sanitize Document", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // 3. Password Protection (128-bit AES)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -1520,7 +2456,22 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                     onValueChange = { password = it },
                     label = { Text("Enter Password") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TextButton(
+                            onClick = { showPassword = !showPassword },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                if (showPassword) "Hide" else "Show",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    singleLine = true
                 )
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1535,20 +2486,24 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 return@Button
                             }
                             val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_protected.pdf") ?: return@Button
+                            isProcessing = true
                             scope.launch(Dispatchers.IO) {
                                 try {
                                     DesktopPdfEngine.encryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
+                                        isProcessing = false
                                         lastSecurityFile = outFile
                                         statusText = "Document encrypted and saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
                                     withContext(Dispatchers.Main) {
+                                        isProcessing = false
                                         statusText = "Encryption failed: ${e.message}"
                                     }
                                 }
                             }
                         },
+                        enabled = !isProcessing && file != null,
                         modifier = Modifier.weight(1f).height(46.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -1564,20 +2519,24 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 return@OutlinedButton
                             }
                             val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_unlocked.pdf") ?: return@OutlinedButton
+                            isProcessing = true
                             scope.launch(Dispatchers.IO) {
                                 try {
                                     DesktopPdfEngine.decryptPdf(file, outFile, password)
                                     withContext(Dispatchers.Main) {
+                                        isProcessing = false
                                         lastSecurityFile = outFile
                                         statusText = "Password removed! Saved to:\n${outFile.absolutePath}"
                                     }
                                 } catch (e: Exception) {
                                     withContext(Dispatchers.Main) {
+                                        isProcessing = false
                                         statusText = "Decryption failed (check password): ${e.message}"
                                     }
                                 }
                             }
                         },
+                        enabled = !isProcessing && file != null,
                         modifier = Modifier.weight(1f).height(46.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -1603,6 +2562,13 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                     Text(statusText!!, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (lastSecurityFile != null && lastSecurityFile!!.exists()) {
+                            Button(
+                                onClick = { openDocument(lastSecurityFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("📄 Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                             OutlinedButton(
                                 onClick = { openFileInExplorer(lastSecurityFile!!) },
                                 shape = RoundedCornerShape(8.dp),
@@ -1839,6 +2805,14 @@ private fun openFileInExplorer(target: File) {
             if (fileToOpen.exists()) {
                 desktop.open(fileToOpen)
             }
+        }
+    } catch (_: Exception) {}
+}
+
+private fun openDocument(target: File) {
+    try {
+        if (java.awt.Desktop.isDesktopSupported() && target.exists()) {
+            java.awt.Desktop.getDesktop().open(target)
         }
     } catch (_: Exception) {}
 }

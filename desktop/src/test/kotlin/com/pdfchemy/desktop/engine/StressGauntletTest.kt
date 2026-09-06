@@ -436,5 +436,47 @@ class StressGauntletTest {
             assertTrue(icon.defaultWidth.value > 0f)
         }
     }
+
+    /**
+     * TEST 8: Metadata Inspection and Stripping Audit
+     * Verifies that document information (author, title, creator) is correctly inspected,
+     * and that stripMetadata completely wipes all metadata and XMP packages.
+     */
+    @Test
+    fun test08_MetadataInspectionAndStripping() {
+        val testFile = tempFolder.newFile("metadata_test_in.pdf")
+        val outFile = tempFolder.newFile("metadata_test_out.pdf")
+
+        // Create PDF with embedded sensitive author and creator information
+        PDDocument().use { doc ->
+            doc.addPage(PDPage())
+            val info = doc.documentInformation
+            info.title = "Confidential Strategy Report"
+            info.author = "John Doe (Confidential Author)"
+            info.creator = "Adobe Acrobat Pro v2024"
+            info.keywords = "finance, secret, internal"
+            doc.save(testFile)
+        }
+
+        // 1. Inspect metadata
+        val inspected = DesktopPdfEngine.inspectMetadata(testFile)
+        assertEquals("Confidential Strategy Report", inspected.title)
+        assertEquals("John Doe (Confidential Author)", inspected.author)
+        assertEquals("Adobe Acrobat Pro v2024", inspected.creator)
+        assertTrue(inspected.hasAnyMetadata)
+
+        // 2. Strip metadata
+        val success = DesktopPdfEngine.stripMetadata(testFile, outFile)
+        assertTrue(success)
+        assertTrue(outFile.exists())
+
+        // 3. Inspect stripped file
+        val cleanInspected = DesktopPdfEngine.inspectMetadata(outFile)
+        assertNull(cleanInspected.title)
+        assertNull(cleanInspected.author)
+        assertNull(cleanInspected.creator)
+        assertNull(cleanInspected.keywords)
+        assertFalse(cleanInspected.hasAnyMetadata)
+    }
 }
 

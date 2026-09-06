@@ -19,12 +19,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.DocumentMetadataInfo
 import com.pdfchemy.app.logic.PdfMetadataEngine
@@ -40,6 +44,7 @@ fun MetadataSanitizerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     BackHandler { onBack() }
 
@@ -255,6 +260,36 @@ fun MetadataSanitizerScreen(
                         MetadataRow(label = stringResource(R.string.meta_creation_date), value = metadataInfo!!.creationDate)
                         MetadataRow(label = stringResource(R.string.meta_mod_date), value = metadataInfo!!.modificationDate)
 
+                        val isCompletelyClean = metadataInfo!!.title.isBlank() &&
+                            metadataInfo!!.author.isBlank() &&
+                            metadataInfo!!.subject.isBlank() &&
+                            metadataInfo!!.keywords.isBlank() &&
+                            metadataInfo!!.creator.isBlank() &&
+                            metadataInfo!!.producer.isBlank() &&
+                            !metadataInfo!!.hasXmpMetadata
+
+                        if (isCompletelyClean) {
+                            Surface(
+                                color = Color(0xFF00E676).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF00C853))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Clean document — zero personal tracking metadata detected.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF00C853),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+
                         if (metadataInfo!!.hasXmpMetadata) {
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer,
@@ -284,14 +319,20 @@ fun MetadataSanitizerScreen(
                 ) {
                     FilterChip(
                         selected = isWipeAction,
-                        onClick = { isWipeAction = true },
+                        onClick = {
+                            isWipeAction = true
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
                         label = { Text(stringResource(R.string.tab_wipe_sanitize)) },
                         leadingIcon = { Icon(Icons.Rounded.CleaningServices, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = !isWipeAction,
-                        onClick = { isWipeAction = false },
+                        onClick = {
+                            isWipeAction = false
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
                         label = { Text(stringResource(R.string.tab_edit_metadata)) },
                         leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         modifier = Modifier.weight(1f)
@@ -324,6 +365,50 @@ fun MetadataSanitizerScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Quick Presets
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                AssistChip(
+                                    onClick = {
+                                        author = "Anonymous"
+                                        creator = ""
+                                        producer = ""
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    label = { Text("Anonymize", fontSize = 11.sp) },
+                                    leadingIcon = { Icon(Icons.Rounded.Security, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                                AssistChip(
+                                    onClick = {
+                                        title = ""
+                                        author = ""
+                                        subject = ""
+                                        keywords = ""
+                                        creator = ""
+                                        producer = ""
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    label = { Text("Clear All", fontSize = 11.sp) },
+                                    leadingIcon = { Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                                AssistChip(
+                                    onClick = {
+                                        metadataInfo?.let {
+                                            title = it.title
+                                            author = it.author
+                                            subject = it.subject
+                                            keywords = it.keywords
+                                            creator = it.creator
+                                            producer = it.producer
+                                        }
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    label = { Text("Reset", fontSize = 11.sp) },
+                                    leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                            }
                             OutlinedTextField(
                                 value = title,
                                 onValueChange = { title = it },

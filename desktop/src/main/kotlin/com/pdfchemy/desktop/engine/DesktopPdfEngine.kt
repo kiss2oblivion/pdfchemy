@@ -22,7 +22,57 @@ data class PageItemSpec(
     val rotation: Int = 0
 )
 
+data class DesktopPdfMetadata(
+    val title: String? = null,
+    val author: String? = null,
+    val subject: String? = null,
+    val keywords: String? = null,
+    val creator: String? = null,
+    val producer: String? = null,
+    val creationDate: String? = null,
+    val modificationDate: String? = null,
+    val hasXmpMetadata: Boolean = false
+) {
+    val hasAnyMetadata: Boolean
+        get() = !title.isNullOrBlank() || !author.isNullOrBlank() || !subject.isNullOrBlank() ||
+                !keywords.isNullOrBlank() || !creator.isNullOrBlank() || !producer.isNullOrBlank() ||
+                !creationDate.isNullOrBlank() || !modificationDate.isNullOrBlank() || hasXmpMetadata
+}
+
 object DesktopPdfEngine {
+
+    /**
+     * Inspects document metadata information and XMP streams.
+     */
+    fun inspectMetadata(file: File): DesktopPdfMetadata {
+        return PDDocument.load(file).use { doc ->
+            val info = doc.documentInformation
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+            DesktopPdfMetadata(
+                title = info?.title?.takeIf { it.isNotBlank() },
+                author = info?.author?.takeIf { it.isNotBlank() },
+                subject = info?.subject?.takeIf { it.isNotBlank() },
+                keywords = info?.keywords?.takeIf { it.isNotBlank() },
+                creator = info?.creator?.takeIf { it.isNotBlank() },
+                producer = info?.producer?.takeIf { it.isNotBlank() },
+                creationDate = try { info?.creationDate?.time?.let { sdf.format(it) } } catch (_: Exception) { null },
+                modificationDate = try { info?.modificationDate?.time?.let { sdf.format(it) } } catch (_: Exception) { null },
+                hasXmpMetadata = doc.documentCatalog.metadata != null
+            )
+        }
+    }
+
+    /**
+     * Completely strips all metadata (DocumentInformation dictionary and catalog XMP metadata).
+     */
+    fun stripMetadata(inputFile: File, outputFile: File): Boolean {
+        PDDocument.load(inputFile).use { doc ->
+            doc.documentInformation = org.apache.pdfbox.pdmodel.PDDocumentInformation()
+            doc.documentCatalog.metadata = null
+            doc.save(outputFile)
+        }
+        return outputFile.exists() && outputFile.length() > 0
+    }
 
     /**
      * Gets page count of a PDF document.

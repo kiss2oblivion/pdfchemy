@@ -21,11 +21,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +50,7 @@ fun WatermarkScreen(
 ) {
     androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
@@ -220,6 +224,49 @@ fun WatermarkScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
+
+                        // Real-Time Watermark Preview Overlay
+                        if (watermarkText.isNotBlank()) {
+                            if (isTiled) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(12.dp),
+                                    verticalArrangement = Arrangement.SpaceEvenly,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    repeat(3) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            repeat(3) {
+                                                Text(
+                                                    text = watermarkText,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF424242).copy(alpha = opacity.coerceIn(0.1f, 1f)),
+                                                    modifier = Modifier.rotate(rotation)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = watermarkText,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF424242).copy(alpha = opacity.coerceIn(0.1f, 1f)),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.rotate(rotation)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -240,7 +287,10 @@ fun WatermarkScreen(
                 ) {
                     listOf("CONFIDENTIAL", "DRAFT", "COPY", "URGENT").forEach { preset ->
                         AssistChip(
-                            onClick = { watermarkText = preset },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                watermarkText = preset
+                            },
                             label = { Text(preset, fontSize = 11.sp) }
                         )
                     }
@@ -255,7 +305,12 @@ fun WatermarkScreen(
                     )
                     Slider(
                         value = opacity,
-                        onValueChange = { opacity = it },
+                        onValueChange = {
+                            if ((it * 10).toInt() != (opacity * 10).toInt()) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            opacity = it
+                        },
                         valueRange = 0.1f..0.9f
                     )
                 }
@@ -271,7 +326,10 @@ fun WatermarkScreen(
                         listOf(0f to "0°", 45f to "45°", -45f to "-45°", 90f to "90°").forEach { (deg, label) ->
                             FilterChip(
                                 selected = rotation == deg,
-                                onClick = { rotation = deg },
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    rotation = deg
+                                },
                                 label = { Text(label, fontSize = 12.sp) }
                             )
                         }
@@ -292,7 +350,10 @@ fun WatermarkScreen(
                     }
                     Switch(
                         checked = isTiled,
-                        onCheckedChange = { isTiled = it }
+                        onCheckedChange = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            isTiled = it
+                        }
                     )
                 }
 

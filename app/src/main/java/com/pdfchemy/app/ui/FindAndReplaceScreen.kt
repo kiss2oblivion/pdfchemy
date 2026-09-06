@@ -13,18 +13,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.FindReplaceSummary
 import com.pdfchemy.app.logic.PdfFindAndReplaceEngine
@@ -39,6 +49,7 @@ fun FindAndReplaceScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     BackHandler { onBack() }
 
@@ -63,6 +74,7 @@ fun FindAndReplaceScreen(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { destUri ->
         if (destUri != null && selectedPdfUri != null && findQuery.isNotBlank()) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             viewModel.replaceTextOccurrences(
                 context = context,
                 sourcePdfUri = selectedPdfUri!!,
@@ -80,6 +92,7 @@ fun FindAndReplaceScreen(
 
     fun performSearch() {
         if (selectedPdfUri != null && findQuery.isNotBlank()) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             scope.launch {
                 isSearching = true
                 searchSummary = PdfFindAndReplaceEngine.findOccurrences(
@@ -89,6 +102,7 @@ fun FindAndReplaceScreen(
                     matchCase = matchCase
                 )
                 isSearching = false
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
         }
     }
@@ -231,16 +245,25 @@ fun FindAndReplaceScreen(
                         placeholder = { Text(stringResource(R.string.hint_find_text)) },
                         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                         trailingIcon = {
-                            if (findQuery.isNotBlank()) {
-                                IconButton(onClick = { performSearch() }) {
-                                    Icon(
-                                        Icons.Rounded.ArrowForward,
-                                        contentDescription = stringResource(R.string.action_search),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (findQuery.isNotEmpty()) {
+                                    IconButton(onClick = { findQuery = ""; searchSummary = null }) {
+                                        Icon(Icons.Rounded.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                                if (findQuery.isNotBlank()) {
+                                    IconButton(onClick = { performSearch() }) {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.ArrowForward,
+                                            contentDescription = stringResource(R.string.action_search),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { performSearch() }),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
@@ -252,6 +275,14 @@ fun FindAndReplaceScreen(
                         label = { Text(stringResource(R.string.label_replace_with)) },
                         placeholder = { Text(stringResource(R.string.hint_replace_with)) },
                         leadingIcon = { Icon(Icons.Rounded.EditNote, contentDescription = null) },
+                        trailingIcon = {
+                            if (replaceText.isNotEmpty()) {
+                                IconButton(onClick = { replaceText = "" }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
@@ -268,6 +299,7 @@ fun FindAndReplaceScreen(
                                 onCheckedChange = {
                                     matchCase = it
                                     searchSummary = null
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
                             )
                             Text(
@@ -384,11 +416,41 @@ fun FindAndReplaceScreen(
                                         )
                                     }
 
+                                    val annotatedSnippet = remember(item.snippet, findQuery, matchCase) {
+                                        buildAnnotatedString {
+                                            val snippetText = item.snippet
+                                            val query = findQuery.trim()
+                                            if (query.isEmpty()) {
+                                                append(snippetText)
+                                            } else {
+                                                var startIndex = 0
+                                                while (startIndex < snippetText.length) {
+                                                    val index = snippetText.indexOf(query, startIndex, ignoreCase = !matchCase)
+                                                    if (index == -1) {
+                                                        append(snippetText.substring(startIndex))
+                                                        break
+                                                    }
+                                                    append(snippetText.substring(startIndex, index))
+                                                    withStyle(
+                                                        SpanStyle(
+                                                            background = Color(0xFFFFD54F),
+                                                            color = Color.Black,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    ) {
+                                                        append(snippetText.substring(index, index + query.length))
+                                                    }
+                                                    startIndex = index + query.length
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     Text(
-                                        text = item.snippet,
+                                        text = annotatedSnippet,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 2,
+                                        maxLines = 3,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -397,6 +459,29 @@ fun FindAndReplaceScreen(
                         }
                     }
                 }
+            } else if (selectedPdfUri != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("100% Local & Layout-Preserving", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        }
+                        Text(
+                            "Search for words or phrases across all pages. PDFchemy inspects matches on-device without cloud uploads or rasterizing untouched pages.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.weight(1f))
             } else {
                 Spacer(modifier = Modifier.weight(1f))
             }

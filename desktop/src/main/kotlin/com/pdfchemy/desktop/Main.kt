@@ -28,6 +28,7 @@ fun main(args: Array<String>) = application {
         mutableStateOf(args.firstOrNull { it.lowercase().endsWith(".pdf") }?.let { File(it) })
     }
     var isDarkTheme by remember { mutableStateOf(true) }
+    var currentTab by remember { mutableStateOf(com.pdfchemy.desktop.ui.DesktopNavTab.HOME) }
 
     val windowState = rememberWindowState(
         width = 1240.dp,
@@ -42,18 +43,65 @@ fun main(args: Array<String>) = application {
         icon = painterResource("icons/linux/icon.png"),
         onKeyEvent = { keyEvent ->
             if (keyEvent.type == KeyEventType.KeyDown) {
-                // Ctrl+O (or Cmd+O) to Open File
-                if (keyEvent.isCtrlPressed && keyEvent.key == Key.O) {
-                    val file = DesktopFileDialog.openPdf()
-                    if (file != null) {
-                        droppedFile = file
+                when {
+                    // Ctrl+O: Open File
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.O -> {
+                        val file = DesktopFileDialog.openPdf()
+                        if (file != null) {
+                            droppedFile = file
+                        }
+                        true
                     }
-                    true
-                } else if (keyEvent.isCtrlPressed && keyEvent.key == Key.Q) {
-                    exitApplication()
-                    true
-                } else {
-                    false
+                    // Ctrl+D: Toggle Dark / Light Theme
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.D -> {
+                        isDarkTheme = !isDarkTheme
+                        true
+                    }
+                    // Esc: Return to Home Dashboard
+                    keyEvent.key == Key.Escape -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.HOME
+                        true
+                    }
+                    // Ctrl+1..7: Switch to tool tabs
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.One -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.HOME
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Two -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.COMPRESS
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Three -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.ORGANIZE
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Four -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.CONVERT
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Five -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.READER
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Six -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.SECURITY
+                        true
+                    }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Seven -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.BATCH
+                        true
+                    }
+                    // Ctrl+F: Find / Search text in Reader
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.F && currentTab != com.pdfchemy.desktop.ui.DesktopNavTab.READER -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.READER
+                        true
+                    }
+                    // Ctrl+Q: Exit
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Q -> {
+                        exitApplication()
+                        true
+                    }
+                    else -> false
                 }
             } else {
                 false
@@ -89,7 +137,9 @@ fun main(args: Array<String>) = application {
                 initialFile = droppedFile,
                 initialShowSetup = shouldShowSetup,
                 isDarkTheme = isDarkTheme,
-                onToggleTheme = { isDarkTheme = !isDarkTheme }
+                onToggleTheme = { isDarkTheme = !isDarkTheme },
+                currentTab = currentTab,
+                onTabChange = { currentTab = it }
             )
         }
     }
