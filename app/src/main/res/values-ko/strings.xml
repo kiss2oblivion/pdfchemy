@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">대화형 양식 빌더</string>
+    <string name="menu_form_builder_desc">일반 PDF를 텍스트 필드, 체크박스, 드롭다운이 있는 작성 가능한 양식 PDF로 변환</string>
+    <string name="form_builder_title">양식 필드 빌더</string>
+    <string name="form_builder_tool_text">텍스트 입력란</string>
+    <string name="form_builder_tool_checkbox">체크박스</string>
+    <string name="form_builder_tool_dropdown">드롭다운 목록</string>
+    <string name="form_builder_hint">대화형 필드를 삽입하려면 페이지를 탭하세요</string>
+    <string name="form_builder_field_name_label">필드 이름</string>
+    <string name="form_builder_options_label">옵션 (쉼표로 구분)</string>
+    <string name="form_builder_default_value_label">기본값</string>
+    <string name="form_builder_action_add">필드 추가</string>
+    <string name="form_builder_action_save">작성 가능한 PDF 저장</string>
+    <string name="form_builder_fields_count">페이지 내 필드: %1$d</string>
+    <string name="form_builder_success">작성 가능한 PDF 생성 완료!</string>
+    <string name="form_builder_success_desc">대화형 양식 필드가 문서에 삽입되었습니다.</string>
+    <string name="form_builder_no_fields_warn">저장하기 전에 최소 하나 이상의 필드를 배치해 주세요.</string>
+    <string name="form_builder_delete_field">필드 삭제</string>
 </resources>

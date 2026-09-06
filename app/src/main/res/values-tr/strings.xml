@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Etkileşimli Form Oluşturucu</string>
+    <string name="menu_form_builder_desc">Düz PDF\'leri metin kutuları, onay kutuları ve açılır listeler içeren doldurulabilir formlara dönüştürün</string>
+    <string name="form_builder_title">Form Alanı Oluşturucu</string>
+    <string name="form_builder_tool_text">Metin Alanı</string>
+    <string name="form_builder_tool_checkbox">Onay Kutusu</string>
+    <string name="form_builder_tool_dropdown">Açılır Menü</string>
+    <string name="form_builder_hint">Etkileşimli alan eklemek için sayfaya dokunun</string>
+    <string name="form_builder_field_name_label">Alan Adı</string>
+    <string name="form_builder_options_label">Seçenekler (virgülle ayrılmış)</string>
+    <string name="form_builder_default_value_label">Varsayılan Değer</string>
+    <string name="form_builder_action_add">Alan Ekle</string>
+    <string name="form_builder_action_save">Doldurulabilir PDF Kaydet</string>
+    <string name="form_builder_fields_count">Sayfadaki alan sayısı: %1$d</string>
+    <string name="form_builder_success">Doldurulabilir PDF Başarıyla Oluşturuldu!</string>
+    <string name="form_builder_success_desc">Etkileşimli form alanları belgeye yerleştirildi.</string>
+    <string name="form_builder_no_fields_warn">Lütfen kaydetmeden önce en az bir alan ekleyin.</string>
+    <string name="form_builder_delete_field">Alanı Sil</string>
 </resources>

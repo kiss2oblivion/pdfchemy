@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Tạo Biểu Mẫu Tương Tác</string>
+    <string name="menu_form_builder_desc">Chuyển đổi PDF tĩnh thành biểu mẫu có thể điền với ô nhập văn bản, hộp kiểm và menu thả xuống</string>
+    <string name="form_builder_title">Tạo Trường Biểu Mẫu</string>
+    <string name="form_builder_tool_text">Trường Văn Bản</string>
+    <string name="form_builder_tool_checkbox">Hộp Kiểm</string>
+    <string name="form_builder_tool_dropdown">Danh Sách Thả Xuống</string>
+    <string name="form_builder_hint">Chạm vào trang để chèn trường biểu mẫu</string>
+    <string name="form_builder_field_name_label">Tên Trường</string>
+    <string name="form_builder_options_label">Tùy chọn (ngăn cách bằng dấu phẩy)</string>
+    <string name="form_builder_default_value_label">Giá Trị Mặc Định</string>
+    <string name="form_builder_action_add">Thêm Trường</string>
+    <string name="form_builder_action_save">Lưu PDF Có Thể Điền</string>
+    <string name="form_builder_fields_count">Số trường trên trang: %1$d</string>
+    <string name="form_builder_success">Đã tạo PDF có thể điền thành công!</string>
+    <string name="form_builder_success_desc">Các trường biểu mẫu tương tác đã được nhúng vào tài liệu.</string>
+    <string name="form_builder_no_fields_warn">Vui lòng đặt ít nhất một trường tương tác trước khi lưu.</string>
+    <string name="form_builder_delete_field">Xóa Trường</string>
 </resources>

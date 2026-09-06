@@ -71,6 +71,12 @@ import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.pdfchemy.desktop.engine.DesktopFormFieldSpec
+import com.pdfchemy.desktop.engine.DesktopDirectorySearchEngine
+import com.pdfchemy.desktop.engine.DirectorySearchProgress
+import com.pdfchemy.desktop.engine.FileSearchResult
+import com.pdfchemy.desktop.engine.SearchMatchSnippet
+import java.util.concurrent.atomic.AtomicBoolean
 import java.io.File
 import java.text.DecimalFormat
 
@@ -128,6 +134,7 @@ fun DesktopApp(
     var showUpdateDialog by remember { mutableStateOf(false) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     var updateFeedbackMessage by remember { mutableStateOf<String?>(null) }
+    var showSpotlightSearchDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // Silent background check for updates on launch
@@ -202,6 +209,16 @@ fun DesktopApp(
         ManifestoDialog(
             onDismiss = { showManifestoDialog = false },
             onOpenTipJar = { showTipJarDialog = true }
+        )
+    }
+
+    if (showSpotlightSearchDialog) {
+        DirectorySpotlightSearchDialog(
+            onDismiss = { showSpotlightSearchDialog = false },
+            onOpenFileAtPage = { targetFile, pageIdx ->
+                selectedFile = targetFile
+                activeTab = DesktopNavTab.READER
+            }
         )
     }
 
@@ -330,6 +347,21 @@ fun DesktopApp(
                                 )
                             }
                         }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Spotlight Search Button
+                    FilledTonalButton(
+                        onClick = { showSpotlightSearchDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("🔍 ${strings.spotlightSearchTitle}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -2705,6 +2737,14 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     val acroFormValues = remember(file) { mutableStateMapOf<String, String>() }
     var flattenOnSave by remember { mutableStateOf(true) }
 
+    // Interactive AcroForm Builder states
+    var isAuthoringAcroForm by remember { mutableStateOf(false) }
+    var authoringFieldType by remember { mutableStateOf(AcroFieldType.TEXT) }
+    var authoringFieldName by remember { mutableStateOf("field_1") }
+    var authoringDefaultValue by remember { mutableStateOf("") }
+    var authoringOptions by remember { mutableStateOf("Option 1, Option 2, Option 3") }
+    val authoredFields = remember(file) { mutableStateListOf<DesktopFormFieldSpec>() }
+
     // Legal Bates Stamping states
     var batesPrefix by remember { mutableStateOf("CASE-2026-") }
     var batesSuffix by remember { mutableStateOf("") }
@@ -3217,106 +3257,220 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                     // Mode 5: INTERACTIVE ACROFORM STUDIO
                     if (selectedMode == SignTabMode.ACRO_FORM) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (acroFields.isEmpty()) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(strings.noAcroFields, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text("This PDF does not contain interactive PDF form fields. You can use Form Filler (Type) to place custom text & checkmarks instead.", fontSize = 11.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            // Switcher between Fill & Author
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                FilterChip(
+                                    selected = !isAuthoringAcroForm,
+                                    onClick = { isAuthoringAcroForm = false },
+                                    label = { Text(if (acroFields.isNotEmpty()) "Fill Form (${acroFields.size})" else "Fill Form", fontSize = 12.sp) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FilterChip(
+                                    selected = isAuthoringAcroForm,
+                                    onClick = { isAuthoringAcroForm = true },
+                                    label = { Text("Form Builder (${authoredFields.size})", fontSize = 12.sp) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            if (isAuthoringAcroForm) {
+                                // Authoring Tools
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(strings.formBuilderSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        FilterChip(
+                                            selected = authoringFieldType == AcroFieldType.TEXT,
+                                            onClick = {
+                                                authoringFieldType = AcroFieldType.TEXT
+                                                authoringFieldName = "text_${authoredFields.size + 1}"
+                                            },
+                                            label = { Text(strings.formBuilderToolText, fontSize = 11.sp) },
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        FilterChip(
+                                            selected = authoringFieldType == AcroFieldType.CHECKBOX,
+                                            onClick = {
+                                                authoringFieldType = AcroFieldType.CHECKBOX
+                                                authoringFieldName = "check_${authoredFields.size + 1}"
+                                            },
+                                            label = { Text(strings.formBuilderToolCheck, fontSize = 11.sp) },
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        FilterChip(
+                                            selected = authoringFieldType == AcroFieldType.CHOICE,
+                                            onClick = {
+                                                authoringFieldType = AcroFieldType.CHOICE
+                                                authoringFieldName = "dropdown_${authoredFields.size + 1}"
+                                            },
+                                            label = { Text(strings.formBuilderToolDropdown, fontSize = 11.sp) },
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                    }
+
+                                    OutlinedTextField(
+                                        value = authoringFieldName,
+                                        onValueChange = { authoringFieldName = it },
+                                        label = { Text(strings.formBuilderFieldName, fontSize = 11.sp) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        singleLine = true
+                                    )
+
+                                    OutlinedTextField(
+                                        value = authoringDefaultValue,
+                                        onValueChange = { authoringDefaultValue = it },
+                                        label = { Text(strings.formBuilderDefaultValue, fontSize = 11.sp) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        singleLine = true
+                                    )
+
+                                    if (authoringFieldType == AcroFieldType.CHOICE) {
+                                        OutlinedTextField(
+                                            value = authoringOptions,
+                                            onValueChange = { authoringOptions = it },
+                                            label = { Text(strings.formBuilderOptions, fontSize = 11.sp) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(8.dp),
+                                            singleLine = true
+                                        )
+                                    }
+
+                                    Text(strings.formBuilderHint, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+
+                                    // List of authored fields
+                                    if (authoredFields.isNotEmpty()) {
+                                        Text(String.format(strings.formBuilderCount, authoredFields.size), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().heightIn(max = 140.dp).verticalScroll(rememberScrollState()),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            authoredFields.forEach { spec ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("P.${spec.pageIndex + 1} [${spec.type}] ${spec.name}", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                                    IconButton(onClick = { authoredFields.remove(spec) }, modifier = Modifier.size(20.dp)) {
+                                                        Icon(Icons.Rounded.Close, contentDescription = "Delete", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } else {
-                                Text("${acroFields.size} Interactive Form Fields", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    acroFields.forEach { field ->
-                                        when (field.type) {
-                                            AcroFieldType.CHECKBOX -> {
-                                                val currentVal = acroFormValues[field.name] ?: field.value
-                                                val isChecked = currentVal.equals("Yes", ignoreCase = true) || currentVal.equals("true", ignoreCase = true) || currentVal.equals("On", ignoreCase = true)
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().clickable {
-                                                        acroFormValues[field.name] = if (isChecked) "Off" else "Yes"
-                                                    },
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    Checkbox(
-                                                        checked = isChecked,
-                                                        onCheckedChange = { checked ->
-                                                            acroFormValues[field.name] = if (checked) "Yes" else "Off"
-                                                        }
-                                                    )
-                                                    Column {
-                                                        Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
-                                                        if (field.isReadOnly) Text("Read-only", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    }
-                                                }
-                                            }
-                                            AcroFieldType.CHOICE -> {
-                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
-                                                    val currentVal = acroFormValues[field.name] ?: field.value
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                    ) {
-                                                        field.options.forEach { opt ->
-                                                            FilterChip(
-                                                                selected = currentVal == opt,
-                                                                onClick = { acroFormValues[field.name] = opt },
-                                                                label = { Text(opt, fontSize = 11.sp) },
-                                                                shape = RoundedCornerShape(6.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            else -> {
-                                                val currentVal = acroFormValues[field.name] ?: field.value
-                                                OutlinedTextField(
-                                                    value = currentVal,
-                                                    onValueChange = { acroFormValues[field.name] = it },
-                                                    label = { Text(field.name, fontSize = 11.sp) },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    singleLine = true
-                                                )
+                                // Filling Mode
+                                if (acroFields.isEmpty()) {
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(strings.noAcroFields, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text("This PDF does not contain interactive PDF form fields. Click 'Form Builder' above to author fields or use Form Filler (Type) to place marks.", fontSize = 11.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Button(onClick = { isAuthoringAcroForm = true }, shape = RoundedCornerShape(8.dp)) {
+                                                Text(strings.formBuilderTitle)
                                             }
                                         }
                                     }
-                                }
-
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                } else {
+                                    Text("${acroFields.size} Interactive Form Fields", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(strings.btnFlattenForm, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text(strings.flattenFormDesc, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        acroFields.forEach { field ->
+                                            when (field.type) {
+                                                AcroFieldType.CHECKBOX -> {
+                                                    val currentVal = acroFormValues[field.name] ?: field.value
+                                                    val isChecked = currentVal.equals("Yes", ignoreCase = true) || currentVal.equals("true", ignoreCase = true) || currentVal.equals("On", ignoreCase = true)
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth().clickable {
+                                                            acroFormValues[field.name] = if (isChecked) "Off" else "Yes"
+                                                        },
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Checkbox(
+                                                            checked = isChecked,
+                                                            onCheckedChange = { checked ->
+                                                                acroFormValues[field.name] = if (checked) "Yes" else "Off"
+                                                            }
+                                                        )
+                                                        Column {
+                                                            Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                                            if (field.isReadOnly) Text("Read-only", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        }
+                                                    }
+                                                }
+                                                AcroFieldType.CHOICE -> {
+                                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                                        val currentVal = acroFormValues[field.name] ?: field.value
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            field.options.forEach { opt ->
+                                                                FilterChip(
+                                                                    selected = currentVal == opt,
+                                                                    onClick = { acroFormValues[field.name] = opt },
+                                                                    label = { Text(opt, fontSize = 11.sp) },
+                                                                    shape = RoundedCornerShape(6.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else -> {
+                                                    val currentVal = acroFormValues[field.name] ?: field.value
+                                                    OutlinedTextField(
+                                                        value = currentVal,
+                                                        onValueChange = { acroFormValues[field.name] = it },
+                                                        label = { Text(field.name, fontSize = 11.sp) },
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        singleLine = true
+                                                    )
+                                                }
+                                            }
                                         }
-                                        Switch(
-                                            checked = flattenOnSave,
-                                            onCheckedChange = { flattenOnSave = it },
-                                            modifier = Modifier.scale(0.8f)
-                                        )
+                                    }
+
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(strings.btnFlattenForm, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                Text(strings.flattenFormDesc, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                            Switch(
+                                                checked = flattenOnSave,
+                                                onCheckedChange = { flattenOnSave = it },
+                                                modifier = Modifier.scale(0.8f)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -3714,6 +3868,29 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             }
 
                             if (selectedMode == SignTabMode.ACRO_FORM) {
+                                if (isAuthoringAcroForm) {
+                                    val target = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_fillable.pdf")
+                                    if (target != null) {
+                                        isProcessing = true
+                                        statusText = null
+                                        isError = false
+                                        scope.launch(Dispatchers.IO) {
+                                            val res = DesktopPdfEngine.addAcroFormFields(file, target, authoredFields.toList())
+                                            withContext(Dispatchers.Main) {
+                                                isProcessing = false
+                                                if (res.isSuccess) {
+                                                    signedFile = target
+                                                    statusText = String.format(strings.formBuilderSavedSuccess, target.name)
+                                                    isError = false
+                                                } else {
+                                                    statusText = "Failed to build fillable PDF form."
+                                                    isError = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                    return@Button
+                                }
                                 val defaultName = if (flattenOnSave) "${file.nameWithoutExtension}_flattened.pdf" else "${file.nameWithoutExtension}_filled.pdf"
                                 val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
                                 if (target != null) {
@@ -3954,6 +4131,35 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                             )
                                         }
                                     }
+                                } else if (selectedMode == SignTabMode.ACRO_FORM && isAuthoringAcroForm) {
+                                    Modifier.pointerInput(authoringFieldType, authoringFieldName, authoringDefaultValue, authoringOptions) {
+                                        detectTapGestures { offset ->
+                                            val xRatio = (offset.x / size.width.toFloat()).coerceIn(0.02f, 0.90f)
+                                            val yRatio = (offset.y / size.height.toFloat()).coerceIn(0.02f, 0.95f)
+                                            val w = when (authoringFieldType) {
+                                                AcroFieldType.CHECKBOX -> 0.05f
+                                                else -> 0.35f
+                                            }
+                                            val h = 0.045f
+                                            val opts = if (authoringFieldType == AcroFieldType.CHOICE) {
+                                                authoringOptions.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                                            } else emptyList()
+
+                                            authoredFields.add(
+                                                DesktopFormFieldSpec(
+                                                    pageIndex = currentPageIndex,
+                                                    name = authoringFieldName.ifBlank { "field_${authoredFields.size + 1}" },
+                                                    type = authoringFieldType,
+                                                    xRatio = xRatio,
+                                                    yRatio = yRatio,
+                                                    widthRatio = w,
+                                                    heightRatio = h,
+                                                    defaultValue = authoringDefaultValue,
+                                                    options = opts
+                                                )
+                                            )
+                                        }
+                                    }
                                 } else Modifier
                             ),
                         contentAlignment = Alignment.Center
@@ -3997,7 +4203,38 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             )
                         }
 
-                        if (selectedMode == SignTabMode.TYPE) {
+                        if (selectedMode == SignTabMode.ACRO_FORM && isAuthoringAcroForm) {
+                            // Authored Fields Overlays
+                            authoredFields.filter { it.pageIndex == currentPageIndex }.forEach { f ->
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .offset(
+                                            x = (maxWidth * f.xRatio).coerceIn(0.dp, maxWidth - 48.dp),
+                                            y = (maxHeight * f.yRatio).coerceIn(0.dp, maxHeight - 28.dp)
+                                        )
+                                        .background(Color(0xFF1976D2).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                                        .border(1.5.dp, Color(0xFF1976D2), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        .clickable { authoredFields.remove(f) }
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "${if (f.type == AcroFieldType.CHECKBOX) "[✓] " else if (f.type == AcroFieldType.CHOICE) "[▼] " else "[T] "}${f.name}",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0D47A1)
+                                        )
+                                        Icon(
+                                            Icons.Rounded.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(10.dp),
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                        } else if (selectedMode == SignTabMode.TYPE) {
                             // Placed Annotations Badges
                             for (item in placedAnnotations.toList()) {
                                 val awtColor = try { Color(java.awt.Color.decode(item.colorHex).rgb) } catch (_: Exception) { Color.Black }
@@ -7298,6 +7535,305 @@ private fun InstallationSetupDialog(onDismiss: () -> Unit) {
                 }
             }
         }
+    )
+}
+
+@Composable
+fun DirectorySpotlightSearchDialog(
+    onDismiss: () -> Unit,
+    onOpenFileAtPage: (File, Int) -> Unit
+) {
+    val strings = DesktopLocalization.strings
+    val scope = rememberCoroutineScope()
+
+    var selectedDir by remember { mutableStateOf<File?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var matchCase by remember { mutableStateOf(false) }
+    var recursive by remember { mutableStateOf(true) }
+
+    var isSearching by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf<DirectorySearchProgress?>(null) }
+    val cancelFlag = remember { AtomicBoolean(false) }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (isSearching) cancelFlag.set(true)
+            onDismiss()
+        },
+        modifier = Modifier.widthIn(min = 680.dp, max = 820.dp).heightIn(min = 520.dp, max = 660.dp),
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(strings.spotlightSearchTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = {
+                    if (isSearching) cancelFlag.set(true)
+                    onDismiss()
+                }) {
+                    Icon(Icons.Rounded.Close, contentDescription = strings.close)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().height(480.dp).padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Folder Selection Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = selectedDir?.absolutePath ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(strings.searchFolderLabel, fontSize = 11.sp) },
+                        placeholder = { Text("Select folder with PDF documents...", fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Rounded.FolderOpen, contentDescription = null) }
+                    )
+                    Button(
+                        onClick = {
+                            val dir = DesktopFileDialog.chooseDirectory()
+                            if (dir != null) {
+                                selectedDir = dir
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(52.dp)
+                    ) {
+                        Text(strings.searchBtnChooseFolder, fontSize = 12.sp)
+                    }
+                }
+
+                // Query and Start Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text(strings.searchKeywordPlaceholder, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    )
+                    Button(
+                        onClick = {
+                            val dir = selectedDir
+                            if (dir != null && searchQuery.isNotBlank()) {
+                                isSearching = true
+                                cancelFlag.set(false)
+                                scope.launch(Dispatchers.IO) {
+                                    DesktopDirectorySearchEngine.searchDirectory(
+                                        directory = dir,
+                                        query = searchQuery,
+                                        matchCase = matchCase,
+                                        recursive = recursive,
+                                        cancelFlag = cancelFlag,
+                                        onProgress = { p ->
+                                            progress = p
+                                            if (p.isComplete) isSearching = false
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        enabled = selectedDir != null && searchQuery.isNotBlank() && !isSearching,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(52.dp)
+                    ) {
+                        if (isSearching) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(strings.btnStartSearch, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                    if (isSearching) {
+                        OutlinedButton(
+                            onClick = { cancelFlag.set(true); isSearching = false },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.height(52.dp)
+                        ) {
+                            Text(strings.btnCancelSearch, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                // Options: Match case & Subfolders
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { matchCase = !matchCase }
+                    ) {
+                        Checkbox(checked = matchCase, onCheckedChange = { matchCase = it })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(strings.searchMatchCase, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { recursive = !recursive }
+                    ) {
+                        Checkbox(checked = recursive, onCheckedChange = { recursive = it })
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(strings.searchIncludeSubfolders, style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+                    progress?.let { p ->
+                        Text(
+                            text = String.format(strings.searchFilesScanned, p.filesScanned, p.totalFiles),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Results list
+                val searchResults = progress?.results ?: emptyList()
+                if (searchResults.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSearching) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CircularProgressIndicator()
+                                Text("Searching files in directory...", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        } else if (progress != null) {
+                            Text(strings.searchNoMatches, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            Text("Select a directory and enter a keyword to begin searching.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    val totalMatchCount = searchResults.sumOf { it.totalMatches }
+                    Text(
+                        text = String.format(strings.searchMatchesFound, totalMatchCount, searchResults.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        searchResults.forEach { res ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                            Text(res.file.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer
+                                        ) {
+                                            Text(
+                                                "${res.totalMatches} matches",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        res.file.parentFile?.absolutePath ?: "",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    // Snippets
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        res.snippets.forEach { snippet ->
+                                            Surface(
+                                                onClick = {
+                                                    onOpenFileAtPage(res.file, snippet.pageNumber - 1)
+                                                    onDismiss()
+                                                },
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                    ) {
+                                                        Text(
+                                                            "P.${snippet.pageNumber}",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                    Text(
+                                                        snippet.lineSnippet,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        maxLines = 2,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Icon(
+                                                        Icons.AutoMirrored.Rounded.ArrowForward,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(14.dp),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {}
     )
 }
 

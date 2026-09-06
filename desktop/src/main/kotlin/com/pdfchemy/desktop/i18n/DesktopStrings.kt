@@ -352,6 +352,37 @@ data class DesktopStrings(
     var btnExportPowerPoint: String = "Export to PowerPoint (.pptx)"
     var officeExportSuccess: String = "Successfully exported to %1\$s (%2\$s)"
     var officeExportConverting: String = "Exporting document to Office format..."
+
+    // 8. Multi-File Directory Spotlight Search
+    var spotlightSearchTitle: String = "Directory Spotlight Search"
+    var spotlightSearchSubtitle: String = "Instant local keyword search across hundreds of PDFs in any folder with snippet extraction."
+    var btnSpotlightSearch: String = "Spotlight Search (Ctrl+Shift+F)"
+    var searchFolderLabel: String = "Folder to Search:"
+    var searchBtnChooseFolder: String = "Choose Directory..."
+    var searchKeywordPlaceholder: String = "Enter keywords or phrases to search for..."
+    var searchMatchCase: String = "Match Case"
+    var searchIncludeSubfolders: String = "Include Subfolders"
+    var btnStartSearch: String = "Search Documents"
+    var btnCancelSearch: String = "Cancel Search"
+    var searchFilesScanned: String = "Scanned %1\$d of %2\$d PDF files..."
+    var searchMatchesFound: String = "Found %1\$d matches across %2\$d files"
+    var searchNoMatches: String = "No matching documents found in directory."
+    var searchJumpToPage: String = "Open Page %1\$d in Reader"
+
+    // 9. Interactive AcroForm Builder
+    var formBuilderTitle: String = "Interactive Form Field Builder"
+    var formBuilderSubtitle: String = "Convert flat PDFs into genuine fillable PDF forms with text fields, checkboxes, and dropdowns."
+    var formBuilderToolText: String = "Text Field"
+    var formBuilderToolCheck: String = "Checkbox"
+    var formBuilderToolDropdown: String = "Dropdown"
+    var formBuilderFieldName: String = "Field Name"
+    var formBuilderDefaultValue: String = "Default Value"
+    var formBuilderOptions: String = "Options (comma-separated)"
+    var formBuilderBtnAdd: String = "Add Field"
+    var formBuilderBtnSave: String = "Save Fillable PDF"
+    var formBuilderSavedSuccess: String = "Fillable PDF form created successfully: %1\$s"
+    var formBuilderHint: String = "Click on document preview to place interactive form field"
+    var formBuilderCount: String = "Fields placed: %1\$d"
 }
 
 /**

@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">ตัวสร้างแบบฟอร์มแบบโต้ตอบ</string>
+    <string name="menu_form_builder_desc">แปลงเอกสาร PDF ธรรมดาเป็นแบบฟอร์มที่กรอกได้พร้อมช่องข้อความ กล่องกาเครื่องหมาย และรายการแบบเลื่อนลง</string>
+    <string name="form_builder_title">ตัวสร้างฟิลด์แบบฟอร์ม</string>
+    <string name="form_builder_tool_text">ช่องข้อความ</string>
+    <string name="form_builder_tool_checkbox">กล่องกาเครื่องหมาย</string>
+    <string name="form_builder_tool_dropdown">รายการแบบเลื่อนลง</string>
+    <string name="form_builder_hint">แตะที่หน้าเพื่อวางฟิลด์แบบโต้ตอบ</string>
+    <string name="form_builder_field_name_label">ชื่อฟิลด์</string>
+    <string name="form_builder_options_label">ตัวเลือก (คั่นด้วยเครื่องหมายจุลภาค)</string>
+    <string name="form_builder_default_value_label">ค่าเริ่มต้น</string>
+    <string name="form_builder_action_add">เพิ่มฟิลด์</string>
+    <string name="form_builder_action_save">บันทึก PDF แบบกรอกได้</string>
+    <string name="form_builder_fields_count">ฟิลด์ในหน้านี้: %1$d</string>
+    <string name="form_builder_success">สร้าง PDF แบบกรอกได้สำเร็จ!</string>
+    <string name="form_builder_success_desc">ฝังฟิลด์แบบฟอร์มลงในเอกสารเรียบร้อยแล้ว</string>
+    <string name="form_builder_no_fields_warn">โปรดวางฟิลด์แบบโต้ตอบอย่างน้อยหนึ่งฟิลด์ก่อนบันทึก</string>
+    <string name="form_builder_delete_field">ลบฟิลด์</string>
 </resources>

@@ -1043,4 +1043,23 @@
     <string name="tts_prev_paragraph">Anterior</string>
     <string name="tts_next_paragraph">Siguiente</string>
     <string name="tts_not_supported">La síntesis de voz no es compatible o faltan datos de idioma.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Creador de Formularios Interactivos</string>
+    <string name="menu_form_builder_desc">Convierte PDFs estáticos en formularios rellenables con campos de texto, casillas y menús desplegables</string>
+    <string name="form_builder_title">Creador de Campos de Formulario</string>
+    <string name="form_builder_tool_text">Campo de Texto</string>
+    <string name="form_builder_tool_checkbox">Casilla de Verificación</string>
+    <string name="form_builder_tool_dropdown">Menú Desplegable</string>
+    <string name="form_builder_hint">Toca cualquier parte de la página para insertar un campo</string>
+    <string name="form_builder_field_name_label">Nombre del Campo</string>
+    <string name="form_builder_options_label">Opciones (separadas por coma)</string>
+    <string name="form_builder_default_value_label">Valor Predeterminado</string>
+    <string name="form_builder_action_add">Añadir Campo</string>
+    <string name="form_builder_action_save">Guardar PDF Rellenable</string>
+    <string name="form_builder_fields_count">Campos en la página: %1$d</string>
+    <string name="form_builder_success">¡PDF Rellenable creado con éxito!</string>
+    <string name="form_builder_success_desc">Los campos interactivos se han incrustado en el documento.</string>
+    <string name="form_builder_no_fields_warn">Por favor, coloca al menos un campo interactivo antes de guardar.</string>
+    <string name="form_builder_delete_field">Eliminar Campo</string>
 </resources>

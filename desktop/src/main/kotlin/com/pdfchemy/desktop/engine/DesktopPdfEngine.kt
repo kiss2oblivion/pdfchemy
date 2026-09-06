@@ -22,6 +22,9 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDTextField
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton
 import org.apache.pdfbox.pdmodel.interactive.form.PDChoice
+import org.apache.pdfbox.pdmodel.interactive.form.PDComboBox
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
+import org.apache.pdfbox.pdmodel.PDResources
 import org.apache.pdfbox.cos.COSArray
 import org.apache.pdfbox.cos.COSBase
 import org.apache.pdfbox.cos.COSDictionary
@@ -67,6 +70,18 @@ data class DesktopAcroField(
     val options: List<String> = emptyList(),
     val isReadOnly: Boolean = false,
     val isRequired: Boolean = false
+)
+
+data class DesktopFormFieldSpec(
+    val pageIndex: Int,
+    val name: String,
+    val type: AcroFieldType = AcroFieldType.TEXT,
+    val xRatio: Float = 0.1f,
+    val yRatio: Float = 0.1f,
+    val widthRatio: Float = 0.35f,
+    val heightRatio: Float = 0.045f,
+    val defaultValue: String = "",
+    val options: List<String> = emptyList()
 )
 
 data class PageDiff(
@@ -2357,6 +2372,109 @@ object DesktopPdfEngine {
         return try {
             val success = PdfOcrEngine.createSearchablePdf(inputFile, outputFile, onProgress)
             if (success) Result.success(true) else Result.failure(Exception("OCR failed"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    // ==========================================
+    // 13. AcroForm Authoring
+    // ==========================================
+
+    fun addAcroFormFields(inputFile: File, outputFile: File, fields: List<DesktopFormFieldSpec>): Result<Boolean> {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val catalog = doc.documentCatalog
+                var acroForm = catalog.acroForm
+                if (acroForm == null) {
+                    acroForm = PDAcroForm(doc)
+                    catalog.acroForm = acroForm
+                }
+                var dr = acroForm.defaultResources
+                if (dr == null) {
+                    dr = PDResources()
+                    acroForm.defaultResources = dr
+                }
+                val helvName = COSName.getPDFName("Helv")
+                dr.put(helvName, PDType1Font.HELVETICA)
+                acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+
+                val pageCount = doc.numberOfPages
+                for (spec in fields) {
+                    if (spec.pageIndex < 0 || spec.pageIndex >= pageCount) continue
+                    val page = doc.getPage(spec.pageIndex)
+                    val cropBox = page.cropBox ?: page.mediaBox
+                    val pw = cropBox.width
+                    val ph = cropBox.height
+
+                    val x = cropBox.lowerLeftX + (spec.xRatio.coerceIn(0f, 1f) * pw)
+                    val w = (spec.widthRatio.coerceIn(0.01f, 1f) * pw)
+                    val h = (spec.heightRatio.coerceIn(0.01f, 1f) * ph)
+                    val y = cropBox.lowerLeftY + (ph - (spec.yRatio.coerceIn(0f, 1f) + spec.heightRatio.coerceIn(0.01f, 1f)) * ph)
+
+                    val rect = PDRectangle(x, y, w, h)
+
+                    when (spec.type) {
+                        AcroFieldType.CHECKBOX -> {
+                            val cb = PDCheckBox(acroForm)
+                            cb.partialName = spec.name
+                            val widget = cb.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                cb.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.equals("Yes", true) || spec.defaultValue.equals("true", true) || spec.defaultValue.equals("1", true)) {
+                                cb.check()
+                            } else {
+                                cb.unCheck()
+                            }
+                            acroForm.fields.add(cb)
+                        }
+                        AcroFieldType.CHOICE -> {
+                            val combo = PDComboBox(acroForm)
+                            combo.partialName = spec.name
+                            combo.defaultAppearance = "/Helv 12 Tf 0 g"
+                            if (spec.options.isNotEmpty()) {
+                                combo.options = spec.options
+                            }
+                            val widget = combo.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                combo.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.isNotBlank()) {
+                                combo.setValue(spec.defaultValue)
+                            } else if (spec.options.isNotEmpty()) {
+                                combo.setValue(spec.options.first())
+                            }
+                            acroForm.fields.add(combo)
+                        }
+                        else -> { // TEXT and default
+                            val tf = PDTextField(acroForm)
+                            tf.partialName = spec.name
+                            tf.defaultAppearance = "/Helv 12 Tf 0 g"
+                            val widget = tf.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                tf.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.isNotBlank()) {
+                                tf.setValue(spec.defaultValue)
+                            }
+                            acroForm.fields.add(tf)
+                        }
+                    }
+                }
+                doc.save(outputFile)
+            }
+            Result.success(true)
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)

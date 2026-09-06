@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">交互式表单构建器</string>
+    <string name="menu_form_builder_desc">将静态PDF转换为包含文本框、复选框和下拉列表的可填写PDF表单</string>
+    <string name="form_builder_title">表单字段构建器</string>
+    <string name="form_builder_tool_text">文本框</string>
+    <string name="form_builder_tool_checkbox">复选框</string>
+    <string name="form_builder_tool_dropdown">下拉列表</string>
+    <string name="form_builder_hint">点击页面任意位置插入交互式表单字段</string>
+    <string name="form_builder_field_name_label">字段名称</string>
+    <string name="form_builder_options_label">选项（逗号分隔）</string>
+    <string name="form_builder_default_value_label">默认值</string>
+    <string name="form_builder_action_add">添加字段</string>
+    <string name="form_builder_action_save">保存可填写PDF</string>
+    <string name="form_builder_fields_count">页面字段数: %1$d</string>
+    <string name="form_builder_success">可填写PDF生成成功！</string>
+    <string name="form_builder_success_desc">交互式表单字段已成功嵌入文档中。</string>
+    <string name="form_builder_no_fields_warn">保存前请至少放置一个表单字段。</string>
+    <string name="form_builder_delete_field">删除字段</string>
 </resources>

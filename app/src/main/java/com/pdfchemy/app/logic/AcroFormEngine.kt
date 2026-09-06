@@ -2,7 +2,13 @@ package com.pdfchemy.app.logic
 
 import android.content.Context
 import android.net.Uri
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDResources
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
 import com.tom_roush.pdfbox.pdmodel.interactive.form.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,9 +34,22 @@ data class FormFieldInfo(
     val isRequired: Boolean = false
 )
 
+data class InteractiveFieldSpec(
+    val pageIndex: Int,
+    val name: String,
+    val type: FormFieldType = FormFieldType.TEXT,
+    val xRatio: Float = 0.1f,
+    val yRatio: Float = 0.1f,
+    val widthRatio: Float = 0.4f,
+    val heightRatio: Float = 0.05f,
+    val defaultValue: String = "",
+    val options: List<String> = emptyList()
+)
+
 object AcroFormEngine {
 
     suspend fun hasAcroForm(context: Context, sourceUri: Uri): Boolean = withContext(Dispatchers.IO) {
+        PDFBoxResourceLoader.init(context)
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
@@ -200,6 +219,120 @@ object AcroFormEngine {
             } ?: false
         } catch (e: Exception) {
             com.pdfchemy.app.utils.AppLogger.e("Failed to fill AcroForm: ${e.message}", e)
+            false
+        } finally {
+            doc?.close()
+        }
+    }
+
+    suspend fun createAcroFormWithFields(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        fields: List<InteractiveFieldSpec>
+    ): Boolean = withContext(Dispatchers.IO) {
+        PDFBoxResourceLoader.init(context)
+        var doc: PDDocument? = null
+        try {
+            context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
+                doc = PDDocument.load(inStream)
+                val document = doc ?: return@withContext false
+                val catalog = document.documentCatalog
+                var acroForm = catalog.acroForm
+                if (acroForm == null) {
+                    acroForm = PDAcroForm(document)
+                    catalog.acroForm = acroForm
+                }
+
+                var dr = acroForm.defaultResources
+                if (dr == null) {
+                    dr = PDResources()
+                    acroForm.defaultResources = dr
+                }
+                val helvName = COSName.getPDFName("Helv")
+                dr.put(helvName, PDType1Font.HELVETICA)
+                acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+
+                val pageCount = document.numberOfPages
+                for (spec in fields) {
+                    if (spec.pageIndex < 0 || spec.pageIndex >= pageCount) continue
+                    val page = document.getPage(spec.pageIndex)
+                    val cropBox = page.cropBox ?: page.mediaBox
+                    val pw = cropBox.width
+                    val ph = cropBox.height
+
+                    val x = cropBox.lowerLeftX + (spec.xRatio.coerceIn(0f, 1f) * pw)
+                    val w = (spec.widthRatio.coerceIn(0.01f, 1f) * pw)
+                    val h = (spec.heightRatio.coerceIn(0.01f, 1f) * ph)
+                    val y = cropBox.lowerLeftY + (ph - (spec.yRatio.coerceIn(0f, 1f) + spec.heightRatio.coerceIn(0.01f, 1f)) * ph)
+
+                    val rect = PDRectangle(x, y, w, h)
+
+                    when (spec.type) {
+                        FormFieldType.CHECKBOX -> {
+                            val cb = PDCheckBox(acroForm)
+                            cb.partialName = spec.name
+                            val widget = cb.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                cb.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.equals("Yes", true) || spec.defaultValue.equals("true", true) || spec.defaultValue.equals("1", true)) {
+                                cb.check()
+                            } else {
+                                cb.unCheck()
+                            }
+                            acroForm.fields.add(cb)
+                        }
+                        FormFieldType.CHOICE -> {
+                            val combo = PDComboBox(acroForm)
+                            combo.partialName = spec.name
+                            combo.defaultAppearance = "/Helv 12 Tf 0 g"
+                            if (spec.options.isNotEmpty()) {
+                                combo.options = spec.options
+                            }
+                            val widget = combo.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                combo.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.isNotBlank()) {
+                                combo.setValue(spec.defaultValue)
+                            } else if (spec.options.isNotEmpty()) {
+                                combo.setValue(spec.options.first())
+                            }
+                            acroForm.fields.add(combo)
+                        }
+                        else -> { // TEXT and default
+                            val tf = PDTextField(acroForm)
+                            tf.partialName = spec.name
+                            tf.defaultAppearance = "/Helv 12 Tf 0 g"
+                            val widget = tf.widgets.firstOrNull() ?: PDAnnotationWidget().also {
+                                tf.widgets = listOf(it)
+                            }
+                            widget.rectangle = rect
+                            widget.page = page
+                            widget.isPrinted = true
+                            page.annotations.add(widget)
+                            if (spec.defaultValue.isNotBlank()) {
+                                tf.setValue(spec.defaultValue)
+                            }
+                            acroForm.fields.add(tf)
+                        }
+                    }
+                }
+
+                context.contentResolver.openOutputStream(destUri)?.use { outStream ->
+                    document.save(outStream)
+                }
+                true
+            } ?: false
+        } catch (e: Exception) {
+            com.pdfchemy.app.utils.AppLogger.e("Failed to create AcroForm fields: ${e.message}", e)
             false
         } finally {
             doc?.close()

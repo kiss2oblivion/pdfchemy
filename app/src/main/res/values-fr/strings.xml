@@ -1042,4 +1042,23 @@
     <string name="tts_prev_paragraph">Précédent</string>
     <string name="tts_next_paragraph">Suivant</string>
     <string name="tts_not_supported">Synthèse vocale non prise en charge ou données linguistiques manquantes.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Créateur de Formulaires Interactifs</string>
+    <string name="menu_form_builder_desc">Convertissez les PDF statiques en formulaires remplissables avec champs texte, cases et listes</string>
+    <string name="form_builder_title">Créateur de Champs de Formulaire</string>
+    <string name="form_builder_tool_text">Champ Texte</string>
+    <string name="form_builder_tool_checkbox">Case à Cocher</string>
+    <string name="form_builder_tool_dropdown">Menu Déroulant</string>
+    <string name="form_builder_hint">Touchez la page pour insérer un champ interactif</string>
+    <string name="form_builder_field_name_label">Nom du Champ</string>
+    <string name="form_builder_options_label">Options (séparées par des virgules)</string>
+    <string name="form_builder_default_value_label">Valeur par Défaut</string>
+    <string name="form_builder_action_add">Ajouter le Champ</string>
+    <string name="form_builder_action_save">Enregistrer le PDF Remplissable</string>
+    <string name="form_builder_fields_count">Champs sur la page : %1$d</string>
+    <string name="form_builder_success">PDF remplissable créé avec succès !</string>
+    <string name="form_builder_success_desc">Les champs de formulaire interactifs ont été intégrés.</string>
+    <string name="form_builder_no_fields_warn">Veuillez placer au moins un champ interactif avant d\'enregistrer.</string>
+    <string name="form_builder_delete_field">Supprimer le Champ</string>
 </resources>

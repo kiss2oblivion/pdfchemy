@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">対話型フォーム作成</string>
+    <string name="menu_form_builder_desc">静的PDFをテキスト入力、チェックボックス、ドロップダウン付きの入力可能フォームに変換</string>
+    <string name="form_builder_title">フォームフィールド作成</string>
+    <string name="form_builder_tool_text">テキスト欄</string>
+    <string name="form_builder_tool_checkbox">チェックボックス</string>
+    <string name="form_builder_tool_dropdown">ドロップダウン</string>
+    <string name="form_builder_hint">ページをタップして対話型フィールドを配置</string>
+    <string name="form_builder_field_name_label">フィールド名</string>
+    <string name="form_builder_options_label">選択肢（カンマ区切り）</string>
+    <string name="form_builder_default_value_label">初期値</string>
+    <string name="form_builder_action_add">フィールド追加</string>
+    <string name="form_builder_action_save">入力可能PDFを保存</string>
+    <string name="form_builder_fields_count">ページ上のフィールド数: %1$d</string>
+    <string name="form_builder_success">入力可能なPDFが作成されました！</string>
+    <string name="form_builder_success_desc">対話型フォームフィールドが埋め込まれました。</string>
+    <string name="form_builder_no_fields_warn">保存する前に対話型フィールドを1つ以上配置してください。</string>
+    <string name="form_builder_delete_field">フィールド削除</string>
 </resources>
