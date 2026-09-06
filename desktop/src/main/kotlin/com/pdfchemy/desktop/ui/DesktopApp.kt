@@ -17,9 +17,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import com.pdfchemy.desktop.engine.HeaderFooterPos
+import com.pdfchemy.desktop.engine.TextAnnotationItem
+import java.time.LocalDate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
@@ -2016,7 +2021,8 @@ private fun MergeView() {
 // -------------------------------------------------------------------------------------------------
 // 3B. SIGN & STAMP VIEW (DIGITAL SIGNATURES, PNG SEALS & BUSINESS STAMPS)
 // -------------------------------------------------------------------------------------------------
-private enum class SignTabMode { DRAW, UPLOAD, STAMP }
+private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE }
+private enum class FormAnnotationTool { TEXT, CHECK, CROSS, DATE }
 
 private enum class SignStampPos(val xRatio: Float, val yRatio: Float) {
     BOTTOM_RIGHT(0.60f, 0.80f),
@@ -2122,6 +2128,23 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     var selectedStamp by remember { mutableStateOf(presetStamps[0]) }
     var customSubtext by remember { mutableStateOf("") }
 
+    // TYPE / FORM FILLER mode states
+    val placedAnnotations = remember { mutableStateListOf<TextAnnotationItem>() }
+    var activeAnnotationTool by remember { mutableStateOf(FormAnnotationTool.TEXT) }
+    var customAnnotationText by remember { mutableStateOf("") }
+    var annotationFontSize by remember { mutableStateOf(14f) }
+    var annotationColorHex by remember { mutableStateOf("#18181B") }
+
+    // WATERMARK & PAGE NUMBERS suite
+    var enableWatermark by remember { mutableStateOf(false) }
+    var watermarkText by remember { mutableStateOf(strings.watermarkConfidential) }
+    var watermarkOpacity by remember { mutableStateOf(0.22f) }
+    var watermarkRotation by remember { mutableStateOf(45f) }
+
+    var enablePageNumbers by remember { mutableStateOf(false) }
+    var pageNumPos by remember { mutableStateOf(HeaderFooterPos.BOTTOM_CENTER) }
+    var pageNumFormat by remember { mutableStateOf("Page %1\$d of %2\$d") }
+
     // Processing states
     var isProcessing by remember { mutableStateOf(false) }
     var signedFile by remember { mutableStateOf<File?>(null) }
@@ -2195,7 +2218,8 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         listOf(
                             Triple(SignTabMode.DRAW, strings.modeDraw, Icons.Rounded.Tune),
                             Triple(SignTabMode.UPLOAD, strings.modeUpload, Icons.Rounded.CloudUpload),
-                            Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield)
+                            Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield),
+                            Triple(SignTabMode.TYPE, strings.modeType, Icons.AutoMirrored.Rounded.Notes)
                         ).forEach { (mode, label, icon) ->
                             val isSel = selectedMode == mode
                             FilledTonalButton(
@@ -2455,6 +2479,118 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         }
                     }
 
+                    // Mode 4: TYPE & FORM FILLER
+                    if (selectedMode == SignTabMode.TYPE) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Tool selector: Text, Check, Cross, Date
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    Pair(FormAnnotationTool.TEXT, strings.toolAddText),
+                                    Pair(FormAnnotationTool.CHECK, strings.toolCheckmark),
+                                    Pair(FormAnnotationTool.CROSS, strings.toolCrossmark),
+                                    Pair(FormAnnotationTool.DATE, strings.toolInsertDate)
+                                ).forEach { (tool, label) ->
+                                    val isTool = activeAnnotationTool == tool
+                                    FilterChip(
+                                        selected = isTool,
+                                        onClick = { activeAnnotationTool = tool },
+                                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isTool) FontWeight.Bold else FontWeight.Normal) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+
+                            if (activeAnnotationTool == FormAnnotationTool.TEXT) {
+                                OutlinedTextField(
+                                    value = customAnnotationText,
+                                    onValueChange = { customAnnotationText = it },
+                                    label = { Text("Text to Place", fontSize = 12.sp) },
+                                    placeholder = { Text("Type name, notes, or form data...", fontSize = 12.sp) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                            }
+
+                            // Font Size & Ink Color Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(strings.fontSizeLabel + ":", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    listOf(10f to "10", 12f to "12", 14f to "14", 18f to "18", 24f to "24").forEach { (sz, lbl) ->
+                                        FilterChip(
+                                            selected = annotationFontSize == sz,
+                                            onClick = { annotationFontSize = sz },
+                                            label = { Text(lbl, fontSize = 10.sp) },
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                    }
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf(
+                                        "#18181B" to Color(0xFF18181B),
+                                        "#1E3A8A" to Color(0xFF1E3A8A),
+                                        "#DC2626" to Color(0xFFDC2626)
+                                    ).forEach { (hex, col) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .background(col, CircleShape)
+                                                .border(if (annotationColorHex == hex) 2.dp else 1.dp, if (annotationColorHex == hex) MaterialTheme.colorScheme.primary else Color.LightGray, CircleShape)
+                                                .clickable { annotationColorHex = hex }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Click to place instructions banner
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        strings.clickToPlaceTextHint,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            // Placed annotations count & clear button
+                            if (placedAnnotations.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("${placedAnnotations.size} marks placed on page ${currentPageIndex + 1}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    TextButton(
+                                        onClick = { placedAnnotations.clear() },
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(strings.clearAnnotations, fontSize = 11.sp, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                     // PAGE & POSITION CONTROLS
@@ -2487,51 +2623,152 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             }
                         }
 
-                        // Position Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Position:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(
-                                    Pair(SignStampPos.BOTTOM_RIGHT, strings.positionBottomRight),
-                                    Pair(SignStampPos.BOTTOM_LEFT, strings.positionBottomLeft),
-                                    Pair(SignStampPos.TOP_RIGHT, strings.positionTopRight),
-                                    Pair(SignStampPos.CENTER, strings.positionCenter)
-                                ).forEach { (pos, label) ->
-                                    val isPos = selectedPos == pos
-                                    FilterChip(
-                                        selected = isPos,
-                                        onClick = { selectedPos = pos },
-                                        label = { Text(label, fontSize = 11.sp) },
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                        if (selectedMode != SignTabMode.TYPE) {
+                            // Position Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Position:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf(
+                                        Pair(SignStampPos.BOTTOM_RIGHT, strings.positionBottomRight),
+                                        Pair(SignStampPos.BOTTOM_LEFT, strings.positionBottomLeft),
+                                        Pair(SignStampPos.TOP_RIGHT, strings.positionTopRight),
+                                        Pair(SignStampPos.CENTER, strings.positionCenter)
+                                    ).forEach { (pos, label) ->
+                                        val isPos = selectedPos == pos
+                                        FilterChip(
+                                            selected = isPos,
+                                            onClick = { selectedPos = pos },
+                                            label = { Text(label, fontSize = 11.sp) },
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Size Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(strings.stampSize + ":", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf(
+                                        Pair(SignStampScale.SMALL, "Small (25%)"),
+                                        Pair(SignStampScale.MEDIUM, "Medium (35%)"),
+                                        Pair(SignStampScale.LARGE, "Large (50%)")
+                                    ).forEach { (sc, label) ->
+                                        val isSc = selectedScale == sc
+                                        FilterChip(
+                                            selected = isSc,
+                                            onClick = { selectedScale = sc },
+                                            label = { Text(label, fontSize = 11.sp) },
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
+                    }
 
-                        // Size Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(strings.stampSize + ":", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(
-                                    Pair(SignStampScale.SMALL, "Small (25%)"),
-                                    Pair(SignStampScale.MEDIUM, "Medium (35%)"),
-                                    Pair(SignStampScale.LARGE, "Large (50%)")
-                                ).forEach { (sc, label) ->
-                                    val isSc = selectedScale == sc
-                                    FilterChip(
-                                        selected = isSc,
-                                        onClick = { selectedScale = sc },
-                                        label = { Text(label, fontSize = 11.sp) },
-                                        shape = RoundedCornerShape(8.dp)
+                    // EXPANDABLE SECTION: DOCUMENT WATERMARK & PAGE NUMBERS (ACROBAT PARITY)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Watermark Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Switch(
+                                        checked = enableWatermark,
+                                        onCheckedChange = { enableWatermark = it },
+                                        modifier = Modifier.scale(0.8f)
                                     )
+                                    Text(strings.watermarkTitle, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                                if (enableWatermark) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf(strings.watermarkDraft, strings.watermarkConfidential, strings.watermarkCopy).forEach { preset ->
+                                            FilterChip(
+                                                selected = watermarkText == preset,
+                                                onClick = { watermarkText = preset },
+                                                label = { Text(preset, fontSize = 10.sp) },
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (enableWatermark) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = watermarkText,
+                                        onValueChange = { watermarkText = it },
+                                        label = { Text("Watermark Text", fontSize = 11.sp) },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        singleLine = true
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(strings.watermarkOpacity + ":", fontSize = 10.sp)
+                                        listOf(0.12f to "12%", 0.22f to "22%", 0.38f to "38%").forEach { (op, lbl) ->
+                                            FilterChip(
+                                                selected = watermarkOpacity == op,
+                                                onClick = { watermarkOpacity = op },
+                                                label = { Text(lbl, fontSize = 9.sp) },
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            // Page Numbers Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Switch(
+                                        checked = enablePageNumbers,
+                                        onCheckedChange = { enablePageNumbers = it },
+                                        modifier = Modifier.scale(0.8f)
+                                    )
+                                    Text(strings.pageNumbersTitle, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                                if (enablePageNumbers) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf(
+                                            HeaderFooterPos.BOTTOM_CENTER to strings.positionBottomCenter,
+                                            HeaderFooterPos.BOTTOM_RIGHT to strings.positionBottomRight,
+                                            HeaderFooterPos.TOP_RIGHT to strings.positionTopRight
+                                        ).forEach { (pos, lbl) ->
+                                            FilterChip(
+                                                selected = pageNumPos == pos,
+                                                onClick = { pageNumPos = pos },
+                                                label = { Text(lbl, fontSize = 10.sp) },
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2542,11 +2779,16 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         SignTabMode.DRAW -> strokes.isNotEmpty()
                         SignTabMode.UPLOAD -> uploadedImageFile != null
                         SignTabMode.STAMP -> true
+                        SignTabMode.TYPE -> placedAnnotations.isNotEmpty() || enableWatermark || enablePageNumbers
                     }
 
                     Button(
                         onClick = {
-                            val defaultName = "${file.nameWithoutExtension}_signed.pdf"
+                            val defaultName = if (selectedMode == SignTabMode.TYPE) {
+                                "${file.nameWithoutExtension}_annotated.pdf"
+                            } else {
+                                "${file.nameWithoutExtension}_signed.pdf"
+                            }
                             val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
                             if (target != null) {
                                 isProcessing = true
@@ -2554,53 +2796,107 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                 isError = false
                                 scope.launch(Dispatchers.IO) {
                                     try {
-                                        val stampImage: java.awt.image.BufferedImage = when (selectedMode) {
-                                            SignTabMode.DRAW -> {
-                                                DesktopPdfEngine.renderStrokesToImage(
-                                                    strokes = strokes,
-                                                    canvasWidth = 460,
-                                                    canvasHeight = 180,
-                                                    colorHex = inkColorHex,
-                                                    strokeWidth = 4.5f
-                                                )
+                                        var currentInput = file
+                                        val tempFiles = mutableListOf<File>()
+
+                                        // 1. Text Annotations (Form Filler)
+                                        if (selectedMode == SignTabMode.TYPE && placedAnnotations.isNotEmpty()) {
+                                            val stepOut = File.createTempFile("pdfchemy_annotated_", ".pdf")
+                                            tempFiles.add(stepOut)
+                                            val ok = DesktopPdfEngine.addTextAnnotations(
+                                                inputFile = currentInput,
+                                                outputFile = stepOut,
+                                                pageIndex = currentPageIndex,
+                                                items = placedAnnotations.toList()
+                                            )
+                                            if (ok) currentInput = stepOut
+                                        } else if (selectedMode != SignTabMode.TYPE) {
+                                            val stampImage: java.awt.image.BufferedImage = when (selectedMode) {
+                                                SignTabMode.DRAW -> {
+                                                    DesktopPdfEngine.renderStrokesToImage(
+                                                        strokes = strokes,
+                                                        canvasWidth = 460,
+                                                        canvasHeight = 180,
+                                                        colorHex = inkColorHex,
+                                                        strokeWidth = 4.5f
+                                                    )
+                                                }
+                                                SignTabMode.UPLOAD -> {
+                                                    ImageIO.read(uploadedImageFile!!)
+                                                }
+                                                SignTabMode.STAMP -> {
+                                                    DesktopPdfEngine.createBusinessStamp(
+                                                        title = selectedStamp.title,
+                                                        subtext = if (customSubtext.isNotBlank()) customSubtext else selectedStamp.subtext,
+                                                        colorHex = selectedStamp.colorHex
+                                                    )
+                                                }
+                                                else -> throw IllegalStateException()
                                             }
-                                            SignTabMode.UPLOAD -> {
-                                                ImageIO.read(uploadedImageFile!!)
-                                            }
-                                            SignTabMode.STAMP -> {
-                                                DesktopPdfEngine.createBusinessStamp(
-                                                    title = selectedStamp.title,
-                                                    subtext = if (customSubtext.isNotBlank()) customSubtext else selectedStamp.subtext,
-                                                    colorHex = selectedStamp.colorHex
-                                                )
-                                            }
+
+                                            val stepOut = File.createTempFile("pdfchemy_stamped_", ".pdf")
+                                            tempFiles.add(stepOut)
+                                            val ok = DesktopPdfEngine.stampDocument(
+                                                inputFile = currentInput,
+                                                outputFile = stepOut,
+                                                pageIndex = currentPageIndex,
+                                                stampImage = stampImage,
+                                                xRatio = selectedPos.xRatio,
+                                                yRatio = selectedPos.yRatio,
+                                                widthRatio = selectedScale.widthRatio
+                                            )
+                                            if (ok) currentInput = stepOut
                                         }
 
-                                        val success = DesktopPdfEngine.stampDocument(
-                                            inputFile = file,
-                                            outputFile = target,
-                                            pageIndex = currentPageIndex,
-                                            stampImage = stampImage,
-                                            xRatio = selectedPos.xRatio,
-                                            yRatio = selectedPos.yRatio,
-                                            widthRatio = selectedScale.widthRatio
-                                        )
+                                        // 2. Watermark if enabled
+                                        if (enableWatermark && watermarkText.isNotBlank()) {
+                                            val stepOut = File.createTempFile("pdfchemy_watermark_", ".pdf")
+                                            tempFiles.add(stepOut)
+                                            val ok = DesktopPdfEngine.addWatermark(
+                                                inputFile = currentInput,
+                                                outputFile = stepOut,
+                                                watermarkText = watermarkText,
+                                                opacity = watermarkOpacity,
+                                                rotationDegrees = watermarkRotation
+                                            )
+                                            if (ok) currentInput = stepOut
+                                        }
+
+                                        // 3. Page Numbers if enabled
+                                        if (enablePageNumbers) {
+                                            val stepOut = File.createTempFile("pdfchemy_pagenums_", ".pdf")
+                                            tempFiles.add(stepOut)
+                                            val ok = DesktopPdfEngine.addPageNumbers(
+                                                inputFile = currentInput,
+                                                outputFile = stepOut,
+                                                formatPattern = pageNumFormat,
+                                                position = pageNumPos
+                                            )
+                                            if (ok) currentInput = stepOut
+                                        }
+
+                                        currentInput.copyTo(target, overwrite = true)
+                                        tempFiles.forEach { runCatching { it.delete() } }
 
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false
-                                            if (success) {
+                                            if (target.exists() && target.length() > 0) {
                                                 signedFile = target
-                                                statusText = strings.signedSuccess.format(target.name)
+                                                statusText = if (selectedMode == SignTabMode.TYPE) {
+                                                    strings.annotatedSuccess.format(target.name)
+                                                } else {
+                                                    strings.signedSuccess.format(target.name)
+                                                }
                                                 isError = false
                                             } else {
-                                                statusText = "Error applying signature to document."
+                                                statusText = "Error saving PDF document."
                                                 isError = true
                                             }
                                         }
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false
-                                            statusText = "Failed to sign PDF: ${e.message}"
+                                            statusText = "Failed to process PDF: ${e.message}"
                                             isError = true
                                         }
                                     }
@@ -2622,7 +2918,11 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         } else {
                             Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(strings.btnSignAndSave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                if (selectedMode == SignTabMode.TYPE) strings.btnAnnotateAndSave else strings.btnSignAndSave,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
                         }
                     }
                 }
@@ -2649,14 +2949,40 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         Text("Page ${currentPageIndex + 1} of $totalPages", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    // PDF Page Surface with Visual Stamp Placement Overlay
-                    Box(
+                    // PDF Page Surface with Visual Stamp & Annotation Placement Overlay
+                    BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(420.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.White)
-                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                            .then(
+                                if (selectedMode == SignTabMode.TYPE) {
+                                    Modifier.pointerInput(activeAnnotationTool, customAnnotationText, annotationFontSize, annotationColorHex) {
+                                        detectTapGestures { offset ->
+                                            val xRatio = (offset.x / size.width.toFloat()).coerceIn(0.02f, 0.95f)
+                                            val yRatio = (offset.y / size.height.toFloat()).coerceIn(0.02f, 0.95f)
+                                            val todayStr = java.time.LocalDate.now().toString()
+                                            val textToPlace = when (activeAnnotationTool) {
+                                                FormAnnotationTool.CHECK -> "✓"
+                                                FormAnnotationTool.CROSS -> "✕"
+                                                FormAnnotationTool.DATE -> todayStr
+                                                FormAnnotationTool.TEXT -> if (customAnnotationText.isNotBlank()) customAnnotationText else "Text"
+                                            }
+                                            placedAnnotations.add(
+                                                TextAnnotationItem(
+                                                    text = textToPlace,
+                                                    xRatio = xRatio,
+                                                    yRatio = yRatio,
+                                                    fontSize = annotationFontSize,
+                                                    colorHex = annotationColorHex
+                                                )
+                                            )
+                                        }
+                                    }
+                                } else Modifier
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         if (pageThumbnail != null) {
@@ -2669,57 +2995,124 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         }
 
-                        // Simulated Overlay Box showing where the signature or stamp will land
-                        val align = when (selectedPos) {
-                            SignStampPos.BOTTOM_RIGHT -> Alignment.BottomEnd
-                            SignStampPos.BOTTOM_LEFT -> Alignment.BottomStart
-                            SignStampPos.TOP_RIGHT -> Alignment.TopEnd
-                            SignStampPos.CENTER -> Alignment.Center
+                        // Watermark preview overlay
+                        if (enableWatermark && watermarkText.isNotBlank()) {
+                            Text(
+                                text = watermarkText,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.Red.copy(alpha = watermarkOpacity.coerceAtLeast(0.15f)),
+                                modifier = Modifier.align(Alignment.Center)
+                            )
                         }
 
-                        val stampWidthFraction = selectedScale.widthRatio
+                        // Page numbers preview badge
+                        if (enablePageNumbers) {
+                            val pageAlign = when (pageNumPos) {
+                                HeaderFooterPos.BOTTOM_CENTER -> Alignment.BottomCenter
+                                HeaderFooterPos.BOTTOM_RIGHT -> Alignment.BottomEnd
+                                HeaderFooterPos.BOTTOM_LEFT -> Alignment.BottomStart
+                                HeaderFooterPos.TOP_CENTER -> Alignment.TopCenter
+                                HeaderFooterPos.TOP_RIGHT -> Alignment.TopEnd
+                            }
+                            Text(
+                                text = "Page ${currentPageIndex + 1} of $totalPages",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.DarkGray.copy(alpha = 0.8f),
+                                modifier = Modifier.align(pageAlign).padding(8.dp)
+                            )
+                        }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(stampWidthFraction)
-                                .height(56.dp)
-                                .align(align)
-                                .padding(12.dp)
-                                .background(
-                                    when (selectedMode) {
-                                        SignTabMode.DRAW -> Color(0xFF1E3A8A).copy(alpha = 0.18f)
-                                        SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
-                                        SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb).copy(alpha = 0.22f)
+                        if (selectedMode == SignTabMode.TYPE) {
+                            // Placed Annotations Badges
+                            for (item in placedAnnotations.toList()) {
+                                val awtColor = try { Color(java.awt.Color.decode(item.colorHex).rgb) } catch (_: Exception) { Color.Black }
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .offset(
+                                            x = (maxWidth * item.xRatio).coerceIn(0.dp, maxWidth - 48.dp),
+                                            y = (maxHeight * item.yRatio).coerceIn(0.dp, maxHeight - 28.dp)
+                                        )
+                                        .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(4.dp))
+                                        .border(1.dp, awtColor.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        .clickable { placedAnnotations.remove(item) }
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            item.text,
+                                            fontSize = (item.fontSize * 0.72f).sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = awtColor
+                                        )
+                                        Icon(
+                                            Icons.Rounded.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(10.dp),
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            // Simulated Overlay Box showing where the signature or stamp will land
+                            val align = when (selectedPos) {
+                                SignStampPos.BOTTOM_RIGHT -> Alignment.BottomEnd
+                                SignStampPos.BOTTOM_LEFT -> Alignment.BottomStart
+                                SignStampPos.TOP_RIGHT -> Alignment.TopEnd
+                                SignStampPos.CENTER -> Alignment.Center
+                            }
+
+                            val stampWidthFraction = selectedScale.widthRatio
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(stampWidthFraction)
+                                    .height(56.dp)
+                                    .align(align)
+                                    .padding(12.dp)
+                                    .background(
+                                        when (selectedMode) {
+                                            SignTabMode.DRAW -> Color(0xFF1E3A8A).copy(alpha = 0.18f)
+                                            SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+                                            SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb).copy(alpha = 0.22f)
+                                            else -> Color.Transparent
+                                        },
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .border(
+                                        1.5.dp,
+                                        when (selectedMode) {
+                                            SignTabMode.DRAW -> Color(0xFF1E3A8A)
+                                            SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
+                                            SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
+                                            else -> Color.Transparent
+                                        },
+                                        RoundedCornerShape(6.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = when (selectedMode) {
+                                        SignTabMode.DRAW -> "✍️ Signature"
+                                        SignTabMode.UPLOAD -> "🖼️ Seal"
+                                        SignTabMode.STAMP -> selectedStamp.title
+                                        else -> ""
                                     },
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .border(
-                                    1.5.dp,
-                                    when (selectedMode) {
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (selectedMode) {
                                         SignTabMode.DRAW -> Color(0xFF1E3A8A)
                                         SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
                                         SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
+                                        else -> Color.Black
                                     },
-                                    RoundedCornerShape(6.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = when (selectedMode) {
-                                    SignTabMode.DRAW -> "✍️ Signature"
-                                    SignTabMode.UPLOAD -> "🖼️ Seal"
-                                    SignTabMode.STAMP -> selectedStamp.title
-                                },
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = when (selectedMode) {
-                                    SignTabMode.DRAW -> Color(0xFF1E3A8A)
-                                    SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
-                                    SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
 

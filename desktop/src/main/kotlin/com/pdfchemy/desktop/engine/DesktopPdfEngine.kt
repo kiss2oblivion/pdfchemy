@@ -12,6 +12,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.rendering.PDFRenderer
+import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
+import org.apache.pdfbox.util.Matrix
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.BasicStroke
 import java.awt.Font
@@ -21,6 +24,22 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileOutputStream
 import javax.imageio.ImageIO
+
+data class TextAnnotationItem(
+    val text: String,
+    val xRatio: Float,
+    val yRatio: Float,
+    val fontSize: Float = 14f,
+    val colorHex: String = "#18181B"
+)
+
+enum class HeaderFooterPos {
+    BOTTOM_CENTER,
+    BOTTOM_RIGHT,
+    BOTTOM_LEFT,
+    TOP_CENTER,
+    TOP_RIGHT
+}
 
 data class PageItemSpec(
     val originalPageIndex: Int,
@@ -722,6 +741,162 @@ object DesktopPdfEngine {
             g2d.dispose()
         }
         return image
+    }
+
+    /**
+     * Applies typed text annotations, form fill values or checkmarks to a specific page.
+     */
+    fun addTextAnnotations(
+        inputFile: File,
+        outputFile: File,
+        pageIndex: Int,
+        items: List<TextAnnotationItem>
+    ): Boolean {
+        if (items.isEmpty()) return false
+        PDDocument.load(inputFile).use { document ->
+            if (pageIndex < 0 || pageIndex >= document.numberOfPages) return false
+            val page = document.getPage(pageIndex)
+            val cropBox = page.cropBox ?: page.mediaBox
+            val pageWidth = cropBox.width
+            val pageHeight = cropBox.height
+
+            PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                for (item in items) {
+                    val font = if (item.text.length <= 2 && (item.text == "✓" || item.text == "✕" || item.text == "X")) {
+                        PDType1Font.HELVETICA_BOLD
+                    } else {
+                        PDType1Font.HELVETICA
+                    }
+                    val awtColor = try { java.awt.Color.decode(item.colorHex) } catch (_: Exception) { java.awt.Color.BLACK }
+
+                    val x = cropBox.lowerLeftX + pageWidth * item.xRatio.coerceIn(0f, 1f)
+                    val y = cropBox.lowerLeftY + pageHeight * (1f - item.yRatio.coerceIn(0f, 1f)) - item.fontSize
+
+                    cs.beginText()
+                    cs.setFont(font, item.fontSize)
+                    cs.setNonStrokingColor(awtColor)
+                    cs.newLineAtOffset(x, y)
+                    val textToRender = when (item.text) {
+                        "✓" -> "V"
+                        "✕" -> "X"
+                        else -> item.text.replace("\n", " ")
+                    }
+                    cs.showText(textToRender)
+                    cs.endText()
+                }
+            }
+
+            document.save(outputFile)
+            return outputFile.exists() && outputFile.length() > 0
+        }
+    }
+
+    /**
+     * Applies page numbers to all pages of a PDF document (e.g. "Page 1 of 15").
+     */
+    fun addPageNumbers(
+        inputFile: File,
+        outputFile: File,
+        formatPattern: String = "Page %1\$d of %2\$d",
+        position: HeaderFooterPos = HeaderFooterPos.BOTTOM_CENTER,
+        fontSize: Float = 10f,
+        colorHex: String = "#52525B"
+    ): Boolean {
+        PDDocument.load(inputFile).use { document ->
+            val total = document.numberOfPages
+            val font = PDType1Font.HELVETICA
+            val awtColor = try { java.awt.Color.decode(colorHex) } catch (_: Exception) { java.awt.Color.GRAY }
+
+            for (i in 0 until total) {
+                val page = document.getPage(i)
+                val cropBox = page.cropBox ?: page.mediaBox
+                val pageWidth = cropBox.width
+                val pageHeight = cropBox.height
+                val pageNumberText = formatPattern.format(i + 1, total)
+
+                val textWidth = font.getStringWidth(pageNumberText) / 1000f * fontSize
+                val margin = 36f
+
+                val (x, y) = when (position) {
+                    HeaderFooterPos.BOTTOM_CENTER -> Pair(cropBox.lowerLeftX + (pageWidth - textWidth) / 2f, cropBox.lowerLeftY + margin)
+                    HeaderFooterPos.BOTTOM_RIGHT -> Pair(cropBox.upperRightX - margin - textWidth, cropBox.lowerLeftY + margin)
+                    HeaderFooterPos.BOTTOM_LEFT -> Pair(cropBox.lowerLeftX + margin, cropBox.lowerLeftY + margin)
+                    HeaderFooterPos.TOP_CENTER -> Pair(cropBox.lowerLeftX + (pageWidth - textWidth) / 2f, cropBox.upperRightY - margin)
+                    HeaderFooterPos.TOP_RIGHT -> Pair(cropBox.upperRightX - margin - textWidth, cropBox.upperRightY - margin)
+                }
+
+                PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                    cs.beginText()
+                    cs.setFont(font, fontSize)
+                    cs.setNonStrokingColor(awtColor)
+                    cs.newLineAtOffset(x, y)
+                    cs.showText(pageNumberText)
+                    cs.endText()
+                }
+            }
+
+            document.save(outputFile)
+            return outputFile.exists() && outputFile.length() > 0
+        }
+    }
+
+    /**
+     * Applies a diagonal semi-transparent watermark across all pages.
+     */
+    fun addWatermark(
+        inputFile: File,
+        outputFile: File,
+        watermarkText: String,
+        opacity: Float = 0.22f,
+        rotationDegrees: Float = 45f,
+        colorHex: String = "#DC2626"
+    ): Boolean {
+        if (watermarkText.isBlank()) return false
+        PDDocument.load(inputFile).use { document ->
+            val total = document.numberOfPages
+            val font = PDType1Font.HELVETICA_BOLD
+            val awtColor = try { java.awt.Color.decode(colorHex) } catch (_: Exception) { java.awt.Color.RED }
+
+            val extGraphicsState = PDExtendedGraphicsState().apply {
+                nonStrokingAlphaConstant = opacity.coerceIn(0.05f, 0.95f)
+            }
+
+            for (i in 0 until total) {
+                val page = document.getPage(i)
+                val cropBox = page.cropBox ?: page.mediaBox
+                val pageWidth = cropBox.width
+                val pageHeight = cropBox.height
+
+                val fontSize = (pageWidth / (watermarkText.length * 0.65f)).coerceIn(32f, 72f)
+                val textWidth = font.getStringWidth(watermarkText) / 1000f * fontSize
+                val textHeight = fontSize * 0.75f
+
+                PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                    cs.saveGraphicsState()
+                    cs.setGraphicsStateParameters(extGraphicsState)
+                    cs.setNonStrokingColor(awtColor)
+
+                    val centerX = cropBox.lowerLeftX + pageWidth / 2f
+                    val centerY = cropBox.lowerLeftY + pageHeight / 2f
+
+                    val rad = Math.toRadians(rotationDegrees.toDouble())
+                    val cos = Math.cos(rad).toFloat()
+                    val sin = Math.sin(rad).toFloat()
+
+                    cs.transform(Matrix(cos, sin, -sin, cos, centerX, centerY))
+
+                    cs.beginText()
+                    cs.setFont(font, fontSize)
+                    cs.newLineAtOffset(-textWidth / 2f, -textHeight / 2f)
+                    cs.showText(watermarkText)
+                    cs.endText()
+                    cs.restoreGraphicsState()
+                }
+            }
+
+            document.save(outputFile)
+            return outputFile.exists() && outputFile.length() > 0
+        }
     }
 }
 
