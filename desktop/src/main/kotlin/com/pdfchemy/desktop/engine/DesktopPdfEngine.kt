@@ -156,13 +156,17 @@ object DesktopPdfEngine {
     /**
      * Merges multiple PDF files into one output file.
      */
-    fun mergePdfs(inputFiles: List<File>, outputFile: File) {
+    fun mergePdfs(inputFiles: List<File>, outputFile: File): Boolean {
+        if (inputFiles.isEmpty()) return false
         val merger = PDFMergerUtility()
         merger.destinationFileName = outputFile.absolutePath
         for (f in inputFiles) {
-            merger.addSource(f)
+            if (f.exists() && f.length() > 0) {
+                merger.addSource(f)
+            }
         }
-        merger.mergeDocuments(null)
+        merger.mergeDocuments(org.apache.pdfbox.io.MemoryUsageSetting.setupMainMemoryOnly())
+        return outputFile.exists() && outputFile.length() > 0
     }
 
     /**
@@ -584,5 +588,7 @@ object DesktopPdfEngine {
         }
         return -1
     }
+
 }
+
 

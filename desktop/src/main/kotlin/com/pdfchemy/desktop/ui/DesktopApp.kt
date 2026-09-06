@@ -53,6 +53,7 @@ enum class DesktopNavTab(val icon: ImageVector) {
     HOME(Icons.Rounded.Dashboard),
     COMPRESS(Icons.Rounded.Speed),
     ORGANIZE(Icons.Rounded.GridView),
+    MERGE(Icons.AutoMirrored.Rounded.CallMerge),
     CONVERT(Icons.AutoMirrored.Rounded.Notes),
     READER(Icons.AutoMirrored.Rounded.MenuBook),
     SECURITY(Icons.Rounded.Lock),
@@ -62,6 +63,7 @@ enum class DesktopNavTab(val icon: ImageVector) {
         HOME -> strings.tabAllTools
         COMPRESS -> strings.tabCompress
         ORGANIZE -> strings.tabOrganize
+        MERGE -> strings.tabMerge
         CONVERT -> strings.tabConvert
         READER -> strings.tabReader
         SECURITY -> strings.tabSecurity
@@ -395,6 +397,7 @@ fun DesktopApp(
                     )
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
+                    DesktopNavTab.MERGE -> MergeView()
                     DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
@@ -630,6 +633,7 @@ private fun HomeView(
         val tools = listOf(
             ToolItem(strings.toolOrganizeTitle, strings.toolOrganizeDesc, Icons.Rounded.GridView, DesktopNavTab.ORGANIZE),
             ToolItem(strings.toolCompressTitle, strings.toolCompressDesc, Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
+            ToolItem(strings.toolMergeTitle, strings.toolMergeDesc, Icons.AutoMirrored.Rounded.CallMerge, DesktopNavTab.MERGE),
             ToolItem(strings.toolConvertTitle, strings.toolConvertDesc, Icons.Rounded.Collections, DesktopNavTab.CONVERT),
             ToolItem(strings.toolBatchTitle, strings.toolBatchDesc, Icons.Rounded.Layers, DesktopNavTab.BATCH),
             ToolItem(strings.toolReaderTitle, strings.toolReaderDesc, Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
@@ -845,19 +849,90 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        try { focusRequester.requestFocus() } catch (_: Exception) {}
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when {
+                        // Ctrl+A: Select All
+                        keyEvent.isCtrlPressed && keyEvent.key == Key.A && pageItems.isNotEmpty() -> {
+                            selectedPageIndices = pageItems.indices.toSet()
+                            true
+                        }
+                        // Delete / Backspace: Remove selected pages
+                        (keyEvent.key == Key.Delete || keyEvent.key == Key.Backspace) && selectedPageIndices.isNotEmpty() -> {
+                            val toKeep = pageItems.filterIndexed { idx, _ -> idx !in selectedPageIndices }
+                            pageItems = toKeep
+                            selectedPageIndices = emptySet()
+                            true
+                        }
+                        // R: Rotate selected (or all if none selected) 90° clockwise
+                        keyEvent.key == Key.R && pageItems.isNotEmpty() -> {
+                            val targets = if (selectedPageIndices.isEmpty()) pageItems.indices.toSet() else selectedPageIndices
+                            pageItems = pageItems.mapIndexed { idx, item ->
+                                if (idx in targets) item.copy(rotation = (item.rotation + 90) % 360)
+                                else item
+                            }
+                            true
+                        }
+                        // Ctrl+Z: Revert to original document pages
+                        keyEvent.isCtrlPressed && keyEvent.key == Key.Z && file != null -> {
+                            scope.launch(Dispatchers.IO) {
+                                val count = DesktopPdfEngine.getPageCount(file)
+                                withContext(Dispatchers.Main) {
+                                    pageItems = (0 until count).map { PageItemSpec(originalPageIndex = it, rotation = 0) }
+                                    selectedPageIndices = emptySet()
+                                }
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            },
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Visual Page Studio", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text(
                     if (file != null) "${file.name} — ${pageItems.size} pages • ${String.format(java.util.Locale.US, "%.1f", file.length() / (1024.0 * 1024.0))} MB" else "Load a document to organize and reorder pages visually",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (file != null && pageItems.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("⌨ Shortcuts:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("Ctrl+A (Select All)", style = MaterialTheme.typography.labelSmall)
+                            Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text("R (Rotate 90°)", style = MaterialTheme.typography.labelSmall)
+                            Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text("Del (Remove)", style = MaterialTheme.typography.labelSmall)
+                            Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text("Ctrl+Z (Revert)", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
             }
 
             if (file != null && pageItems.isNotEmpty()) {
@@ -1562,6 +1637,359 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                                     Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// MERGE PDF VIEW (JOIN MULTIPLE DOCUMENTS)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun MergeView() {
+    val strings = DesktopLocalization.strings
+    var pdfFiles by remember { mutableStateOf<List<File>>(emptyList()) }
+    var pageCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var isMerging by remember { mutableStateOf(false) }
+    var statusText by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+    var mergedFile by remember { mutableStateOf<File?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(pdfFiles) {
+        scope.launch(Dispatchers.IO) {
+            val counts = mutableMapOf<String, Int>()
+            pdfFiles.forEach { file ->
+                if (!pageCounts.containsKey(file.absolutePath)) {
+                    try {
+                        counts[file.absolutePath] = DesktopPdfEngine.getPageCount(file)
+                    } catch (_: Exception) {
+                        counts[file.absolutePath] = 0
+                    }
+                }
+            }
+            if (counts.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    pageCounts = pageCounts + counts
+                }
+            }
+        }
+    }
+
+    val totalPages = remember(pdfFiles, pageCounts) {
+        pdfFiles.sumOf { pageCounts[it.absolutePath] ?: 0 }
+    }
+
+    val totalSizeMb = remember(pdfFiles) {
+        pdfFiles.sumOf { it.length() } / (1024.0 * 1024.0)
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(strings.mergeHeader, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(strings.mergeSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (pdfFiles.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            pdfFiles = emptyList()
+                            statusText = null
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnClearList, fontSize = 12.sp)
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        val picked = DesktopFileDialog.openMultiplePdfs()
+                        if (picked.isNotEmpty()) {
+                            val existingPaths = pdfFiles.map { it.absolutePath }.toSet()
+                            val newFiles = picked.filter { it.absolutePath !in existingPaths }
+                            pdfFiles = pdfFiles + newFiles
+                            statusText = null
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnAddPdfs, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+        }
+
+        // Status banner if any
+        if (statusText != null) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (isError) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            if (isError) Icons.Rounded.DeleteOutline else Icons.Rounded.Save,
+                            contentDescription = null,
+                            tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                        Text(statusText!!, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                    if (mergedFile != null && !isError) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilledTonalButton(
+                                onClick = { openDocument(mergedFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            FilledTonalButton(
+                                onClick = { openFileInExplorer(mergedFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Summary Bar when files present
+        if (pdfFiles.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            strings.totalFilesAndPages.format(pdfFiles.size, totalPages),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "•  ${String.format(java.util.Locale.US, "%.1f", totalSizeMb)} MB",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            val defaultName = if (pdfFiles.size >= 2) "${pdfFiles[0].nameWithoutExtension}_merged.pdf" else "merged.pdf"
+                            val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
+                            if (target != null) {
+                                isMerging = true
+                                statusText = strings.mergingPdfs
+                                isError = false
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        val success = DesktopPdfEngine.mergePdfs(pdfFiles, target)
+                                        withContext(Dispatchers.Main) {
+                                            isMerging = false
+                                            if (success) {
+                                                mergedFile = target
+                                                statusText = strings.mergedSuccess.format(
+                                                    pdfFiles.size,
+                                                    target.name,
+                                                    formatFileSize(target.length())
+                                                )
+                                                isError = false
+                                            } else {
+                                                statusText = "Error merging PDF documents. Please check the files."
+                                                isError = true
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isMerging = false
+                                            statusText = "Merge error: ${e.message}"
+                                            isError = true
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = pdfFiles.size >= 2 && !isMerging,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        if (isMerging) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.mergingPdfs, fontSize = 13.sp)
+                        } else {
+                            Icon(Icons.AutoMirrored.Rounded.CallMerge, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.btnMergeNow, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // File List or Empty State
+        if (pdfFiles.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth().height(320.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(68.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.AutoMirrored.Rounded.CallMerge, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(strings.noPdfsSelected, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("Select 2 or more PDF documents to join them in sequence.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = {
+                            val picked = DesktopFileDialog.openMultiplePdfs()
+                            if (picked.isNotEmpty()) {
+                                pdfFiles = picked
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnAddPdfs, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                pdfFiles.forEachIndexed { index, file ->
+                    val pages = pageCounts[file.absolutePath]
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("${index + 1}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+
+                                Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(file.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        "${formatFileSize(file.length())}  •  ${if (pages != null) "$pages pages" else "Reading..."}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = {
+                                        if (index > 0) {
+                                            val mutable = pdfFiles.toMutableList()
+                                            val temp = mutable[index]
+                                            mutable[index] = mutable[index - 1]
+                                            mutable[index - 1] = temp
+                                            pdfFiles = mutable
+                                        }
+                                    },
+                                    enabled = index > 0
+                                ) {
+                                    Text("▲", fontWeight = FontWeight.Bold, color = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        if (index < pdfFiles.size - 1) {
+                                            val mutable = pdfFiles.toMutableList()
+                                            val temp = mutable[index]
+                                            mutable[index] = mutable[index + 1]
+                                            mutable[index + 1] = temp
+                                            pdfFiles = mutable
+                                        }
+                                    },
+                                    enabled = index < pdfFiles.size - 1
+                                ) {
+                                    Text("▼", fontWeight = FontWeight.Bold, color = if (index < pdfFiles.size - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        pdfFiles = pdfFiles.filterIndexed { i, _ -> i != index }
+                                    }
+                                ) {
+                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = strings.removeFile, tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }

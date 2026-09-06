@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">ส่งอีเมลถึง John โดยตรง</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">เวอร์ชันของแอปและการอัปเดต</string>
+    <string name="settings_version_desc">%1$s • ตรวจสอบการอัปเดตบน Google Play</string>
 </resources>

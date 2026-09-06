@@ -91,6 +91,10 @@ fun main(args: Array<String>) = application {
                         currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.BATCH
                         true
                     }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Eight -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.MERGE
+                        true
+                    }
                     // Ctrl+F: Find / Search text in Reader
                     keyEvent.isCtrlPressed && keyEvent.key == Key.F && currentTab != com.pdfchemy.desktop.ui.DesktopNavTab.READER -> {
                         currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.READER

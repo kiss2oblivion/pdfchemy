@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">開発者に直接メール</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">アプリのバージョンと更新</string>
+    <string name="settings_version_desc">%1$s • Google Playで更新を確認</string>
 </resources>

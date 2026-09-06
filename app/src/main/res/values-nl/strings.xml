@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">Mail John Rechtstreeks</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">Appversie &amp; updates</string>
+    <string name="settings_version_desc">%1$s • Controleren op updates via Google Play</string>
 </resources>
