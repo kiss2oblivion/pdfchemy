@@ -212,22 +212,6 @@ fun DesktopApp(
                     }
                 },
                 actions = {
-                    // Local-First Privacy Guarantee Badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Rounded.Shield, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00E676))
-                            Text(strings.privacyBadge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
                     // Update Available Badge Button
                     if (availableUpdate != null) {
                         FilledTonalButton(
@@ -779,7 +763,7 @@ private fun HomeView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    "PDFchemy Tools v${DesktopUpdateManager.CURRENT_VERSION} • 100% Offline & Private",
+                    "PDFchemy Tools v${DesktopUpdateManager.CURRENT_VERSION}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
@@ -1127,12 +1111,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                                 Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF00E676).copy(alpha = 0.15f)
-                        ) {
-                            Text("100% Local • Zero Leaks", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
             }
@@ -1359,9 +1337,6 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -1589,20 +1564,11 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
                                     Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF00E676).copy(alpha = 0.2f)
-                            ) {
-                                Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                            }
                         }
                     }
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -1861,19 +1827,10 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                                 Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF00E676).copy(alpha = 0.2f)
-                        ) {
-                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -2133,19 +2090,10 @@ private fun BatchQueueView() {
                                 Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF00E676).copy(alpha = 0.2f)
-                        ) {
-                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -2379,9 +2327,6 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -2843,19 +2788,10 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFF00E676).copy(alpha = 0.2f)
-                        ) {
-                            Text("100% Offline • Processed Locally", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF00C853), fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
             }
         }
-
-        // Edge Case Guarantee Callout
-        EdgeCaseCallout()
     }
 }
 
@@ -3272,14 +3208,6 @@ private fun UpdateAvailableDialog(
                         }
                     }
                 }
-
-                Text(
-                    "100% offline & local-first. We do not track or store your machine info.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     )
