@@ -60,6 +60,7 @@ import com.pdfchemy.desktop.engine.PageDiff
 import com.pdfchemy.desktop.engine.PdfDiffSummary
 import com.pdfchemy.desktop.engine.DesktopBatesConfig
 import com.pdfchemy.desktop.engine.DesktopBatesPosition
+import com.pdfchemy.desktop.engine.RedactPattern
 import com.pdfchemy.desktop.engine.DesktopSanitizeResult
 import com.pdfchemy.desktop.engine.DesktopRepairResult
 import com.pdfchemy.desktop.engine.DesktopCropConfig
@@ -2573,7 +2574,7 @@ private fun MergeView() {
 // -------------------------------------------------------------------------------------------------
 // 3B. SIGN & STAMP VIEW (DIGITAL SIGNATURES, PNG SEALS & BUSINESS STAMPS)
 // -------------------------------------------------------------------------------------------------
-private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE, ACRO_FORM, BATES }
+private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE, ACRO_FORM, BATES, PKI }
 private enum class FormAnnotationTool { TEXT, CHECK, CROSS, DATE }
 
 private enum class SignStampPos(val xRatio: Float, val yRatio: Float) {
@@ -2710,6 +2711,11 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     var batesDigits by remember { mutableStateOf(6) }
     var batesPosition by remember { mutableStateOf(DesktopBatesPosition.BOTTOM_RIGHT) }
 
+    // PKI Digital Signatures states
+    var pkiSignerName by remember { mutableStateOf("") }
+    var pkiReason by remember { mutableStateOf("I agree to the terms of this document") }
+    var pkiLocation by remember { mutableStateOf("Local Device") }
+
     LaunchedEffect(file) {
         withContext(Dispatchers.IO) {
             try {
@@ -2834,7 +2840,8 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield),
                             Triple(SignTabMode.TYPE, strings.modeType, Icons.AutoMirrored.Rounded.Notes),
                             Triple(SignTabMode.ACRO_FORM, strings.modeAcroForm, Icons.Rounded.PictureAsPdf),
-                            Triple(SignTabMode.BATES, strings.modeBates, Icons.Rounded.Straighten)
+                            Triple(SignTabMode.BATES, strings.modeBates, Icons.Rounded.Straighten),
+                            Triple(SignTabMode.PKI, "PKI Sign", Icons.Rounded.Shield)
                         ).forEach { (mode, label, icon) ->
                             val isSel = selectedMode == mode
                             FilledTonalButton(
@@ -3315,6 +3322,39 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         }
                     }
 
+                    // Mode 7: PKI DIGITAL SIGNATURES
+                    if (selectedMode == SignTabMode.PKI) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("PKI Digital Signature", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Applies a self-signed digital certificate cryptographically verifying document integrity.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                            OutlinedTextField(
+                                value = pkiSignerName,
+                                onValueChange = { pkiSignerName = it },
+                                label = { Text("Signer Name (e.g. John Doe)", fontSize = 11.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = pkiReason,
+                                onValueChange = { pkiReason = it },
+                                label = { Text("Reason for Signing", fontSize = 11.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = pkiLocation,
+                                onValueChange = { pkiLocation = it },
+                                label = { Text("Location", fontSize = 11.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                        }
+                    }
+
                     // Mode 6: LEGAL BATES STAMPING
                     if (selectedMode == SignTabMode.BATES) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -3597,6 +3637,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         SignTabMode.TYPE -> placedAnnotations.isNotEmpty() || enableWatermark || enablePageNumbers
                         SignTabMode.ACRO_FORM -> acroFields.isNotEmpty()
                         SignTabMode.BATES -> true
+                        SignTabMode.PKI -> pkiSignerName.isNotBlank()
                     }
 
                     Button(
@@ -3633,6 +3674,36 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                             withContext(Dispatchers.Main) {
                                                 isProcessing = false
                                                 statusText = "Error: ${e.message}"
+                                                isError = true
+                                            }
+                                        }
+                                    }
+                                }
+                                return@Button
+                            }
+
+                            if (selectedMode == SignTabMode.PKI) {
+                                val target = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_signed_pki.pdf")
+                                if (target != null) {
+                                    isProcessing = true
+                                    statusText = null
+                                    isError = false
+                                    scope.launch(Dispatchers.IO) {
+                                        val result = DesktopPdfEngine.signDocument(
+                                            inputFile = file,
+                                            outputFile = target,
+                                            signerName = pkiSignerName,
+                                            reason = pkiReason,
+                                            location = pkiLocation
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            if (result.isSuccess && target.exists() && target.length() > 0) {
+                                                signedFile = target
+                                                statusText = "Successfully cryptographically signed and saved to ${target.name}."
+                                                isError = false
+                                            } else {
+                                                statusText = "Failed to sign document: ${result.exceptionOrNull()?.message}"
                                                 isError = true
                                             }
                                         }
@@ -3818,6 +3889,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                     SignTabMode.TYPE -> strings.btnAnnotateAndSave
                                     SignTabMode.ACRO_FORM -> if (flattenOnSave) strings.btnFlattenForm else "Save Form Data"
                                     SignTabMode.BATES -> strings.btnApplyBates
+                                    SignTabMode.PKI -> "Apply Digital Signature"
                                     else -> strings.btnSignAndSave
                                 },
                                 fontWeight = FontWeight.Bold,
@@ -4001,6 +4073,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                         SignTabMode.STAMP -> selectedStamp.title
                                         SignTabMode.ACRO_FORM -> "📋 Form"
                                         SignTabMode.BATES -> "⚖️ $batesPrefix${"%0${batesDigits}d".format(batesStartNum)}$batesSuffix"
+                                        SignTabMode.PKI -> "🔒 PKI Cert: $pkiSignerName"
                                         else -> ""
                                     },
                                     fontSize = 10.sp,
@@ -4009,6 +4082,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                         SignTabMode.DRAW -> Color(0xFF1E3A8A)
                                         SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
                                         SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
+                                        SignTabMode.PKI -> Color(0xFF059669) // Green shade for security
                                         else -> Color.Black
                                     },
                                     maxLines = 1,
@@ -4296,6 +4370,90 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Extract Plain Text")
+                }
+            }
+        }
+
+        // OCR Searchable PDF Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("OCR Searchable PDF", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Scan images/documents and inject an invisible, selectable text layer using offline OCR.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Uses 100% offline Tesseract OCR. Processes completely on-device without data leaving your machine.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                var isOcrRunning by remember { mutableStateOf(false) }
+                var ocrProgress by remember { mutableStateOf(0f) }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_searchable.pdf") ?: return@Button
+                        isOcrRunning = true
+                        ocrProgress = 0f
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val result = DesktopPdfEngine.makeSearchable(file, outFile) { current, total ->
+                                    ocrProgress = current.toFloat() / total.toFloat()
+                                }
+                                withContext(Dispatchers.Main) {
+                                    isOcrRunning = false
+                                    if (result.isSuccess) {
+                                        lastConvertedTarget = outFile
+                                        statusText = "OCR completed successfully:\n${outFile.absolutePath}"
+                                    } else {
+                                        statusText = "OCR failed: ${result.exceptionOrNull()?.message}"
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isOcrRunning = false
+                                    statusText = "OCR error: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = file != null && !isOcrRunning,
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isOcrRunning) {
+                        CircularProgressIndicator(
+                            progress = { ocrProgress },
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Processing... ${(ocrProgress * 100).toInt()}%", fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Make Searchable (OCR)", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -5036,6 +5194,9 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var redactQuery by remember { mutableStateOf("") }
     var overlayText by remember { mutableStateOf("REDACTED") }
     var forensicSanitize by remember { mutableStateOf(true) }
+    
+    // Smart PII Redact State
+    var smartRedactPatterns by remember { mutableStateOf<Set<RedactPattern>>(emptySet()) }
 
     var metadata by remember { mutableStateOf<DesktopPdfMetadata?>(null) }
     var isLoadingMetadata by remember { mutableStateOf(false) }
@@ -5385,7 +5546,86 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
             }
         }
 
-        // 3. Password Protection (128-bit AES)
+        // 3. Smart PII Redaction Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("Smart PII Redaction", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    "Automatically scan and permanently censor Personally Identifiable Information (PII). Uses Forensic Vector Sanitization.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    RedactPattern.values().forEach { pattern ->
+                        FilterChip(
+                            selected = smartRedactPatterns.contains(pattern),
+                            onClick = {
+                                if (smartRedactPatterns.contains(pattern)) {
+                                    smartRedactPatterns -= pattern
+                                } else {
+                                    smartRedactPatterns += pattern
+                                }
+                            },
+                            label = { Text(pattern.label) },
+                            leadingIcon = if (smartRedactPatterns.contains(pattern)) {
+                                { Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        if (file == null) {
+                            statusText = "Please select a PDF document first."
+                            return@Button
+                        }
+                        if (smartRedactPatterns.isEmpty()) {
+                            statusText = "Please select at least one PII pattern."
+                            return@Button
+                        }
+                        val outFile = DesktopFileDialog.savePdf(suggestedName = "${file.nameWithoutExtension}_smart_redacted.pdf") ?: return@Button
+                        isProcessing = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val out = DesktopPdfEngine.smartRedact(
+                                    inputFile = file,
+                                    outputFile = outFile,
+                                    patterns = smartRedactPatterns.toList()
+                                )
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    lastSecurityFile = out
+                                    statusText = "Smart Redaction completed!\nSaved to: ${out.absolutePath}"
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    isProcessing = false
+                                    statusText = "Smart Redaction failed: ${e.message}"
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isProcessing && file != null && smartRedactPatterns.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.Shield, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Auto-Scrub Selected PII", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // 4. Password Protection (128-bit AES)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),

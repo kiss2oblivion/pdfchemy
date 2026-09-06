@@ -18,16 +18,51 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStreamWriter
 import java.util.regex.Pattern
+import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
+import android.graphics.pdf.PdfRenderer
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
+import com.tom_roush.pdfbox.pdmodel.PDPage
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+
+enum class RedactPattern(val label: String, val regex: String) {
+    CREDIT_CARD("Credit Card Numbers", "\\b(?:\\d[ -]*?){13,16}\\b"),
+    SSN_US("Social Security Number (US)", "\\b\\d{3}[- ]?\\d{2}[- ]?\\d{4}\\b"),
+    EMAIL("Email Addresses", "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"),
+    PHONE_NUMBERS("Phone Numbers", "\\b(?:\\+?\\d{1,3}[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}\\b"),
+    IBAN("IBAN / Bank Accounts", "\\b[A-Z]{2}[0-9]{2}(?:[ ]?[0-9A-Z]{4}){3,7}\\b")
+}
 
 data class RedactionConfig(
     val isBlackout: Boolean = true, // true = Blackout box, false = Whiteout box
     val defaultOverlayText: String = "REDACTED",
     val searchKeyword: String = "",
     val isRegex: Boolean = false,
-    val manualBoxes: List<RedactionBox> = emptyList()
+    val manualBoxes: List<RedactionBox> = emptyList(),
+    val forensicSanitize: Boolean = true
 )
 
 object PdfRedactionEngine {
+
+    /**
+     * Automatically redacts predefined PII patterns across the entire document.
+     */
+    suspend fun smartRedact(
+        context: Context,
+        pdfUri: Uri,
+        destUri: Uri,
+        patterns: List<RedactPattern>,
+        config: RedactionConfig = RedactionConfig(isBlackout = true, defaultOverlayText = "REDACTED", forensicSanitize = true)
+    ): Result<Int> {
+        val combinedRegex = patterns.joinToString(separator = "|") { it.regex }
+        val searchResult = searchRedactionTargets(context, pdfUri, combinedRegex, isRegex = true)
+        if (searchResult.isFailure) return Result.failure(searchResult.exceptionOrNull() ?: Exception("Unknown error"))
+        
+        val boxes = searchResult.getOrNull() ?: emptyList()
+        if (boxes.isEmpty()) return Result.success(0)
+        
+        return applyRedactions(context, pdfUri, destUri, boxes, config)
+    }
 
     /**
      * Searches the PDF for occurrences of a keyword or regex pattern and returns bounding boxes.
@@ -206,13 +241,58 @@ object PdfRedactionEngine {
             document.close()
             document = null
 
+            val finalFile = if (config.forensicSanitize) {
+                val rasterFile = File(context.cacheDir, "rasterized_${System.currentTimeMillis()}.pdf")
+                val pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                val renderer = PdfRenderer(pfd)
+                
+                val newDoc = PDDocument()
+                for (i in 0 until renderer.pageCount) {
+                    val renderPage = renderer.openPage(i)
+                    // 2x resolution (144 dpi) for good legibility while killing vectors
+                    val bmp = Bitmap.createBitmap(
+                        (renderPage.width * 2f).toInt(),
+                        (renderPage.height * 2f).toInt(),
+                        Bitmap.Config.ARGB_8888
+                    )
+                    val canvas = android.graphics.Canvas(bmp)
+                    canvas.drawColor(android.graphics.Color.WHITE)
+                    
+                    renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                    renderPage.close()
+                    
+                    val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
+                    newDoc.addPage(pdfPage)
+                    
+                    val outStream = java.io.ByteArrayOutputStream()
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 85, outStream)
+                    val imageBytes = outStream.toByteArray()
+                    
+                    val pdImage = JPEGFactory.createFromByteArray(newDoc, imageBytes)
+                    val cs = PDPageContentStream(newDoc, pdfPage)
+                    cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
+                    cs.close()
+                    
+                    bmp.recycle()
+                }
+                renderer.close()
+                pfd.close()
+                
+                newDoc.save(rasterFile)
+                newDoc.close()
+                tempFile.delete()
+                rasterFile
+            } else {
+                tempFile
+            }
+
             context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
-                tempFile.inputStream().use { inp ->
+                finalFile.inputStream().use { inp ->
                     inp.copyTo(out)
                 }
             } ?: throw IllegalStateException("Cannot open destination PDF stream")
 
-            tempFile.delete()
+            finalFile.delete()
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(

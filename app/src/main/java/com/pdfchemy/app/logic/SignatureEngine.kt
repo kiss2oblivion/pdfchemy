@@ -217,4 +217,48 @@ object SignatureEngine {
 
         return bmp
     }
+
+    /**
+     * Applies a cryptographic PKI digital signature using a self-signed certificate.
+     */
+    suspend fun applyDigitalSignature(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        signerName: String,
+        reason: String,
+        location: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val sourceFile = File(context.cacheDir, "temp_sign_in.pdf")
+            val destFile = File(context.cacheDir, "temp_sign_out.pdf")
+            
+            context.contentResolver.openInputStream(sourceUri)?.use { ins ->
+                sourceFile.writeBytes(ins.readBytes())
+            } ?: return@withContext false
+
+            val subjectStr = "CN=$signerName, O=PDFchemy, C=US"
+            val keyPairInfo = AndroidPdfCryptoSigner.generateSelfSignedCertificate(subjectStr)
+
+            AndroidPdfCryptoSigner.signPdf(
+                sourceFile = sourceFile,
+                destFile = destFile,
+                keyPairInfo = keyPairInfo,
+                reason = reason,
+                location = location
+            )
+
+            context.contentResolver.openOutputStream(destUri)?.use { outs ->
+                outs.write(destFile.readBytes())
+            }
+            
+            sourceFile.delete()
+            destFile.delete()
+            
+            true
+        } catch (e: Exception) {
+            AppLogger.e("Failed to apply digital signature: ${e.message}", e)
+            false
+        }
+    }
 }

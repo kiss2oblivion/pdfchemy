@@ -81,6 +81,37 @@ fun SignPdfScreen(
     var includeDateStamp by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
+    // PKI State
+    var showPkiDialog by remember { mutableStateOf(false) }
+    var pkiSignerName by remember { mutableStateOf("") }
+    var pkiReason by remember { mutableStateOf("Signed by PDFchemy") }
+    var pkiLocation by remember { mutableStateOf("Local Device") }
+    
+    val pkiSignLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { destUri ->
+        if (destUri != null && selectedPdfUri != null) {
+            isSaving = true
+            coroutineScope.launch {
+                val success = SignatureEngine.applyDigitalSignature(
+                    context = context,
+                    sourceUri = selectedPdfUri!!,
+                    destUri = destUri,
+                    signerName = pkiSignerName,
+                    reason = pkiReason,
+                    location = pkiLocation
+                )
+                isSaving = false
+                if (success) {
+                    showPkiDialog = false
+                    onBack()
+                } else {
+                    // Show error, handled silently for now or via Toast
+                }
+            }
+        }
+    }
+
     val postureInfo = com.pdfchemy.app.logic.rememberDevicePosture()
     var forceTabletopMode by remember { mutableStateOf(false) }
     val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
@@ -356,6 +387,15 @@ fun SignPdfScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = { showPkiDialog = true },
+                            label = { Text("🔒 PKI Cert", fontWeight = FontWeight.Bold, color = Color(0xFF059669)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
                     item {
                         FilterChip(
                             selected = false,
@@ -712,5 +752,55 @@ fun SignPdfScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+
+    if (showPkiDialog) {
+        AlertDialog(
+            onDismissRequest = { showPkiDialog = false },
+            title = { Text("Apply PKI Digital Signature") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Applies a self-signed digital certificate cryptographically verifying document integrity.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(
+                        value = pkiSignerName,
+                        onValueChange = { pkiSignerName = it },
+                        label = { Text("Signer Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = pkiReason,
+                        onValueChange = { pkiReason = it },
+                        label = { Text("Reason") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = pkiLocation,
+                        onValueChange = { pkiLocation = it },
+                        label = { Text("Location") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { pkiSignLauncher.launch("signed_document_pki_${System.currentTimeMillis()}.pdf") },
+                    enabled = pkiSignerName.isNotBlank() && !isSaving
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Sign & Save")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPkiDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

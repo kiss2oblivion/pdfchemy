@@ -21,6 +21,13 @@ dependencies {
     // Apache PDFBox for pure JVM Desktop (Windows & Linux)
     implementation("org.apache.pdfbox:pdfbox:2.0.31")
 
+    // BouncyCastle for PKI (Digital Signatures)
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
+
+    // Tess4J for Desktop OCR
+    implementation("net.sourceforge.tess4j:tess4j:5.7.0")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
