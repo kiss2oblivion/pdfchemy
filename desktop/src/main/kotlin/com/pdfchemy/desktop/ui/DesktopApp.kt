@@ -54,6 +54,10 @@ import com.pdfchemy.desktop.engine.DesktopPdfMetadata
 import com.pdfchemy.desktop.engine.DesktopUpdateManager
 import com.pdfchemy.desktop.engine.PageItemSpec
 import com.pdfchemy.desktop.engine.ReleaseInfo
+import com.pdfchemy.desktop.engine.AcroFieldType
+import com.pdfchemy.desktop.engine.DesktopAcroField
+import com.pdfchemy.desktop.engine.PageDiff
+import com.pdfchemy.desktop.engine.PdfDiffSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,7 +73,8 @@ enum class DesktopNavTab(val icon: ImageVector) {
     CONVERT(Icons.AutoMirrored.Rounded.Notes),
     READER(Icons.AutoMirrored.Rounded.MenuBook),
     SECURITY(Icons.Rounded.Lock),
-    BATCH(Icons.Rounded.Layers);
+    BATCH(Icons.Rounded.Layers),
+    COMPARE(Icons.Rounded.Collections);
 
     fun label(strings: DesktopStrings): String = when (this) {
         HOME -> strings.tabAllTools
@@ -81,6 +86,7 @@ enum class DesktopNavTab(val icon: ImageVector) {
         READER -> strings.tabReader
         SECURITY -> strings.tabSecurity
         BATCH -> strings.tabBatch
+        COMPARE -> strings.tabCompare
     }
 }
 
@@ -419,6 +425,7 @@ fun DesktopApp(
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.BATCH -> BatchQueueView()
+                    DesktopNavTab.COMPARE -> CompareView(selectedFile, onFileChange = { selectedFile = it })
                 }
             }
         }
@@ -652,10 +659,11 @@ private fun HomeView(
             ToolItem(strings.toolCompressTitle, strings.toolCompressDesc, Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
             ToolItem(strings.toolMergeTitle, strings.toolMergeDesc, Icons.AutoMirrored.Rounded.CallMerge, DesktopNavTab.MERGE),
             ToolItem(strings.toolSignTitle, strings.toolSignDesc, Icons.Rounded.AddPhotoAlternate, DesktopNavTab.SIGN),
-            ToolItem(strings.toolConvertTitle, strings.toolConvertDesc, Icons.Rounded.Collections, DesktopNavTab.CONVERT),
+            ToolItem(strings.toolConvertTitle, strings.toolConvertDesc, Icons.AutoMirrored.Rounded.Notes, DesktopNavTab.CONVERT),
             ToolItem(strings.toolBatchTitle, strings.toolBatchDesc, Icons.Rounded.Layers, DesktopNavTab.BATCH),
             ToolItem(strings.toolReaderTitle, strings.toolReaderDesc, Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
-            ToolItem(strings.toolSecurityTitle, strings.toolSecurityDesc, Icons.Rounded.Lock, DesktopNavTab.SECURITY)
+            ToolItem(strings.toolSecurityTitle, strings.toolSecurityDesc, Icons.Rounded.Lock, DesktopNavTab.SECURITY),
+            ToolItem(strings.toolCompareTitle, strings.toolCompareDesc, Icons.Rounded.Collections, DesktopNavTab.COMPARE)
         )
 
         val columns = 3
@@ -2021,7 +2029,7 @@ private fun MergeView() {
 // -------------------------------------------------------------------------------------------------
 // 3B. SIGN & STAMP VIEW (DIGITAL SIGNATURES, PNG SEALS & BUSINESS STAMPS)
 // -------------------------------------------------------------------------------------------------
-private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE }
+private enum class SignTabMode { DRAW, UPLOAD, STAMP, TYPE, ACRO_FORM }
 private enum class FormAnnotationTool { TEXT, CHECK, CROSS, DATE }
 
 private enum class SignStampPos(val xRatio: Float, val yRatio: Float) {
@@ -2145,6 +2153,29 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     var pageNumPos by remember { mutableStateOf(HeaderFooterPos.BOTTOM_CENTER) }
     var pageNumFormat by remember { mutableStateOf("Page %1\$d of %2\$d") }
 
+    // Interactive AcroForm Studio states
+    var hasAcroForm by remember(file) { mutableStateOf(false) }
+    var acroFields by remember(file) { mutableStateOf<List<DesktopAcroField>>(emptyList()) }
+    val acroFormValues = remember(file) { mutableStateMapOf<String, String>() }
+    var flattenOnSave by remember { mutableStateOf(true) }
+
+    LaunchedEffect(file) {
+        withContext(Dispatchers.IO) {
+            try {
+                val detected = DesktopPdfEngine.hasAcroForm(file)
+                hasAcroForm = detected
+                if (detected) {
+                    val fields = DesktopPdfEngine.extractAcroFields(file)
+                    acroFields = fields
+                    acroFormValues.clear()
+                    fields.forEach { f ->
+                        acroFormValues[f.name] = f.value
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     // Processing states
     var isProcessing by remember { mutableStateOf(false) }
     var signedFile by remember { mutableStateOf<File?>(null) }
@@ -2207,6 +2238,37 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             ) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Interactive AcroForm Discovery Banner
+                    if (hasAcroForm) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { selectedMode = SignTabMode.ACRO_FORM },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    Column {
+                                        Text(strings.acroFormDetected.format(acroFields.size), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("Interactive PDF Form detected • Tap to edit & seal fields", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                FilledTonalButton(
+                                    onClick = { selectedMode = SignTabMode.ACRO_FORM },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(strings.modeAcroForm, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
                     // Mode Selector Tabs
                     Row(
                         modifier = Modifier
@@ -2219,7 +2281,8 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             Triple(SignTabMode.DRAW, strings.modeDraw, Icons.Rounded.Tune),
                             Triple(SignTabMode.UPLOAD, strings.modeUpload, Icons.Rounded.CloudUpload),
                             Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield),
-                            Triple(SignTabMode.TYPE, strings.modeType, Icons.AutoMirrored.Rounded.Notes)
+                            Triple(SignTabMode.TYPE, strings.modeType, Icons.AutoMirrored.Rounded.Notes),
+                            Triple(SignTabMode.ACRO_FORM, strings.modeAcroForm, Icons.Rounded.PictureAsPdf)
                         ).forEach { (mode, label, icon) ->
                             val isSel = selectedMode == mode
                             FilledTonalButton(
@@ -2591,6 +2654,115 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         }
                     }
 
+                    // Mode 5: INTERACTIVE ACROFORM STUDIO
+                    if (selectedMode == SignTabMode.ACRO_FORM) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (acroFields.isEmpty()) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(strings.noAcroFields, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text("This PDF does not contain interactive PDF form fields. You can use Form Filler (Type) to place custom text & checkmarks instead.", fontSize = 11.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            } else {
+                                Text("${acroFields.size} Interactive Form Fields", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    acroFields.forEach { field ->
+                                        when (field.type) {
+                                            AcroFieldType.CHECKBOX -> {
+                                                val currentVal = acroFormValues[field.name] ?: field.value
+                                                val isChecked = currentVal.equals("Yes", ignoreCase = true) || currentVal.equals("true", ignoreCase = true) || currentVal.equals("On", ignoreCase = true)
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().clickable {
+                                                        acroFormValues[field.name] = if (isChecked) "Off" else "Yes"
+                                                    },
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Checkbox(
+                                                        checked = isChecked,
+                                                        onCheckedChange = { checked ->
+                                                            acroFormValues[field.name] = if (checked) "Yes" else "Off"
+                                                        }
+                                                    )
+                                                    Column {
+                                                        Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                                        if (field.isReadOnly) Text("Read-only", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    }
+                                                }
+                                            }
+                                            AcroFieldType.CHOICE -> {
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(field.name, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                                    val currentVal = acroFormValues[field.name] ?: field.value
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        field.options.forEach { opt ->
+                                                            FilterChip(
+                                                                selected = currentVal == opt,
+                                                                onClick = { acroFormValues[field.name] = opt },
+                                                                label = { Text(opt, fontSize = 11.sp) },
+                                                                shape = RoundedCornerShape(6.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else -> {
+                                                val currentVal = acroFormValues[field.name] ?: field.value
+                                                OutlinedTextField(
+                                                    value = currentVal,
+                                                    onValueChange = { acroFormValues[field.name] = it },
+                                                    label = { Text(field.name, fontSize = 11.sp) },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    singleLine = true
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(strings.btnFlattenForm, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text(strings.flattenFormDesc, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Switch(
+                                            checked = flattenOnSave,
+                                            onCheckedChange = { flattenOnSave = it },
+                                            modifier = Modifier.scale(0.8f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                     // PAGE & POSITION CONTROLS
@@ -2623,7 +2795,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             }
                         }
 
-                        if (selectedMode != SignTabMode.TYPE) {
+                        if (selectedMode != SignTabMode.TYPE && selectedMode != SignTabMode.ACRO_FORM) {
                             // Position Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -2780,10 +2952,49 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                         SignTabMode.UPLOAD -> uploadedImageFile != null
                         SignTabMode.STAMP -> true
                         SignTabMode.TYPE -> placedAnnotations.isNotEmpty() || enableWatermark || enablePageNumbers
+                        SignTabMode.ACRO_FORM -> acroFields.isNotEmpty()
                     }
 
                     Button(
                         onClick = {
+                            if (selectedMode == SignTabMode.ACRO_FORM) {
+                                val defaultName = if (flattenOnSave) "${file.nameWithoutExtension}_flattened.pdf" else "${file.nameWithoutExtension}_filled.pdf"
+                                val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
+                                if (target != null) {
+                                    isProcessing = true
+                                    statusText = null
+                                    isError = false
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            val ok = DesktopPdfEngine.fillAndFlattenAcroForm(
+                                                inputFile = file,
+                                                outputFile = target,
+                                                fieldValues = acroFormValues.toMap(),
+                                                flatten = flattenOnSave
+                                            )
+                                            withContext(Dispatchers.Main) {
+                                                isProcessing = false
+                                                if (ok && target.exists() && target.length() > 0) {
+                                                    signedFile = target
+                                                    statusText = "Saved form successfully to ${target.name} (${formatFileSize(target.length())})."
+                                                    isError = false
+                                                } else {
+                                                    statusText = "Failed to save form fields."
+                                                    isError = true
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                isProcessing = false
+                                                statusText = "Error: ${e.message}"
+                                                isError = true
+                                            }
+                                        }
+                                    }
+                                }
+                                return@Button
+                            }
+
                             val defaultName = if (selectedMode == SignTabMode.TYPE) {
                                 "${file.nameWithoutExtension}_annotated.pdf"
                             } else {
@@ -2919,7 +3130,11 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                             Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                if (selectedMode == SignTabMode.TYPE) strings.btnAnnotateAndSave else strings.btnSignAndSave,
+                                when (selectedMode) {
+                                    SignTabMode.TYPE -> strings.btnAnnotateAndSave
+                                    SignTabMode.ACRO_FORM -> if (flattenOnSave) strings.btnFlattenForm else "Save Form Data"
+                                    else -> strings.btnSignAndSave
+                                },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -3099,6 +3314,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                         SignTabMode.DRAW -> "✍️ Signature"
                                         SignTabMode.UPLOAD -> "🖼️ Seal"
                                         SignTabMode.STAMP -> selectedStamp.title
+                                        SignTabMode.ACRO_FORM -> "📋 Form"
                                         else -> ""
                                     },
                                     fontSize = 10.sp,
@@ -4388,6 +4604,397 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
                                 Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Open Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// 8B. DOCUMENT COMPARE & REVISION DIFF VIEW (ACROBAT PARITY)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun CompareView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
+    var docA by remember(file) { mutableStateOf<File?>(file) }
+    var docB by remember { mutableStateOf<File?>(null) }
+    var isComparing by remember { mutableStateOf(false) }
+    var diffSummary by remember { mutableStateOf<PdfDiffSummary?>(null) }
+    var currentPageIndex by remember { mutableStateOf(0) }
+    var thumbnailA by remember { mutableStateOf<ImageBitmap?>(null) }
+    var thumbnailB by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    // Auto-run comparison when both docA and docB are chosen
+    LaunchedEffect(docA, docB) {
+        val a = docA
+        val b = docB
+        if (a != null && b != null && a.exists() && b.exists()) {
+            isComparing = true
+            withContext(Dispatchers.IO) {
+                try {
+                    val summary = DesktopPdfEngine.compareDocuments(a, b)
+                    diffSummary = summary
+                    currentPageIndex = 0
+                } catch (_: Exception) {
+                    diffSummary = null
+                } finally {
+                    isComparing = false
+                }
+            }
+        } else {
+            diffSummary = null
+        }
+    }
+
+    // Load thumbnails for current page
+    LaunchedEffect(docA, docB, currentPageIndex) {
+        val a = docA
+        val b = docB
+        withContext(Dispatchers.IO) {
+            thumbnailA = if (a != null && a.exists()) {
+                runCatching {
+                    val totalA = DesktopPdfEngine.getPageCount(a)
+                    if (currentPageIndex < totalA) {
+                        DesktopPdfEngine.renderThumbnail(a, currentPageIndex, targetWidth = 360).toComposeImageBitmap()
+                    } else null
+                }.getOrNull()
+            } else null
+
+            thumbnailB = if (b != null && b.exists()) {
+                runCatching {
+                    val totalB = DesktopPdfEngine.getPageCount(b)
+                    if (currentPageIndex < totalB) {
+                        DesktopPdfEngine.renderThumbnail(b, currentPageIndex, targetWidth = 360).toComposeImageBitmap()
+                    } else null
+                }.getOrNull()
+            } else null
+        }
+    }
+
+    val maxPages = remember(docA, docB, diffSummary) {
+        val countA = diffSummary?.pagesA ?: docA?.let { runCatching { DesktopPdfEngine.getPageCount(it) }.getOrDefault(1) } ?: 1
+        val countB = diffSummary?.pagesB ?: docB?.let { runCatching { DesktopPdfEngine.getPageCount(it) }.getOrDefault(1) } ?: 1
+        maxOf(countA, countB).coerceAtLeast(1)
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(strings.tabCompare, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(strings.toolCompareDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            // Swap Documents button if both exist
+            if (docA != null && docB != null) {
+                OutlinedButton(
+                    onClick = {
+                        val temp = docA
+                        docA = docB
+                        docB = temp
+                        if (docA != null) onFileChange(docA!!)
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.CallMerge, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Swap Docs", fontSize = 12.sp)
+                }
+            }
+        }
+
+        // Dual Document Pickers Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Document A Card
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(strings.compareDocA, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                        Button(
+                            onClick = {
+                                val picked = DesktopFileDialog.openPdf()
+                                if (picked != null) {
+                                    docA = picked
+                                    onFileChange(picked)
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(strings.compareChooseDocA, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (docA != null) {
+                        Text(docA!!.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(formatFileSize(docA!!.length()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Text("No document selected", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            // Document B Card
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(strings.compareDocB, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.secondary)
+                        Button(
+                            onClick = {
+                                val picked = DesktopFileDialog.openPdf()
+                                if (picked != null) docB = picked
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(strings.compareChooseDocB, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (docB != null) {
+                        Text(docB!!.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(formatFileSize(docB!!.length()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Text("No revision document selected", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+
+        // Empty prompt if either doc is missing
+        if (docA == null || docB == null) {
+            Card(
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Rounded.Collections, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(strings.compareSelectBoth, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Select both the original PDF and the revised version to see line-by-line diffs and synchronized page comparisons.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+            }
+        } else if (isComparing) {
+            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (diffSummary != null) {
+            val summary = diffSummary!!
+
+            // Stats Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (summary.isEntirelyIdentical) Color(0xFF16A34A).copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                border = BorderStroke(1.dp, if (summary.isEntirelyIdentical) Color(0xFF16A34A).copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(
+                            if (summary.isEntirelyIdentical) Icons.Rounded.Shield else Icons.Rounded.Tune,
+                            contentDescription = null,
+                            tint = if (summary.isEntirelyIdentical) Color(0xFF16A34A) else MaterialTheme.colorScheme.primary
+                        )
+                        Column {
+                            Text(
+                                if (summary.isEntirelyIdentical) strings.compareIdentical else strings.compareDiffCount.format(summary.totalAddedLines + summary.totalRemovedLines),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            if (!summary.isEntirelyIdentical) {
+                                Text(
+                                    strings.compareStats.format(summary.totalAddedLines, summary.totalRemovedLines, summary.pageDiffs.size),
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (!summary.isEntirelyIdentical) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(color = Color(0xFF16A34A).copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
+                                Text("+${summary.totalAddedLines}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color(0xFF16A34A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Surface(color = Color(0xFFDC2626).copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
+                                Text("-${summary.totalRemovedLines}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color(0xFFDC2626), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Synchronized Page Navigation Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Comparing Page ${currentPageIndex + 1} of $maxPages",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    IconButton(
+                        onClick = { if (currentPageIndex > 0) currentPageIndex-- },
+                        enabled = currentPageIndex > 0
+                    ) {
+                        Text("◀", fontWeight = FontWeight.Bold)
+                    }
+                    Text("${currentPageIndex + 1} / $maxPages", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    IconButton(
+                        onClick = { if (currentPageIndex < maxPages - 1) currentPageIndex++ },
+                        enabled = currentPageIndex < maxPages - 1
+                    ) {
+                        Text("▶", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Side-by-Side Visual Preview
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Doc A Page Preview
+                Card(
+                    modifier = Modifier.weight(1f).height(380.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Document A (Page ${currentPageIndex + 1})", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp)).background(Color.White), contentAlignment = Alignment.Center) {
+                            if (thumbnailA != null) {
+                                Image(bitmap = thumbnailA!!, contentDescription = null, modifier = Modifier.fillMaxSize().padding(4.dp))
+                            } else {
+                                Text("No page", color = Color.Gray, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+
+                // Doc B Page Preview
+                Card(
+                    modifier = Modifier.weight(1f).height(380.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Document B (Page ${currentPageIndex + 1})", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp)).background(Color.White), contentAlignment = Alignment.Center) {
+                            if (thumbnailB != null) {
+                                Image(bitmap = thumbnailB!!, contentDescription = null, modifier = Modifier.fillMaxSize().padding(4.dp))
+                            } else {
+                                Text("No page", color = Color.Gray, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Current Page Textual Differences Drawer
+            val currentPageDiff = summary.pageDiffs.getOrNull(currentPageIndex)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Page ${currentPageIndex + 1} Line-by-Line Changes",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+
+                    if (currentPageDiff == null || currentPageDiff.isIdentical) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
+                            Text("No text differences detected on this page.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            currentPageDiff.removedLines.forEach { line ->
+                                Surface(
+                                    color = Color(0xFFDC2626).copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "- $line",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = Color(0xFFDC2626),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                            currentPageDiff.addedLines.forEach { line ->
+                                Surface(
+                                    color = Color(0xFF16A34A).copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "+ $line",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = Color(0xFF16A34A),
+                                        fontSize = 11.sp
+                                    )
+                                }
                             }
                         }
                     }

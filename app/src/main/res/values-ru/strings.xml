@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">Версия приложения и обновления</string>
     <string name="settings_version_desc">%1$s • Проверить обновления в Google Play</string>
+    <string name="label_quick_tools_stamps">Инструменты форм и штампы</string>
 </resources>

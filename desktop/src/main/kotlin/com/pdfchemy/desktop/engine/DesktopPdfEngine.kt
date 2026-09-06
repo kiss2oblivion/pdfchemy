@@ -16,6 +16,12 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import org.apache.pdfbox.util.Matrix
 import org.apache.pdfbox.text.PDFTextStripper
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm
+import org.apache.pdfbox.pdmodel.interactive.form.PDField
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField
+import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox
+import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton
+import org.apache.pdfbox.pdmodel.interactive.form.PDChoice
 import java.awt.BasicStroke
 import java.awt.Font
 import java.awt.RenderingHints
@@ -24,6 +30,43 @@ import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileOutputStream
 import javax.imageio.ImageIO
+
+enum class AcroFieldType {
+    TEXT,
+    CHECKBOX,
+    RADIO,
+    CHOICE,
+    OTHER
+}
+
+data class DesktopAcroField(
+    val name: String,
+    val fullyQualifiedName: String,
+    val type: AcroFieldType,
+    val value: String,
+    val options: List<String> = emptyList(),
+    val isReadOnly: Boolean = false,
+    val isRequired: Boolean = false
+)
+
+data class PageDiff(
+    val pageNum: Int,
+    val isIdentical: Boolean,
+    val addedLines: List<String>,
+    val removedLines: List<String>,
+    val lineCountA: Int,
+    val lineCountB: Int
+)
+
+data class PdfDiffSummary(
+    val arePageCountsEqual: Boolean,
+    val pagesA: Int,
+    val pagesB: Int,
+    val pageDiffs: List<PageDiff>,
+    val totalAddedLines: Int,
+    val totalRemovedLines: Int,
+    val isEntirelyIdentical: Boolean
+)
 
 data class TextAnnotationItem(
     val text: String,
@@ -897,6 +940,228 @@ object DesktopPdfEngine {
             document.save(outputFile)
             return outputFile.exists() && outputFile.length() > 0
         }
+    }
+
+    /**
+     * Checks if a PDF document contains interactive AcroForm fields.
+     */
+    fun hasAcroForm(inputFile: File): Boolean {
+        if (!inputFile.exists() || inputFile.length() == 0L) return false
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val acroForm = doc.documentCatalog.acroForm
+                acroForm != null && acroForm.fields.isNotEmpty()
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Extracts interactive form fields from an AcroForm PDF.
+     */
+    fun extractAcroFields(inputFile: File): List<DesktopAcroField> {
+        if (!inputFile.exists() || inputFile.length() == 0L) return emptyList()
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val acroForm = doc.documentCatalog.acroForm ?: return emptyList()
+                val result = mutableListOf<DesktopAcroField>()
+                for (field in acroForm.fieldTree) {
+                    val name = field.partialName ?: field.fullyQualifiedName ?: continue
+                    val fqName = field.fullyQualifiedName ?: name
+                    val isReadOnly = field.isReadOnly
+                    val isRequired = field.isRequired
+
+                    val item = when (field) {
+                        is PDTextField -> DesktopAcroField(
+                            name = name,
+                            fullyQualifiedName = fqName,
+                            type = AcroFieldType.TEXT,
+                            value = field.value ?: "",
+                            isReadOnly = isReadOnly,
+                            isRequired = isRequired
+                        )
+                        is PDCheckBox -> DesktopAcroField(
+                            name = name,
+                            fullyQualifiedName = fqName,
+                            type = AcroFieldType.CHECKBOX,
+                            value = if (field.isChecked) "Yes" else "Off",
+                            options = listOf("Yes", "Off"),
+                            isReadOnly = isReadOnly,
+                            isRequired = isRequired
+                        )
+                        is PDRadioButton -> DesktopAcroField(
+                            name = name,
+                            fullyQualifiedName = fqName,
+                            type = AcroFieldType.RADIO,
+                            value = field.value ?: "",
+                            options = field.onValues.toList(),
+                            isReadOnly = isReadOnly,
+                            isRequired = isRequired
+                        )
+                        is PDChoice -> DesktopAcroField(
+                            name = name,
+                            fullyQualifiedName = fqName,
+                            type = AcroFieldType.CHOICE,
+                            value = field.value?.firstOrNull() ?: "",
+                            options = field.options ?: emptyList(),
+                            isReadOnly = isReadOnly,
+                            isRequired = isRequired
+                        )
+                        else -> DesktopAcroField(
+                            name = name,
+                            fullyQualifiedName = fqName,
+                            type = AcroFieldType.OTHER,
+                            value = try { field.valueAsString ?: "" } catch (_: Exception) { "" },
+                            isReadOnly = isReadOnly,
+                            isRequired = isRequired
+                        )
+                    }
+                    result.add(item)
+                }
+                result
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Fills values in an AcroForm document and optionally flattens all fields into immutable vector text/graphics.
+     */
+    fun fillAndFlattenAcroForm(
+        inputFile: File,
+        outputFile: File,
+        fieldValues: Map<String, String>,
+        flatten: Boolean = true
+    ): Boolean {
+        if (!inputFile.exists() || inputFile.length() == 0L) return false
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val acroForm = doc.documentCatalog.acroForm ?: return false
+
+                if (acroForm.defaultResources == null) {
+                    val res = org.apache.pdfbox.pdmodel.PDResources()
+                    res.put(org.apache.pdfbox.cos.COSName.getPDFName("Helv"), PDType1Font.HELVETICA)
+                    acroForm.defaultResources = res
+                }
+                if (acroForm.defaultAppearance.isNullOrBlank()) {
+                    acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+                }
+
+                for ((fieldName, value) in fieldValues) {
+                    val field = acroForm.getField(fieldName) ?: continue
+                    try {
+                        if (field is PDTextField && field.defaultAppearance.isNullOrBlank()) {
+                            field.defaultAppearance = acroForm.defaultAppearance
+                        }
+                        when (field) {
+                            is PDCheckBox -> {
+                                if (value.equals("Yes", ignoreCase = true) || value.equals("true", ignoreCase = true)) {
+                                    field.check()
+                                } else {
+                                    field.unCheck()
+                                }
+                            }
+                            is PDTextField -> {
+                                field.value = value
+                            }
+                            is PDChoice -> {
+                                field.setValue(value)
+                            }
+                            is PDRadioButton -> {
+                                field.setValue(value)
+                            }
+                            else -> {
+                                field.setValue(value)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                if (flatten) {
+                    try {
+                        acroForm.flatten()
+                    } catch (_: Exception) {}
+                }
+
+                doc.save(outputFile)
+                outputFile.exists() && outputFile.length() > 0
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Compares two PDF documents page-by-page and computes textual differences.
+     */
+    fun compareDocuments(fileA: File, fileB: File): PdfDiffSummary {
+        val stripper = PDFTextStripper().apply { sortByPosition = true }
+
+        val (pagesA, textPagesA) = PDDocument.load(fileA).use { doc ->
+            val count = doc.numberOfPages
+            val pages = (1..count).map { p ->
+                stripper.startPage = p
+                stripper.endPage = p
+                stripper.getText(doc).trim()
+            }
+            Pair(count, pages)
+        }
+
+        val (pagesB, textPagesB) = PDDocument.load(fileB).use { doc ->
+            val count = doc.numberOfPages
+            val pages = (1..count).map { p ->
+                stripper.startPage = p
+                stripper.endPage = p
+                stripper.getText(doc).trim()
+            }
+            Pair(count, pages)
+        }
+
+        val maxPages = maxOf(pagesA, pagesB)
+        val pageDiffs = mutableListOf<PageDiff>()
+        var totalAdded = 0
+        var totalRemoved = 0
+
+        for (p in 0 until maxPages) {
+            val linesA = if (p < pagesA) textPagesA[p].lines().map { it.trim() }.filter { it.isNotBlank() } else emptyList()
+            val linesB = if (p < pagesB) textPagesB[p].lines().map { it.trim() }.filter { it.isNotBlank() } else emptyList()
+
+            val setA = linesA.toSet()
+            val setB = linesB.toSet()
+
+            val removed = linesA.filter { it !in setB }
+            val added = linesB.filter { it !in setA }
+
+            val isIdentical = linesA == linesB
+            totalAdded += added.size
+            totalRemoved += removed.size
+
+            pageDiffs.add(
+                PageDiff(
+                    pageNum = p + 1,
+                    isIdentical = isIdentical,
+                    addedLines = added,
+                    removedLines = removed,
+                    lineCountA = linesA.size,
+                    lineCountB = linesB.size
+                )
+            )
+        }
+
+        val arePageCountsEqual = (pagesA == pagesB)
+        val isEntirelyIdentical = arePageCountsEqual && totalAdded == 0 && totalRemoved == 0 && pageDiffs.all { it.isIdentical }
+
+        return PdfDiffSummary(
+            arePageCountsEqual = arePageCountsEqual,
+            pagesA = pagesA,
+            pagesB = pagesB,
+            pageDiffs = pageDiffs,
+            totalAddedLines = totalAdded,
+            totalRemovedLines = totalRemoved,
+            isEntirelyIdentical = isEntirelyIdentical
+        )
     }
 }
 

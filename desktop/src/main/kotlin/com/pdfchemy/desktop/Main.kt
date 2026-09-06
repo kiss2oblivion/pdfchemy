@@ -99,6 +99,10 @@ fun main(args: Array<String>) = application {
                         currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.SIGN
                         true
                     }
+                    keyEvent.isCtrlPressed && keyEvent.key == Key.Zero -> {
+                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.COMPARE
+                        true
+                    }
                     // Ctrl+F: Find / Search text in Reader
                     keyEvent.isCtrlPressed && keyEvent.key == Key.F && currentTab != com.pdfchemy.desktop.ui.DesktopNavTab.READER -> {
                         currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.READER

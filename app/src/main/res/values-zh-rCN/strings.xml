@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">应用版本与更新</string>
     <string name="settings_version_desc">%1$s • 在 Google Play 检查更新</string>
+    <string name="label_quick_tools_stamps">表单工具与印章</string>
 </resources>

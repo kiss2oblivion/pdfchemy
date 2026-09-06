@@ -349,6 +349,191 @@ fun SignPdfScreen(
                     }
                 }
 
+                // Quick Tools & Business Stamps Tray
+                Text(stringResource(R.string.label_quick_tools_stamps), style = MaterialTheme.typography.labelLarge, modifier = Modifier.align(Alignment.Start))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createMarkBitmap("✓", "#16A34A")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.45f,
+                                    yRatio = 0.45f,
+                                    widthRatio = 0.08f,
+                                    heightRatio = 0.05f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("✓ Check", fontWeight = FontWeight.Bold, color = Color(0xFF16A34A)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createMarkBitmap("✕", "#DC2626")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.45f,
+                                    yRatio = 0.45f,
+                                    widthRatio = 0.08f,
+                                    heightRatio = 0.05f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("✕ Cross", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                                val bmp = SignatureEngine.createBusinessStampBitmap(dateStr, "DATE VERIFIED", "#1E3A8A", width = 280, height = 90)
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.28f,
+                                    heightRatio = 0.08f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("📅 Date", fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createBusinessStampBitmap("CONFORM CU ORIGINALUL", "ORIGINAL VERIFIED", "#1E3A8A")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.35f,
+                                    heightRatio = 0.10f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("CONFORM CU ORIGINALUL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createBusinessStampBitmap("APPROVED", "OFFICIAL APPROVAL", "#16A34A")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.30f,
+                                    heightRatio = 0.09f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("APPROVED", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createBusinessStampBitmap("CONFIDENTIAL", "INTERNAL USE ONLY", "#DC2626")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.32f,
+                                    heightRatio = 0.09f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("CONFIDENTIAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createBusinessStampBitmap("PAID", "PAYMENT SETTLED", "#7C3AED")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.26f,
+                                    heightRatio = 0.08f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("PAID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7C3AED)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val bmp = SignatureEngine.createBusinessStampBitmap("DRAFT", "SUBJECT TO REVISION", "#D97706")
+                                val stream = ByteArrayOutputStream()
+                                bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                                val newSig = PlacedSignature(
+                                    pageIndex = currentPageIndex,
+                                    xRatio = 0.35f,
+                                    yRatio = 0.70f,
+                                    widthRatio = 0.26f,
+                                    heightRatio = 0.08f,
+                                    bitmapBytes = stream.toByteArray()
+                                )
+                                placedSignatures = placedSignatures + newSig
+                            },
+                            label = { Text("DRAFT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706)) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
                 // Saved Signatures Tray
                 Text(stringResource(R.string.label_saved_signatures), style = MaterialTheme.typography.labelLarge, modifier = Modifier.align(Alignment.Start))
                 LazyRow(

@@ -983,4 +983,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">Versión de la aplicación y actualizaciones</string>
     <string name="settings_version_desc">%1$s • Buscar actualizaciones en Google Play</string>
+    <string name="label_quick_tools_stamps">Herramientas de formulario y sellos</string>
 </resources>

@@ -225,7 +225,24 @@ data class DesktopStrings(
     val clearAnnotations: String = "Clear Annotations",
     val fontSizeLabel: String = "Font Size",
     val watermarkOpacity: String = "Watermark Opacity",
-    val watermarkAngle: String = "Angle"
+    val watermarkAngle: String = "Angle",
+    val modeAcroForm: String = "Interactive Form Fields",
+    val acroFormDetected: String = "Interactive Form (%1\$d fields)",
+    val btnFlattenForm: String = "Flatten Form (Make Immutable)",
+    val flattenFormDesc: String = "Permanently seals form fields into vector graphics so they cannot be altered.",
+    val noAcroFields: String = "No interactive form fields found in document.",
+    val tabCompare: String = "Compare",
+    val toolCompareTitle: String = "Document Compare & Diff",
+    val toolCompareDesc: String = "Inspect differences between two document revisions side-by-side with visual and textual change highlights.",
+    val compareDocA: String = "Document A (Original)",
+    val compareDocB: String = "Document B (Revision)",
+    val compareSelectBoth: String = "Select both Document A and Document B to compare.",
+    val compareStats: String = "%1\$d lines added (+), %2\$d lines removed (-) across %3\$d pages",
+    val compareIdentical: String = "Documents are 100% identical. No textual differences detected.",
+    val comparePagesDifferent: String = "Page count mismatch: Doc A has %1\$d pages, Doc B has %2\$d pages.",
+    val compareDiffCount: String = "%1\$d Modifications Found",
+    val compareChooseDocA: String = "Choose Document A",
+    val compareChooseDocB: String = "Choose Document B"
 )
 
 /**
@@ -989,7 +1006,24 @@ object DesktopStringStore {
         clearAnnotations = "Șterge Adnotările",
         fontSizeLabel = "Mărime Font",
         watermarkOpacity = "Opacitate Filigran",
-        watermarkAngle = "Unghi"
+        watermarkAngle = "Unghi",
+        modeAcroForm = "Câmpuri Formular Interactiv",
+        acroFormDetected = "Formular Interactiv (%1\$d câmpuri)",
+        btnFlattenForm = "Aplatizează Formularul (Devine Neschimbabil)",
+        flattenFormDesc = "Transformă câmpurile în text vectorial permanent pentru a nu mai putea fi modificate.",
+        noAcroFields = "Nu s-au găsit câmpuri interactive în document.",
+        tabCompare = "Compară",
+        toolCompareTitle = "Comparație & Diferențe PDF",
+        toolCompareDesc = "Inspectează diferențele dintre două versiuni ale documentului side-by-side cu evidențierea modificărilor.",
+        compareDocA = "Documentul A (Original)",
+        compareDocB = "Documentul B (Revizie)",
+        compareSelectBoth = "Selectează atât Documentul A cât și Documentul B pentru comparație.",
+        compareStats = "%1\$d linii adăugate (+), %2\$d linii eliminate (-) pe %3\$d pagini",
+        compareIdentical = "Documentele sunt 100% identice. Nu s-au detectat diferențe de text.",
+        comparePagesDifferent = "Număr diferit de pagini: Doc A are %1\$d pagini, Doc B are %2\$d pagini.",
+        compareDiffCount = "%1\$d Modificări Detectate",
+        compareChooseDocA = "Alege Documentul A",
+        compareChooseDocB = "Alege Documentul B"
     )
 
     val IT = DesktopStrings(

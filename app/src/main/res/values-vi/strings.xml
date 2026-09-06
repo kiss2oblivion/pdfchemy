@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">Phiên bản ứng dụng &amp; Cập nhật</string>
     <string name="settings_version_desc">%1$s • Kiểm tra cập nhật trên Google Play</string>
+    <string name="label_quick_tools_stamps">Công cụ biểu mẫu &amp; Con dấu</string>
 </resources>
