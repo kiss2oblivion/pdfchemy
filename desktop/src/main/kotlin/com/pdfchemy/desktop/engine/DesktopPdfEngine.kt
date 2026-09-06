@@ -8,10 +8,15 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy
 import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory
+import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.text.PDFTextStripper
+import java.awt.BasicStroke
+import java.awt.Font
+import java.awt.RenderingHints
+import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileOutputStream
@@ -589,6 +594,135 @@ object DesktopPdfEngine {
         return -1
     }
 
+    /**
+     * Applies a stamp or signature image onto a specific page of a PDF document.
+     * xRatio: 0.0 (left) to 1.0 (right) relative to page width
+     * yRatio: 0.0 (top) to 1.0 (bottom) relative to page height
+     * widthRatio: percentage of page width for the stamp (0.1 to 0.9)
+     */
+    fun stampDocument(
+        inputFile: File,
+        outputFile: File,
+        pageIndex: Int,
+        stampImage: BufferedImage,
+        xRatio: Float,
+        yRatio: Float,
+        widthRatio: Float = 0.35f
+    ): Boolean {
+        PDDocument.load(inputFile).use { document ->
+            if (pageIndex < 0 || pageIndex >= document.numberOfPages) return false
+            val page = document.getPage(pageIndex)
+            val cropBox = page.cropBox ?: page.mediaBox
+            val pageWidth = cropBox.width
+            val pageHeight = cropBox.height
+
+            val aspect = stampImage.height.toFloat() / stampImage.width.toFloat()
+            val stampWidth = pageWidth * widthRatio.coerceIn(0.1f, 0.9f)
+            val stampHeight = stampWidth * aspect
+
+            // Convert UI top-left coordinate system to PDF bottom-left system
+            val stampX = cropBox.lowerLeftX + (pageWidth - stampWidth) * xRatio.coerceIn(0f, 1f)
+            val stampY = cropBox.lowerLeftY + (pageHeight - stampHeight) * (1f - yRatio.coerceIn(0f, 1f))
+
+            val pdImage = LosslessFactory.createFromImage(document, stampImage)
+            PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                cs.drawImage(pdImage, stampX, stampY, stampWidth, stampHeight)
+            }
+
+            document.save(outputFile)
+            return outputFile.exists() && outputFile.length() > 0
+        }
+    }
+
+    /**
+     * Generates a high-resolution transparent vector-style business stamp image.
+     */
+    fun createBusinessStamp(
+        title: String,
+        subtext: String? = null,
+        colorHex: String = "#1E3A8A"
+    ): BufferedImage {
+        val width = 480
+        val height = 180
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+        val g2d = image.createGraphics()
+        try {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+
+            val color = java.awt.Color.decode(colorHex)
+            g2d.color = color
+
+            // Outer thick rounded border
+            g2d.stroke = BasicStroke(5f)
+            g2d.drawRoundRect(10, 10, width - 20, height - 20, 24, 24)
+
+            // Inner thin border
+            g2d.stroke = BasicStroke(2f)
+            g2d.drawRoundRect(18, 18, width - 36, height - 36, 16, 16)
+
+            // Title Text
+            val titleFont = Font("Arial", Font.BOLD, if (title.length > 15) 28 else 34)
+            g2d.font = titleFont
+            val titleMetrics = g2d.fontMetrics
+            val titleX = (width - titleMetrics.stringWidth(title)) / 2
+            val titleY = if (subtext != null) (height / 2) - 4 else (height + titleMetrics.ascent - titleMetrics.descent) / 2
+            g2d.drawString(title, titleX, titleY)
+
+            // Subtext (e.g. date, verification mark)
+            if (subtext != null) {
+                val subFont = Font("Arial", Font.BOLD, 16)
+                g2d.font = subFont
+                val subMetrics = g2d.fontMetrics
+                val subX = (width - subMetrics.stringWidth(subtext)) / 2
+                val subY = titleY + 34
+                g2d.drawString(subtext, subX, subY)
+            }
+        } finally {
+            g2d.dispose()
+        }
+        return image
+    }
+
+    /**
+     * Renders freehand signature strokes into a transparent high-DPI BufferedImage.
+     */
+    fun renderStrokesToImage(
+        strokes: List<List<Point2D.Float>>,
+        canvasWidth: Int,
+        canvasHeight: Int,
+        colorHex: String = "#1E3A8A",
+        strokeWidth: Float = 4f
+    ): BufferedImage {
+        val image = BufferedImage(canvasWidth.coerceAtLeast(100), canvasHeight.coerceAtLeast(100), BufferedImage.TYPE_INT_ARGB)
+        val g2d = image.createGraphics()
+        try {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+
+            val color = java.awt.Color.decode(colorHex)
+            g2d.color = color
+            g2d.stroke = BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+
+            for (stroke in strokes) {
+                if (stroke.size < 2) {
+                    if (stroke.size == 1) {
+                        val p = stroke[0]
+                        g2d.fillOval((p.x - strokeWidth / 2).toInt(), (p.y - strokeWidth / 2).toInt(), strokeWidth.toInt(), strokeWidth.toInt())
+                    }
+                    continue
+                }
+                for (i in 0 until stroke.size - 1) {
+                    val p1 = stroke[i]
+                    val p2 = stroke[i + 1]
+                    g2d.drawLine(p1.x.toInt(), p1.y.toInt(), p2.x.toInt(), p2.y.toInt())
+                }
+            }
+        } finally {
+            g2d.dispose()
+        }
+        return image
+    }
 }
 
 

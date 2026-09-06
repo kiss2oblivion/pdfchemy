@@ -19,8 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
+import java.awt.geom.Point2D
+import javax.imageio.ImageIO
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -54,6 +60,7 @@ enum class DesktopNavTab(val icon: ImageVector) {
     COMPRESS(Icons.Rounded.Speed),
     ORGANIZE(Icons.Rounded.GridView),
     MERGE(Icons.AutoMirrored.Rounded.CallMerge),
+    SIGN(Icons.Rounded.AddPhotoAlternate),
     CONVERT(Icons.AutoMirrored.Rounded.Notes),
     READER(Icons.AutoMirrored.Rounded.MenuBook),
     SECURITY(Icons.Rounded.Lock),
@@ -64,6 +71,7 @@ enum class DesktopNavTab(val icon: ImageVector) {
         COMPRESS -> strings.tabCompress
         ORGANIZE -> strings.tabOrganize
         MERGE -> strings.tabMerge
+        SIGN -> strings.tabSign
         CONVERT -> strings.tabConvert
         READER -> strings.tabReader
         SECURITY -> strings.tabSecurity
@@ -344,17 +352,20 @@ fun DesktopApp(
                 modifier = Modifier.width(110.dp),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                DesktopNavTab.values().forEach { tab ->
-                    NavigationRailItem(
-                        selected = activeTab == tab,
-                        onClick = { activeTab = tab; onTabChange(tab) },
-                        icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
-                        label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
-                    )
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DesktopNavTab.values().forEach { tab ->
+                        NavigationRailItem(
+                            selected = activeTab == tab,
+                            onClick = { activeTab = tab; onTabChange(tab) },
+                            icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
+                            label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
 
                 // Tip Jar Rail Button
                 IconButton(
@@ -398,6 +409,7 @@ fun DesktopApp(
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.MERGE -> MergeView()
+                    DesktopNavTab.SIGN -> SignAndStampView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
@@ -634,6 +646,7 @@ private fun HomeView(
             ToolItem(strings.toolOrganizeTitle, strings.toolOrganizeDesc, Icons.Rounded.GridView, DesktopNavTab.ORGANIZE),
             ToolItem(strings.toolCompressTitle, strings.toolCompressDesc, Icons.Rounded.Speed, DesktopNavTab.COMPRESS),
             ToolItem(strings.toolMergeTitle, strings.toolMergeDesc, Icons.AutoMirrored.Rounded.CallMerge, DesktopNavTab.MERGE),
+            ToolItem(strings.toolSignTitle, strings.toolSignDesc, Icons.Rounded.AddPhotoAlternate, DesktopNavTab.SIGN),
             ToolItem(strings.toolConvertTitle, strings.toolConvertDesc, Icons.Rounded.Collections, DesktopNavTab.CONVERT),
             ToolItem(strings.toolBatchTitle, strings.toolBatchDesc, Icons.Rounded.Layers, DesktopNavTab.BATCH),
             ToolItem(strings.toolReaderTitle, strings.toolReaderDesc, Icons.AutoMirrored.Rounded.MenuBook, DesktopNavTab.READER),
@@ -1991,6 +2004,774 @@ private fun MergeView() {
                                 ) {
                                     Icon(Icons.Rounded.DeleteOutline, contentDescription = strings.removeFile, tint = MaterialTheme.colorScheme.error)
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// 3B. SIGN & STAMP VIEW (DIGITAL SIGNATURES, PNG SEALS & BUSINESS STAMPS)
+// -------------------------------------------------------------------------------------------------
+private enum class SignTabMode { DRAW, UPLOAD, STAMP }
+
+private enum class SignStampPos(val xRatio: Float, val yRatio: Float) {
+    BOTTOM_RIGHT(0.60f, 0.80f),
+    BOTTOM_LEFT(0.06f, 0.80f),
+    TOP_RIGHT(0.60f, 0.06f),
+    CENTER(0.32f, 0.42f)
+}
+
+private enum class SignStampScale(val widthRatio: Float) {
+    SMALL(0.25f),
+    MEDIUM(0.35f),
+    LARGE(0.50f)
+}
+
+private data class PresetStampItem(val title: String, val colorHex: String, val subtext: String? = null)
+
+@Composable
+private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
+    val strings = DesktopLocalization.strings
+    val scope = rememberCoroutineScope()
+
+    if (file == null || !file.exists()) {
+        Card(
+            modifier = Modifier.fillMaxWidth().height(380.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier.size(72.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(strings.signHeader, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    strings.signSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.widthIn(max = 500.dp)
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        val picked = DesktopFileDialog.openPdf()
+                        if (picked != null) onFileChange(picked)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Icon(Icons.Rounded.UploadFile, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(strings.selectPdf, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        return
+    }
+
+    var totalPages by remember(file) { mutableStateOf(1) }
+    LaunchedEffect(file) {
+        withContext(Dispatchers.IO) {
+            try {
+                totalPages = DesktopPdfEngine.getPageCount(file).coerceAtLeast(1)
+            } catch (_: Exception) {
+                totalPages = 1
+            }
+        }
+    }
+
+    var currentPageIndex by remember(file) { mutableStateOf(0) }
+    var selectedMode by remember { mutableStateOf(SignTabMode.DRAW) }
+    var inkColorHex by remember { mutableStateOf("#1E3A8A") } // Official Blue
+    var selectedPos by remember { mutableStateOf(SignStampPos.BOTTOM_RIGHT) }
+    var selectedScale by remember { mutableStateOf(SignStampScale.MEDIUM) }
+
+    // DRAW mode states
+    val strokes = remember { mutableStateListOf<List<Point2D.Float>>() }
+    var currentStroke by remember { mutableStateOf<MutableList<Point2D.Float>?>(null) }
+
+    // UPLOAD mode states
+    var uploadedImageFile by remember { mutableStateOf<File?>(null) }
+    var uploadedImageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    // STAMP mode states
+    val presetStamps = remember {
+        listOf(
+            PresetStampItem(strings.stampConform, "#1E3A8A", "ORIGINAL VERIFIED"),
+            PresetStampItem(strings.stampApproved, "#16A34A", "OFFICIAL APPROVAL"),
+            PresetStampItem(strings.stampConfidential, "#DC2626", "INTERNAL USE ONLY"),
+            PresetStampItem(strings.stampPaid, "#7C3AED", "PAYMENT SETTLED"),
+            PresetStampItem(strings.stampDraft, "#D97706", "SUBJECT TO REVISION")
+        )
+    }
+    var selectedStamp by remember { mutableStateOf(presetStamps[0]) }
+    var customSubtext by remember { mutableStateOf("") }
+
+    // Processing states
+    var isProcessing by remember { mutableStateOf(false) }
+    var signedFile by remember { mutableStateOf<File?>(null) }
+    var statusText by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+
+    // Page preview bitmap
+    var pageThumbnail by remember(file, currentPageIndex) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(file, currentPageIndex) {
+        withContext(Dispatchers.IO) {
+            try {
+                val img = DesktopPdfEngine.renderThumbnail(file, currentPageIndex, targetWidth = 440)
+                pageThumbnail = img.toComposeImageBitmap()
+            } catch (_: Exception) {}
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(strings.signHeader, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "${file.name}  •  ${formatFileSize(file.length())}  •  ${totalPages} pages",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(
+                onClick = {
+                    val picked = DesktopFileDialog.openPdf()
+                    if (picked != null) onFileChange(picked)
+                },
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(Icons.Rounded.FileOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Switch PDF", fontSize = 12.sp)
+            }
+        }
+
+        // Two-column workspace: Builder on Left, Preview on Right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // LEFT: Builder & Controls Card
+            Card(
+                modifier = Modifier.weight(1.1f),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Mode Selector Tabs
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            Triple(SignTabMode.DRAW, strings.modeDraw, Icons.Rounded.Tune),
+                            Triple(SignTabMode.UPLOAD, strings.modeUpload, Icons.Rounded.CloudUpload),
+                            Triple(SignTabMode.STAMP, strings.modeStamp, Icons.Rounded.Shield)
+                        ).forEach { (mode, label, icon) ->
+                            val isSel = selectedMode == mode
+                            FilledTonalButton(
+                                onClick = { selectedMode = mode },
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    contentColor = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
+                            ) {
+                                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(label, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium)
+                            }
+                        }
+                    }
+
+                    // Mode 1: DRAW SIGNATURE
+                    if (selectedMode == SignTabMode.DRAW) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Color Selector Chips
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Ink Color:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf(
+                                        Triple("#1E3A8A", strings.inkBlue, Color(0xFF1E3A8A)),
+                                        Triple("#18181B", strings.inkBlack, Color(0xFF18181B)),
+                                        Triple("#DC2626", strings.inkRed, Color(0xFFDC2626))
+                                    ).forEach { (hex, label, c) ->
+                                        val isChosen = inkColorHex == hex
+                                        FilterChip(
+                                            selected = isChosen,
+                                            onClick = { inkColorHex = hex },
+                                            label = {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Box(modifier = Modifier.size(12.dp).background(c, CircleShape))
+                                                    Text(label, fontSize = 11.sp)
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Interactive Canvas
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(170.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White)
+                                    .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                    .pointerInput(inkColorHex) {
+                                        detectDragGestures(
+                                            onDragStart = { offset ->
+                                                val stroke = mutableListOf(Point2D.Float(offset.x, offset.y))
+                                                currentStroke = stroke
+                                                strokes.add(stroke)
+                                            },
+                                            onDrag = { change, _ ->
+                                                change.consume()
+                                                currentStroke?.add(Point2D.Float(change.position.x, change.position.y))
+                                            },
+                                            onDragEnd = { currentStroke = null },
+                                            onDragCancel = { currentStroke = null }
+                                        )
+                                    }
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val drawColor = try { Color(java.awt.Color.decode(inkColorHex).rgb) } catch (_: Exception) { Color(0xFF1E3A8A) }
+                                    for (stroke in strokes) {
+                                        if (stroke.size < 2) {
+                                            if (stroke.size == 1) {
+                                                val p = stroke[0]
+                                                drawCircle(drawColor, radius = 2f, center = Offset(p.x, p.y))
+                                            }
+                                            continue
+                                        }
+                                        for (i in 0 until stroke.size - 1) {
+                                            val p1 = stroke[i]
+                                            val p2 = stroke[i + 1]
+                                            drawLine(
+                                                color = drawColor,
+                                                start = Offset(p1.x, p1.y),
+                                                end = Offset(p2.x, p2.y),
+                                                strokeWidth = 3.5f,
+                                                cap = StrokeCap.Round
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (strokes.isEmpty()) {
+                                    Text(
+                                        strings.drawHint,
+                                        modifier = Modifier.align(Alignment.Center),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+
+                            // Canvas Actions
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        if (strokes.isNotEmpty()) strokes.removeAt(strokes.lastIndex)
+                                    },
+                                    enabled = strokes.isNotEmpty()
+                                ) {
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Undo Stroke", fontSize = 12.sp)
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                OutlinedButton(
+                                    onClick = { strokes.clear() },
+                                    enabled = strokes.isNotEmpty(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(strings.clearSignature, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+
+                    // Mode 2: UPLOAD IMAGE / SEAL
+                    if (selectedMode == SignTabMode.UPLOAD) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (uploadedImageFile == null) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val picked = DesktopFileDialog.openImage()
+                                        if (picked != null) {
+                                            uploadedImageFile = picked
+                                            try {
+                                                val bimg = ImageIO.read(picked)
+                                                if (bimg != null) uploadedImageBitmap = bimg.toComposeImageBitmap()
+                                            } catch (_: Exception) {}
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text(strings.btnPickSignatureFile, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text("Supports transparent PNG, JPG & WEBP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        if (uploadedImageBitmap != null) {
+                                            Image(
+                                                bitmap = uploadedImageBitmap!!,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)).background(Color.White)
+                                            )
+                                        }
+                                        Column {
+                                            Text(uploadedImageFile!!.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                            Text(formatFileSize(uploadedImageFile!!.length()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            val picked = DesktopFileDialog.openImage()
+                                            if (picked != null) {
+                                                uploadedImageFile = picked
+                                                try {
+                                                    val bimg = ImageIO.read(picked)
+                                                    if (bimg != null) uploadedImageBitmap = bimg.toComposeImageBitmap()
+                                                } catch (_: Exception) {}
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Change", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Mode 3: BUSINESS STAMP PRESETS
+                    if (selectedMode == SignTabMode.STAMP) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Select Stamp Preset:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            presetStamps.forEach { item ->
+                                val isChosen = selectedStamp == item
+                                Card(
+                                    onClick = { selectedStamp = item },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isChosen) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                    ),
+                                    border = BorderStroke(
+                                        if (isChosen) 1.5.dp else 1.dp,
+                                        if (isChosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .background(Color(java.awt.Color.decode(item.colorHex).rgb), CircleShape)
+                                            )
+                                            Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
+                                        if (item.subtext != null) {
+                                            Text(item.subtext, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Optional Subtext / Note Input
+                            OutlinedTextField(
+                                value = customSubtext,
+                                onValueChange = { customSubtext = it },
+                                label = { Text("Optional Subtext (Date, Registration #, Note)", fontSize = 12.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // PAGE & POSITION CONTROLS
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Page Selector Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                strings.selectPageToSign.format(currentPageIndex + 1, totalPages),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                IconButton(
+                                    onClick = { if (currentPageIndex > 0) currentPageIndex-- },
+                                    enabled = currentPageIndex > 0
+                                ) {
+                                    Text("◀", fontWeight = FontWeight.Bold)
+                                }
+                                Text("${currentPageIndex + 1} / $totalPages", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                IconButton(
+                                    onClick = { if (currentPageIndex < totalPages - 1) currentPageIndex++ },
+                                    enabled = currentPageIndex < totalPages - 1
+                                ) {
+                                    Text("▶", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Position Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Position:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    Pair(SignStampPos.BOTTOM_RIGHT, strings.positionBottomRight),
+                                    Pair(SignStampPos.BOTTOM_LEFT, strings.positionBottomLeft),
+                                    Pair(SignStampPos.TOP_RIGHT, strings.positionTopRight),
+                                    Pair(SignStampPos.CENTER, strings.positionCenter)
+                                ).forEach { (pos, label) ->
+                                    val isPos = selectedPos == pos
+                                    FilterChip(
+                                        selected = isPos,
+                                        onClick = { selectedPos = pos },
+                                        label = { Text(label, fontSize = 11.sp) },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Size Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(strings.stampSize + ":", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    Pair(SignStampScale.SMALL, "Small (25%)"),
+                                    Pair(SignStampScale.MEDIUM, "Medium (35%)"),
+                                    Pair(SignStampScale.LARGE, "Large (50%)")
+                                ).forEach { (sc, label) ->
+                                    val isSc = selectedScale == sc
+                                    FilterChip(
+                                        selected = isSc,
+                                        onClick = { selectedScale = sc },
+                                        label = { Text(label, fontSize = 11.sp) },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Action Button: Sign & Save PDF
+                    val canApply = when (selectedMode) {
+                        SignTabMode.DRAW -> strokes.isNotEmpty()
+                        SignTabMode.UPLOAD -> uploadedImageFile != null
+                        SignTabMode.STAMP -> true
+                    }
+
+                    Button(
+                        onClick = {
+                            val defaultName = "${file.nameWithoutExtension}_signed.pdf"
+                            val target = DesktopFileDialog.savePdf(suggestedName = defaultName)
+                            if (target != null) {
+                                isProcessing = true
+                                statusText = null
+                                isError = false
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        val stampImage: java.awt.image.BufferedImage = when (selectedMode) {
+                                            SignTabMode.DRAW -> {
+                                                DesktopPdfEngine.renderStrokesToImage(
+                                                    strokes = strokes,
+                                                    canvasWidth = 460,
+                                                    canvasHeight = 180,
+                                                    colorHex = inkColorHex,
+                                                    strokeWidth = 4.5f
+                                                )
+                                            }
+                                            SignTabMode.UPLOAD -> {
+                                                ImageIO.read(uploadedImageFile!!)
+                                            }
+                                            SignTabMode.STAMP -> {
+                                                DesktopPdfEngine.createBusinessStamp(
+                                                    title = selectedStamp.title,
+                                                    subtext = if (customSubtext.isNotBlank()) customSubtext else selectedStamp.subtext,
+                                                    colorHex = selectedStamp.colorHex
+                                                )
+                                            }
+                                        }
+
+                                        val success = DesktopPdfEngine.stampDocument(
+                                            inputFile = file,
+                                            outputFile = target,
+                                            pageIndex = currentPageIndex,
+                                            stampImage = stampImage,
+                                            xRatio = selectedPos.xRatio,
+                                            yRatio = selectedPos.yRatio,
+                                            widthRatio = selectedScale.widthRatio
+                                        )
+
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            if (success) {
+                                                signedFile = target
+                                                statusText = strings.signedSuccess.format(target.name)
+                                                isError = false
+                                            } else {
+                                                statusText = "Error applying signature to document."
+                                                isError = true
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            isProcessing = false
+                                            statusText = "Failed to sign PDF: ${e.message}"
+                                            isError = true
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = canApply && !isProcessing,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        if (isProcessing) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.signingPdf)
+                        } else {
+                            Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.btnSignAndSave, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
+            // RIGHT: Document Preview & Placement Visualizer Card
+            Card(
+                modifier = Modifier.weight(0.9f),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Live Page Preview", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Page ${currentPageIndex + 1} of $totalPages", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    // PDF Page Surface with Visual Stamp Placement Overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(420.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (pageThumbnail != null) {
+                            Image(
+                                bitmap = pageThumbnail!!,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().padding(6.dp)
+                            )
+                        } else {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+
+                        // Simulated Overlay Box showing where the signature or stamp will land
+                        val align = when (selectedPos) {
+                            SignStampPos.BOTTOM_RIGHT -> Alignment.BottomEnd
+                            SignStampPos.BOTTOM_LEFT -> Alignment.BottomStart
+                            SignStampPos.TOP_RIGHT -> Alignment.TopEnd
+                            SignStampPos.CENTER -> Alignment.Center
+                        }
+
+                        val stampWidthFraction = selectedScale.widthRatio
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(stampWidthFraction)
+                                .height(56.dp)
+                                .align(align)
+                                .padding(12.dp)
+                                .background(
+                                    when (selectedMode) {
+                                        SignTabMode.DRAW -> Color(0xFF1E3A8A).copy(alpha = 0.18f)
+                                        SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+                                        SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb).copy(alpha = 0.22f)
+                                    },
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .border(
+                                    1.5.dp,
+                                    when (selectedMode) {
+                                        SignTabMode.DRAW -> Color(0xFF1E3A8A)
+                                        SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
+                                        SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
+                                    },
+                                    RoundedCornerShape(6.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = when (selectedMode) {
+                                    SignTabMode.DRAW -> "✍️ Signature"
+                                    SignTabMode.UPLOAD -> "🖼️ Seal"
+                                    SignTabMode.STAMP -> selectedStamp.title
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (selectedMode) {
+                                    SignTabMode.DRAW -> Color(0xFF1E3A8A)
+                                    SignTabMode.UPLOAD -> MaterialTheme.colorScheme.secondary
+                                    SignTabMode.STAMP -> Color(java.awt.Color.decode(selectedStamp.colorHex).rgb)
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Text(
+                        "The stamp/signature is scaled and applied to the PDF content stream with 100% vector accuracy.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
+        // Status Card
+        if (statusText != null) {
+            Surface(
+                color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            if (isError) Icons.Rounded.DeleteOutline else Icons.Rounded.Save,
+                            contentDescription = null,
+                            tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                        Text(statusText!!, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                    if (signedFile != null && !isError) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilledTonalButton(
+                                onClick = { openDocument(signedFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("Open PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            FilledTonalButton(
+                                onClick = { openFileInExplorer(signedFile!!) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("Show in Folder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

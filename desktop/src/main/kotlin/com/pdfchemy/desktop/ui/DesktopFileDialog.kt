@@ -53,6 +53,22 @@ object DesktopFileDialog {
     }
 
     /**
+     * Opens native file dialog to select a single image (e.g. signature or seal).
+     */
+    fun openImage(parent: Frame? = null): File? {
+        val dialog = FileDialog(parent, "Select Signature or Seal Image", FileDialog.LOAD).apply {
+            filenameFilter = FilenameFilter { _, name ->
+                val lower = name.lowercase()
+                lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".bmp") || lower.endsWith(".webp")
+            }
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        return File(dir, file)
+    }
+
+    /**
      * Opens native file dialog to save a PDF file.
      */
     fun savePdf(parent: Frame? = null, suggestedName: String = "document_edited.pdf"): File? {
