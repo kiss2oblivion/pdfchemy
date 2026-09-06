@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">इंटरैक्टिव फॉर्म निर्माता</string>
+    <string name="menu_form_builder_desc">सामान्य PDF को टेक्स्ट फ़ील्ड, चेकबॉक्स और ड्रॉपडाउन वाले फॉर्म में बदलें</string>
+    <string name="form_builder_title">फॉर्म फ़ील्ड निर्माता</string>
+    <string name="form_builder_tool_text">टेक्स्ट फ़ील्ड</string>
+    <string name="form_builder_tool_checkbox">चेकबॉक्स</string>
+    <string name="form_builder_tool_dropdown">ड्रॉपडाउन सूची</string>
+    <string name="form_builder_hint">इंटरैक्टिव फ़ील्ड जोड़ने के लिए पृष्ठ पर कहीं भी टैप करें</string>
+    <string name="form_builder_field_name_label">फ़ील्ड का नाम</string>
+    <string name="form_builder_options_label">विकल्प (अल्पविराम द्वारा अलग)</string>
+    <string name="form_builder_default_value_label">डिफ़ॉल्ट मान</string>
+    <string name="form_builder_action_add">फ़ील्ड जोड़ें</string>
+    <string name="form_builder_action_save">फॉर्म PDF सहेजें</string>
+    <string name="form_builder_fields_count">पृष्ठ पर फ़ील्ड: %1$d</string>
+    <string name="form_builder_success">भरे जाने योग्य PDF सफलतापूर्वक बनाई गई!</string>
+    <string name="form_builder_success_desc">दस्तावेज़ में इंटरैक्टिव फ़ील्ड जोड़ दिए गए हैं।</string>
+    <string name="form_builder_no_fields_warn">कृपया सहेजने से पहले कम से कम एक फ़ील्ड जोड़ें।</string>
+    <string name="form_builder_delete_field">फ़ील्ड हटाएं</string>
 </resources>

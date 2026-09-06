@@ -1042,4 +1042,23 @@
     <string name="tts_prev_paragraph">Anterior</string>
     <string name="tts_next_paragraph">Următor</string>
     <string name="tts_not_supported">Sinteza vocală nu este suportată sau datele lingvistice lipsesc.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Creator Formulare Interactive</string>
+    <string name="menu_form_builder_desc">Transformă PDF-urile simple în formulare completabile cu câmpuri text, bife și liste</string>
+    <string name="form_builder_title">Creator Câmpuri Formular</string>
+    <string name="form_builder_tool_text">Câmp Text</string>
+    <string name="form_builder_tool_checkbox">Căsuță de Bifare</string>
+    <string name="form_builder_tool_dropdown">Listă Derulantă</string>
+    <string name="form_builder_hint">Atinge oriunde pe pagină pentru a plasa un câmp interactiv</string>
+    <string name="form_builder_field_name_label">Nume Câmp</string>
+    <string name="form_builder_options_label">Opțiuni (separate prin virgulă)</string>
+    <string name="form_builder_default_value_label">Valoare Implicită</string>
+    <string name="form_builder_action_add">Adaugă Câmp</string>
+    <string name="form_builder_action_save">Salvează PDF Completabil</string>
+    <string name="form_builder_fields_count">Câmpuri pe pagină: %1$d</string>
+    <string name="form_builder_success">PDF Completabil creat cu succes!</string>
+    <string name="form_builder_success_desc">Câmpurile de formular interactive au fost încorporate.</string>
+    <string name="form_builder_no_fields_warn">Te rugăm să plasezi cel puțin un câmp interactiv înainte de salvare.</string>
+    <string name="form_builder_delete_field">Șterge Câmpul</string>
 </resources>

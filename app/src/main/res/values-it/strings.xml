@@ -1038,4 +1038,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Creazione Moduli Interattivi</string>
+    <string name="menu_form_builder_desc">Trasforma PDF statici in moduli compilabili con campi di testo, caselle e menu a discesa</string>
+    <string name="form_builder_title">Generatore Campi Modulo</string>
+    <string name="form_builder_tool_text">Campo Testo</string>
+    <string name="form_builder_tool_checkbox">Casella di Controllo</string>
+    <string name="form_builder_tool_dropdown">Menu a Discesa</string>
+    <string name="form_builder_hint">Tocca la pagina per inserire un campo interattivo</string>
+    <string name="form_builder_field_name_label">Nome Campo</string>
+    <string name="form_builder_options_label">Opzioni (separate da virgola)</string>
+    <string name="form_builder_default_value_label">Valore Predefinito</string>
+    <string name="form_builder_action_add">Aggiungi Campo</string>
+    <string name="form_builder_action_save">Salva PDF Compilabile</string>
+    <string name="form_builder_fields_count">Campi sulla pagina: %1$d</string>
+    <string name="form_builder_success">PDF compilabile creato con successo!</string>
+    <string name="form_builder_success_desc">I campi interattivi sono stati incorporati nel documento.</string>
+    <string name="form_builder_no_fields_warn">Posiziona almeno un campo interattivo prima di salvare.</string>
+    <string name="form_builder_delete_field">Elimina Campo</string>
 </resources>

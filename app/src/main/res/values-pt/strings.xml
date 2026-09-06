@@ -1038,4 +1038,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Criador de Formulários Interativos</string>
+    <string name="menu_form_builder_desc">Converta PDFs estáticos em formulários preenchíveis com caixas de texto, seleções e menus</string>
+    <string name="form_builder_title">Criador de Campos de Formulário</string>
+    <string name="form_builder_tool_text">Campo de Texto</string>
+    <string name="form_builder_tool_checkbox">Caixa de Seleção</string>
+    <string name="form_builder_tool_dropdown">Menu Suspenso</string>
+    <string name="form_builder_hint">Toque na página para inserir um campo interativo</string>
+    <string name="form_builder_field_name_label">Nome do Campo</string>
+    <string name="form_builder_options_label">Opções (separadas por vírgula)</string>
+    <string name="form_builder_default_value_label">Valor Padrão</string>
+    <string name="form_builder_action_add">Adicionar Campo</string>
+    <string name="form_builder_action_save">Salvar PDF Preenchível</string>
+    <string name="form_builder_fields_count">Campos na página: %1$d</string>
+    <string name="form_builder_success">PDF preenchível criado com sucesso!</string>
+    <string name="form_builder_success_desc">Os campos interativos foram incorporados ao documento.</string>
+    <string name="form_builder_no_fields_warn">Insira pelo menos um campo interativo antes de salvar.</string>
+    <string name="form_builder_delete_field">Excluir Campo</string>
 </resources>

@@ -1042,4 +1042,23 @@
     <string name="tts_prev_paragraph">Vorheriger</string>
     <string name="tts_next_paragraph">Nächster</string>
     <string name="tts_not_supported">Text-to-Speech wird nicht unterstützt oder Sprachdaten fehlen.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Interaktiver Formular-Editor</string>
+    <string name="menu_form_builder_desc">Statische PDFs in ausfüllbare Formulare mit Textfeldern, Kontrollkästchen und Dropdowns umwandeln</string>
+    <string name="form_builder_title">Formularfeld-Editor</string>
+    <string name="form_builder_tool_text">Textfeld</string>
+    <string name="form_builder_tool_checkbox">Kontrollkästchen</string>
+    <string name="form_builder_tool_dropdown">Dropdown-Menü</string>
+    <string name="form_builder_hint">Tippen Sie auf die Seite, um ein Feld einzufügen</string>
+    <string name="form_builder_field_name_label">Feldname</string>
+    <string name="form_builder_options_label">Optionen (kommagetrennt)</string>
+    <string name="form_builder_default_value_label">Standardwert</string>
+    <string name="form_builder_action_add">Feld hinzufügen</string>
+    <string name="form_builder_action_save">Ausfüllbares PDF speichern</string>
+    <string name="form_builder_fields_count">Felder auf Seite: %1$d</string>
+    <string name="form_builder_success">Ausfüllbares PDF erfolgreich erstellt!</string>
+    <string name="form_builder_success_desc">Interaktive Formularfelder wurden eingebettet.</string>
+    <string name="form_builder_no_fields_warn">Bitte platzieren Sie vor dem Speichern mindestens ein Feld.</string>
+    <string name="form_builder_delete_field">Feld löschen</string>
 </resources>

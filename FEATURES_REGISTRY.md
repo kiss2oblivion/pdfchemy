@@ -55,6 +55,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Visual PDF Editor** | `PdfEditorScreen.kt` | `PdfEditor.kt` | ✅ Live | Freehand pen, highlighter, custom text overlays, shape rectangles, signature stamp |
 | **Quick Fill & Sign** | `QuickFillSignScreen.kt` | `PdfEditor.kt` | ✅ Live | Designed for flat/scanned forms: tap anywhere to place Text, Checkmarks (✓), Crosses (✗), Dates, Signatures |
+| **Interactive Form Builder** | `FormBuilderScreen.kt` | `AcroFormEngine.createAcroFormWithFields` | ✅ Live | Converts flat PDFs into genuine fillable forms with interactive text fields, checkboxes, and dropdowns |
 | **AcroForm Interactive Filler** | `AcroFormScreens.kt` | `PdfEditor.kt` | ✅ Live | Inspects and fills standard interactive PDF forms, text boxes, and checkboxes |
 | **Visual Signer** | `SignPdfScreen.kt` | `PdfEditor.kt` | ✅ Live | Draw signatures with vector smoothing, save reusable presets, place anywhere on page |
 | **Watermark Studio** | `WatermarkScreen.kt` | `PdfEditor.kt` | ✅ Live | Custom text/image watermarks with opacity, angle, scaling, and diagonal tiling |
@@ -104,6 +105,8 @@
 | **Compare Studio** | Side-by-side synchronized comparison, line-by-line textual diffs, revision change statistics | `DesktopApp.kt` (`CompareView`), `DesktopPdfEngine.compareDocuments` | ✅ Live |
 | **Merge** | Multi-document combiner with reorderable list | `DesktopPdfEngine.mergePdfs` | ✅ Live |
 | **Batch Studio** | Multi-file batch processing queue (Batch Compress, Batch Decrypt, Batch PDF/A) | `DesktopPdfEngine.kt` | ✅ Live |
+| **Sign & Form Studio** | Draw signatures, upload seal images, business stamps, AcroForm fill & flatten, **Interactive Form Builder** (add text/checkbox/dropdown fields) | `DesktopPdfEngine.kt`, `SignAndStampView` | ✅ Live |
+| **Spotlight Search** | Multi-file directory keyword search across hundreds of PDFs with line snippet extraction and instant 1-click page jump to Reader | `DesktopDirectorySearchEngine.kt`, `DirectorySpotlightSearchDialog` | ✅ Live |
 | **Digital Signatures (PKI)** | Cryptographic certificate signing (`.p12` / `.pfx` keystores) with visual seal | `PdfCryptoSigner.kt` (BouncyCastle) | ✅ Live |
 | **Bates Numbering** | Legal bates numbering engine with 6 placement positions | `DesktopPdfEngine.applyBatesNumbering` | ✅ Live |
 | **Split Studio** | Split by Page Ranges, Split by Blank Pages, Split by Bookmarks | `DesktopPdfEngine.splitByBlankPages`, `splitByBookmarks` | ✅ Live |
@@ -140,6 +143,5 @@ All user strings are 100% localized and AAPT format-escaped across:
 ---
 
 ## ⏳ What Is NOT Yet Implemented (Future Roadmap)
-1. **Interactive AcroForm Authoring (Form Builder):** Creating *new* interactive form widget fields (e.g. adding blank fillable text boxes or checkboxes for clients to fill in).
-2. **Batch Directory Spotlight Search:** Instant full-text indexing and search across an entire folder of PDFs on Desktop.
-3. **Audiobook / MP3 Audio Export:** Exporting TTS read aloud output to `.mp3` / `.wav` audio files.
+1. **Audiobook / MP3 Audio Export:** Exporting TTS read aloud output to `.mp3` / `.wav` audio files.
+

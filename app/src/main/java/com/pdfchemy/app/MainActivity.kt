@@ -115,6 +115,7 @@ import com.pdfchemy.app.ui.DeskewScreen
 import com.pdfchemy.app.ui.TableExtractorScreen
 import com.pdfchemy.app.ui.DocumentSanitizerScreen
 import com.pdfchemy.app.ui.QuickFillSignScreen
+import com.pdfchemy.app.ui.FormBuilderScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
@@ -678,6 +679,7 @@ fun MainApp(
                 Screen.TableExtractor -> TableExtractorScreen(viewModel) { currentScreen = Screen.CreateCategory }
                 Screen.DocumentSanitizer -> DocumentSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 Screen.QuickFillSign -> QuickFillSignScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.FormBuilder -> FormBuilderScreen { currentScreen = Screen.CreateCategory }
                 Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
             }
         }
@@ -979,6 +981,7 @@ sealed class Screen {
     object TableExtractor : Screen()
     object DocumentSanitizer : Screen()
     object QuickFillSign : Screen()
+    object FormBuilder : Screen()
     object Premium : Screen()
 }
 
@@ -1064,6 +1067,7 @@ val ScreenSaver: Saver<Screen, String> = Saver(
             str == "TableExtractor" -> Screen.TableExtractor
             str == "DocumentSanitizer" -> Screen.DocumentSanitizer
             str == "QuickFillSign" -> Screen.QuickFillSign
+            str == "FormBuilder" -> Screen.FormBuilder
             str == "Premium" -> Screen.Premium
             else -> Screen.Home
         }
@@ -1650,6 +1654,14 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.menu_table_extractor_desc),
                     icon = Icons.Rounded.TableChart,
                     onClick = { onNavigate(Screen.TableExtractor) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_form_builder),
+                    subtitle = stringResource(R.string.menu_form_builder_desc),
+                    icon = Icons.Rounded.EditNote,
+                    onClick = { onNavigate(Screen.FormBuilder) }
                 )
             }
         }

@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">منشئ النماذج التفاعلية</string>
+    <string name="menu_form_builder_desc">تحويل ملفات PDF الثابتة إلى نماذج قابلة للتعبئة مع حقول نصية ومربعات اختيار وقوائم</string>
+    <string name="form_builder_title">منشئ حقول النماذج</string>
+    <string name="form_builder_tool_text">حقل نصي</string>
+    <string name="form_builder_tool_checkbox">مربع اختيار</string>
+    <string name="form_builder_tool_dropdown">قائمة منسدلة</string>
+    <string name="form_builder_hint">المس أي مكان في الصفحة لإدراج حقل تفاعلي</string>
+    <string name="form_builder_field_name_label">اسم الحقل</string>
+    <string name="form_builder_options_label">الخيارات (مفصولة بفواصل)</string>
+    <string name="form_builder_default_value_label">القيمة الافتراضية</string>
+    <string name="form_builder_action_add">إضافة حقل</string>
+    <string name="form_builder_action_save">حفظ كملف PDF تفاعلي</string>
+    <string name="form_builder_fields_count">الحقول في الصفحة: %1$d</string>
+    <string name="form_builder_success">تم إنشاء ملف PDF القابل للتعبئة بنجاح!</string>
+    <string name="form_builder_success_desc">تم تضمين حقول النماذج التفاعلية في المستند.</string>
+    <string name="form_builder_no_fields_warn">يرجى وضع حقل تفاعلي واحد على الأقل قبل الحفظ.</string>
+    <string name="form_builder_delete_field">حذف الحقل</string>
 </resources>

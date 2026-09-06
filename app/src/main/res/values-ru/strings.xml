@@ -1032,4 +1032,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">Конструктор Интерактивных Форм</string>
+    <string name="menu_form_builder_desc">Превращайте обычные PDF в заполняемые формы с текстовыми полями, флажками и списками</string>
+    <string name="form_builder_title">Конструктор Полей Формы</string>
+    <string name="form_builder_tool_text">Текстовое Поле</string>
+    <string name="form_builder_tool_checkbox">Флажок</string>
+    <string name="form_builder_tool_dropdown">Выпадающий Список</string>
+    <string name="form_builder_hint">Нажмите на страницу, чтобы вставить поле формы</string>
+    <string name="form_builder_field_name_label">Имя Поля</string>
+    <string name="form_builder_options_label">Варианты (через запятую)</string>
+    <string name="form_builder_default_value_label">Значение по Умолчанию</string>
+    <string name="form_builder_action_add">Добавить Поле</string>
+    <string name="form_builder_action_save">Сохранить Заполняемый PDF</string>
+    <string name="form_builder_fields_count">Полей на странице: %1$d</string>
+    <string name="form_builder_success">Интерактивный PDF успешно создан!</string>
+    <string name="form_builder_success_desc">Поля формы успешно внедрены в документ.</string>
+    <string name="form_builder_no_fields_warn">Пожалуйста, добавьте хотя бы одно поле перед сохранением.</string>
+    <string name="form_builder_delete_field">Удалить Поле</string>
 </resources>

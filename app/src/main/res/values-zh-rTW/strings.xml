@@ -1030,4 +1030,23 @@
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
+
+    <!-- Form Builder / AcroForm Authoring -->
+    <string name="menu_form_builder">互動式表單構建器</string>
+    <string name="menu_form_builder_desc">將靜態PDF轉換為包含文字方塊、核取方塊和下拉選單的可填寫PDF表單</string>
+    <string name="form_builder_title">表單欄位構建器</string>
+    <string name="form_builder_tool_text">文字方塊</string>
+    <string name="form_builder_tool_checkbox">核取方塊</string>
+    <string name="form_builder_tool_dropdown">下拉選單</string>
+    <string name="form_builder_hint">點選頁面任意位置插入互動式表單欄位</string>
+    <string name="form_builder_field_name_label">欄位名稱</string>
+    <string name="form_builder_options_label">選項（逗號分隔）</string>
+    <string name="form_builder_default_value_label">預設值</string>
+    <string name="form_builder_action_add">新增欄位</string>
+    <string name="form_builder_action_save">儲存可填寫PDF</string>
+    <string name="form_builder_fields_count">頁面欄位數: %1$d</string>
+    <string name="form_builder_success">可填寫PDF建立成功！</string>
+    <string name="form_builder_success_desc">互動式表單欄位已成功嵌入文件中。</string>
+    <string name="form_builder_no_fields_warn">儲存前請至少放置一個表單欄位。</string>
+    <string name="form_builder_delete_field">刪除欄位</string>
 </resources>
