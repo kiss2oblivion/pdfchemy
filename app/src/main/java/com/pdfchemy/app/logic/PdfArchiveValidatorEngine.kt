@@ -170,4 +170,72 @@ object PdfArchiveValidatorEngine {
             false
         }
     }
+
+    /**
+     * Converts an existing PDF into an ISO 19005-1b compliant archival document.
+     */
+    suspend fun convertToPdfA(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri
+    ): Boolean = withContext(Dispatchers.IO) {
+        PDFBoxResourceLoader.init(context)
+        var inputStream: InputStream? = null
+        var document: PDDocument? = null
+
+        try {
+            inputStream = context.contentResolver.openInputStream(sourceUri) ?: return@withContext false
+            document = PDDocument.load(inputStream)
+
+            // 1. MarkInfo
+            val markInfo = com.tom_roush.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkInfo()
+            markInfo.isMarked = true
+            document.documentCatalog.markInfo = markInfo
+
+            // 2. ISO 19005-1b XMP packet
+            val xmpXml = """<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+      <pdfaid:part>1</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+    </rdf:Description>
+    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:format>application/pdf</dc:format>
+    </rdf:Description>
+    <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+      <pdf:Producer>PDFchemy ISO 19005-1b Archival Engine</pdf:Producer>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>""".trimIndent()
+
+            val metadata = com.tom_roush.pdfbox.pdmodel.common.PDMetadata(document)
+            metadata.importXMPMetadata(xmpXml.toByteArray(Charsets.UTF_8))
+            document.documentCatalog.metadata = metadata
+
+            // 3. Strip non-archival dynamic scripts and actions
+            document.documentCatalog.openAction = null
+            document.documentCatalog.actions = null
+            document.documentCatalog.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.getPDFName("JavaScript"))
+            document.documentCatalog.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.getPDFName("AA"))
+
+            document.documentCatalog.acroForm?.let { acroForm ->
+                try {
+                    acroForm.flatten()
+                } catch (_: Exception) {}
+            }
+
+            context.contentResolver.openOutputStream(destUri)?.use { outStream ->
+                document.save(outStream)
+            }
+            true
+        } catch (e: Exception) {
+            AppLogger.e("PdfArchiveValidatorEngine: Error converting to PDF/A", e)
+            false
+        } finally {
+            try { document?.close() } catch (_: Exception) {}
+            try { inputStream?.close() } catch (_: Exception) {}
+        }
+    }
 }

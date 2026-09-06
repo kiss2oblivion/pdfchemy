@@ -46,6 +46,16 @@ data class PageNumberOptions(
     val marginPts: Float = 36f
 )
 
+data class BatesOptions(
+    val prefix: String = "",
+    val suffix: String = "",
+    val startNumber: Int = 1,
+    val digits: Int = 6,
+    val position: NumberPosition = NumberPosition.BOTTOM_RIGHT,
+    val fontSize: Float = 10f,
+    val marginPts: Float = 36f
+)
+
 object PdfStampAndNumberEngine {
 
     suspend fun addWatermark(
@@ -204,6 +214,65 @@ object PdfStampAndNumberEngine {
             } ?: false
         } catch (e: Exception) {
             AppLogger.e("Failed to add page numbers to PDF: ${e.message}", e)
+            false
+        } finally {
+            doc?.close()
+        }
+    }
+
+    suspend fun applyBatesStamping(
+        context: Context,
+        sourceUri: Uri,
+        destUri: Uri,
+        options: BatesOptions
+    ): Boolean = withContext(Dispatchers.IO) {
+        var doc: PDDocument? = null
+        try {
+            context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
+                doc = PDDocument.load(inStream)
+                if (doc == null) return@withContext false
+
+                val totalPages = doc!!.numberOfPages
+                val font = PDType1Font.HELVETICA
+
+                for (i in 0 until totalPages) {
+                    val page = doc!!.getPage(i)
+                    val currentNum = options.startNumber + i
+                    val formattedNum = "%0${options.digits}d".format(currentNum)
+                    val batesText = "${options.prefix}$formattedNum${options.suffix}"
+
+                    val textWidth = font.getStringWidth(batesText) / 1000f * options.fontSize
+                    val mediaBox = page.mediaBox
+                    val pageWidth = mediaBox.width
+                    val pageHeight = mediaBox.height
+                    val margin = options.marginPts
+
+                    val (x, y) = when (options.position) {
+                        NumberPosition.TOP_LEFT -> margin to (pageHeight - margin)
+                        NumberPosition.TOP_CENTER -> ((pageWidth - textWidth) / 2f) to (pageHeight - margin)
+                        NumberPosition.TOP_RIGHT -> (pageWidth - margin - textWidth) to (pageHeight - margin)
+                        NumberPosition.BOTTOM_LEFT -> margin to margin
+                        NumberPosition.BOTTOM_CENTER -> ((pageWidth - textWidth) / 2f) to margin
+                        NumberPosition.BOTTOM_RIGHT -> (pageWidth - margin - textWidth) to margin
+                    }
+
+                    PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                        cs.beginText()
+                        cs.setFont(font, options.fontSize)
+                        cs.setNonStrokingColor(24, 24, 27)
+                        cs.newLineAtOffset(x, y)
+                        cs.showText(batesText)
+                        cs.endText()
+                    }
+                }
+
+                context.contentResolver.openOutputStream(destUri)?.use { outStream ->
+                    doc!!.save(outStream)
+                }
+                true
+            } ?: false
+        } catch (e: Exception) {
+            AppLogger.e("Failed to apply Bates stamping: ${e.message}", e)
             false
         } finally {
             doc?.close()
