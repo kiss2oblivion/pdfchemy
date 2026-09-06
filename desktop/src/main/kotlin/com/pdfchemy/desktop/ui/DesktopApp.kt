@@ -40,7 +40,9 @@ import com.pdfchemy.desktop.i18n.DesktopLocalization
 import com.pdfchemy.desktop.i18n.DesktopStrings
 import com.pdfchemy.desktop.engine.DesktopPdfEngine
 import com.pdfchemy.desktop.engine.DesktopPdfMetadata
+import com.pdfchemy.desktop.engine.DesktopUpdateManager
 import com.pdfchemy.desktop.engine.PageItemSpec
+import com.pdfchemy.desktop.engine.ReleaseInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -91,12 +93,74 @@ fun DesktopApp(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showManifestoDialog by remember { mutableStateOf(false) }
     var showTipJarDialog by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<ReleaseInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateFeedbackMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    // Silent background check for updates on launch
+    LaunchedEffect(Unit) {
+        val res = DesktopUpdateManager.checkForUpdates()
+        res.onSuccess { info ->
+            if (info.isNewer && info.tagName != DesktopUpdateManager.dismissedTag) {
+                availableUpdate = info
+            }
+        }
+    }
+
+    fun performManualUpdateCheck() {
+        if (isCheckingUpdate) return
+        isCheckingUpdate = true
+        scope.launch {
+            val res = DesktopUpdateManager.checkForUpdates()
+            isCheckingUpdate = false
+            res.onSuccess { info ->
+                if (info.isNewer) {
+                    availableUpdate = info
+                    showUpdateDialog = true
+                } else {
+                    updateFeedbackMessage = String.format(strings.upToDateDesc, DesktopUpdateManager.CURRENT_VERSION)
+                }
+            }.onFailure {
+                updateFeedbackMessage = strings.updateCheckFailed
+            }
+        }
+    }
 
     LaunchedEffect(selectedFile) {
         if (selectedFile != null && selectedFile!!.exists()) {
             RecentDocumentsManager.addRecent(selectedFile!!)
         }
+    }
+
+    if (showUpdateDialog && availableUpdate != null) {
+        UpdateAvailableDialog(
+            release = availableUpdate!!,
+            onDismiss = { showUpdateDialog = false },
+            onDismissForever = {
+                DesktopUpdateManager.dismissedTag = availableUpdate!!.tagName
+                showUpdateDialog = false
+                availableUpdate = null
+            }
+        )
+    }
+
+    if (updateFeedbackMessage != null) {
+        AlertDialog(
+            onDismissRequest = { updateFeedbackMessage = null },
+            confirmButton = {
+                Button(onClick = { updateFeedbackMessage = null }) {
+                    Text(strings.ok)
+                }
+            },
+            title = {
+                Text(strings.upToDateTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            },
+            text = {
+                Text(updateFeedbackMessage!!)
+            }
+        )
     }
 
     if (showTipJarDialog) {
@@ -162,6 +226,24 @@ fun DesktopApp(
                             Icon(Icons.Rounded.Shield, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00E676))
                             Text(strings.privacyBadge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
+                    }
+
+                    // Update Available Badge Button
+                    if (availableUpdate != null) {
+                        FilledTonalButton(
+                            onClick = { showUpdateDialog = true },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Color(0xFF00E676).copy(alpha = 0.2f),
+                                contentColor = Color(0xFF00C853)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00C853))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Update ${availableUpdate!!.tagName}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
 
                     // The Tip Jar TopBar Button
@@ -321,7 +403,11 @@ fun DesktopApp(
                         selectedFile = selectedFile,
                         onSelectFile = { selectedFile = it },
                         onOpenManifesto = { showManifestoDialog = true },
-                        onOpenTipJar = { showTipJarDialog = true }
+                        onOpenTipJar = { showTipJarDialog = true },
+                        availableUpdate = availableUpdate,
+                        onOpenUpdateDialog = { showUpdateDialog = true },
+                        isCheckingUpdate = isCheckingUpdate,
+                        onCheckForUpdates = { performManualUpdateCheck() }
                     )
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
@@ -344,7 +430,11 @@ private fun HomeView(
     selectedFile: File?,
     onSelectFile: (File) -> Unit,
     onOpenManifesto: () -> Unit = {},
-    onOpenTipJar: () -> Unit = {}
+    onOpenTipJar: () -> Unit = {},
+    availableUpdate: ReleaseInfo? = null,
+    onOpenUpdateDialog: () -> Unit = {},
+    isCheckingUpdate: Boolean = false,
+    onCheckForUpdates: () -> Unit = {}
 ) {
     val strings = DesktopLocalization.strings
     Column(
@@ -353,6 +443,66 @@ private fun HomeView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // New Version Available Banner
+        if (availableUpdate != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                strings.updateAvailableTitle.format(availableUpdate.tagName),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                strings.updateAvailableBanner,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = onOpenUpdateDialog,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnDownloadUpdate, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
         // Hero Drag & Drop Visual Dropzone Banner
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -624,11 +774,31 @@ private fun HomeView(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "PDFchemy Tools • 100% Offline & Private",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "PDFchemy Tools v${DesktopUpdateManager.CURRENT_VERSION} • 100% Offline & Private",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+                TextButton(
+                    onClick = onCheckForUpdates,
+                    enabled = !isCheckingUpdate,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                ) {
+                    if (isCheckingUpdate) {
+                        CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 1.5.dp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(strings.checkingForUpdates, fontSize = 11.sp)
+                    } else {
+                        Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(strings.checkForUpdates, fontSize = 11.sp)
+                    }
+                }
+            }
             TextButton(
                 onClick = onOpenManifesto,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
@@ -2982,6 +3152,131 @@ private fun TipJarDialog(onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    )
+}
+
+// -------------------------------------------------------------------------------------------------
+// UPDATE AVAILABLE DIALOG
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun UpdateAvailableDialog(
+    release: ReleaseInfo,
+    onDismiss: () -> Unit,
+    onDismissForever: () -> Unit
+) {
+    val strings = DesktopLocalization.strings
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = {
+                    openBrowser(release.htmlUrl)
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(strings.btnDownloadUpdate, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDismissForever) {
+                    Text(strings.btnRemindLater)
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(strings.close)
+                }
+            }
+        },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Rounded.CloudUpload,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    strings.updateAvailableTitle.format(release.tagName),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    "Current: v${DesktopUpdateManager.CURRENT_VERSION}  ➔  New: ${release.tagName}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 500.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    release.name.ifEmpty { "Release ${release.tagName}" },
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                if (release.body.isNotBlank()) {
+                    Text(
+                        strings.whatsNew,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                release.body,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    "100% offline & local-first. We do not track or store your machine info.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )

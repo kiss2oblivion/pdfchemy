@@ -151,7 +151,18 @@ data class DesktopStrings(
     val btnStarGitHub: String = "Star on GitHub",
     val tipJarHomeCardTitle: String = "The Tip Jar",
     val tipJarHomeCardDesc: String = "If this tool helped you out today, consider buying the developer a coffee.",
-    val btnOpenTipJar: String = "Leave a Tip"
+    val btnOpenTipJar: String = "Leave a Tip",
+    val checkForUpdates: String = "Check for Updates",
+    val checkingForUpdates: String = "Checking for updates...",
+    val upToDateTitle: String = "Up to Date",
+    val upToDateDesc: String = "You are running the latest version of PDFchemy (%1\$s).",
+    val updateAvailableTitle: String = "Update Available: %1\$s",
+    val updateAvailableBanner: String = "A new version of PDFchemy (%1\$s) is available! You are currently on %2\$s.",
+    val btnDownloadUpdate: String = "Download Update",
+    val btnRemindLater: String = "Remind Me Later",
+    val whatsNew: String = "What's New:",
+    val updateCheckFailed: String = "Could not reach update server. Check your connection or visit GitHub.",
+    val btnViewReleases: String = "View on GitHub"
 )
 
 /**
@@ -842,7 +853,18 @@ object DesktopStringStore {
         btnStarGitHub = "Steluță pe GitHub",
         tipJarHomeCardTitle = "Borcanul cu Bacșiș",
         tipJarHomeCardDesc = "Dacă unealta ți-a fost utilă, poți susține dezvoltatorul cu o cafea.",
-        btnOpenTipJar = "Lasă un bacșiș"
+        btnOpenTipJar = "Lasă un bacșiș",
+        checkForUpdates = "Verifică actualizări",
+        checkingForUpdates = "Se verifică actualizările...",
+        upToDateTitle = "La zi",
+        upToDateDesc = "Folosești cea mai recentă versiune PDFchemy (%1\$s).",
+        updateAvailableTitle = "Actualizare disponibilă: %1\$s",
+        updateAvailableBanner = "O nouă versiune PDFchemy (%1\$s) este disponibilă! Versiunea ta curentă: %2\$s.",
+        btnDownloadUpdate = "Descarcă actualizarea",
+        btnRemindLater = "Amintește-mi mai târziu",
+        whatsNew = "Noutăți în această versiune:",
+        updateCheckFailed = "Nu s-a putut contacta serverul de actualizări. Verifică conexiunea sau vizitează GitHub.",
+        btnViewReleases = "Vezi pe GitHub"
     )
 
     val IT = DesktopStrings(
