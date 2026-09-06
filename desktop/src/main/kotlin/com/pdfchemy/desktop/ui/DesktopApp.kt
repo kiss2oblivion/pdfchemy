@@ -90,12 +90,17 @@ fun DesktopApp(
     var selectedFile by remember { mutableStateOf<File?>(initialFile) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showManifestoDialog by remember { mutableStateOf(false) }
+    var showTipJarDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(selectedFile) {
         if (selectedFile != null && selectedFile!!.exists()) {
             RecentDocumentsManager.addRecent(selectedFile!!)
         }
+    }
+
+    if (showTipJarDialog) {
+        TipJarDialog(onDismiss = { showTipJarDialog = false })
     }
 
     if (showManifestoDialog) {
@@ -155,6 +160,23 @@ fun DesktopApp(
                             Text(strings.privacyBadge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
+
+                    // The Tip Jar TopBar Button
+                    FilledTonalButton(
+                        onClick = { showTipJarDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFF5E5B).copy(alpha = 0.15f),
+                            contentColor = Color(0xFFFF5E5B)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF5E5B))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnOpenTipJar, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Language Selector Dropdown Menu
                     Box {
@@ -263,6 +285,14 @@ fun DesktopApp(
 
                 Spacer(modifier = Modifier.weight(1f))
 
+                // Tip Jar Rail Button
+                IconButton(
+                    onClick = { showTipJarDialog = true },
+                    modifier = Modifier.padding(bottom = 4.dp)
+                ) {
+                    Icon(Icons.Rounded.Favorite, contentDescription = strings.tipJarTitle, tint = Color(0xFFFF5E5B))
+                }
+
                 // Bottom Manifesto Badge
                 IconButton(
                     onClick = { showManifestoDialog = true },
@@ -287,7 +317,8 @@ fun DesktopApp(
                         onSelectTab = { activeTab = it; onTabChange(it) },
                         selectedFile = selectedFile,
                         onSelectFile = { selectedFile = it },
-                        onOpenManifesto = { showManifestoDialog = true }
+                        onOpenManifesto = { showManifestoDialog = true },
+                        onOpenTipJar = { showTipJarDialog = true }
                     )
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
                     DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
@@ -309,7 +340,8 @@ private fun HomeView(
     onSelectTab: (DesktopNavTab) -> Unit,
     selectedFile: File?,
     onSelectFile: (File) -> Unit,
-    onOpenManifesto: () -> Unit = {}
+    onOpenManifesto: () -> Unit = {},
+    onOpenTipJar: () -> Unit = {}
 ) {
     val strings = DesktopLocalization.strings
     Column(
@@ -518,6 +550,65 @@ private fun HomeView(
                     } else {
                         Spacer(modifier = Modifier.weight(1f))
                     }
+                }
+            }
+        }
+
+        // The Tip Jar / Indie Support Card on Home Dashboard
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            ),
+            border = BorderStroke(1.dp, Color(0xFFFF5E5B).copy(alpha = 0.35f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFFF5E5B).copy(alpha = 0.15f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF5E5B), modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            strings.tipJarHomeCardTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            strings.tipJarHomeCardDesc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Button(
+                    onClick = onOpenTipJar,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF5E5B),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnOpenTipJar, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2636,19 +2727,283 @@ private fun EdgeCaseCallout() {
     }
 }
 
+private fun openBrowser(url: String) {
+    try {
+        if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+            java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+        }
+    } catch (_: Exception) {}
+}
+
+// -------------------------------------------------------------------------------------------------
+// THE TIP JAR DIALOG (WINDOWS & LINUX INDEPENDENT SUPPORT)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun TipJarDialog(onDismiss: () -> Unit) {
+    val strings = DesktopLocalization.strings
+    var isTagCopied by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(strings.close)
+            }
+        },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(Color(0xFFFF5E5B).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Rounded.Favorite,
+                    contentDescription = null,
+                    tint = Color(0xFFFF5E5B),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        title = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    strings.tipJarTitle,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                ) {
+                    Text(
+                        strings.tipJarSubtitle,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .width(540.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Developer Note Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            strings.tipJarDesc,
+                            style = MaterialTheme.typography.bodyMedium,
+                            lineHeight = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(14.dp))
+                            Text(
+                                "100% Free • Forever Offline • No Ads • Independent Developer",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                // Preset Tip Tiers (Quick Action Cards)
+                Text("Select a Tip Tier:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Espresso $3
+                    Card(
+                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(strings.tierCoffee, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text(strings.tierCoffeeDesc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    // Snack & Coffee $6
+                    Card(
+                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(strings.tierSnack, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text(strings.tierSnackDesc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Late Night Pizza $12
+                    Card(
+                        onClick = { openBrowser("https://revolut.me/andreiy886") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(strings.tierPizza, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text(strings.tierPizzaDesc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    // Super Supporter $25
+                    Card(
+                        onClick = { openBrowser("https://revolut.me/andreiy886") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, Color(0xFFFF5E5B).copy(alpha = 0.35f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(strings.tierSupporter, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFFF5E5B))
+                            Text(strings.tierSupporterDesc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+
+                // Direct Payment Buttons
+                Text("Direct Channels:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5E5B), contentColor = Color.White)
+                    ) {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnKofi, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { openBrowser("https://revolut.me/andreiy886") },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0075EB), contentColor = Color.White)
+                    ) {
+                        Icon(Icons.Rounded.CreditCard, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnRevolut, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Copy Revolut Tag & GitHub Star Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val sel = java.awt.datatransfer.StringSelection("@andreiy886")
+                                java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(sel, null)
+                                isTagCopied = true
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            if (isTagCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = if (isTagCopied) Color(0xFF00C853) else MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            if (isTagCopied) strings.revolutTagCopied else strings.btnCopyRevolutTag,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { openBrowser("https://github.com/kiss2oblivion/pdfchemy") },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Lightbulb, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnStarGitHub, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Footnote
+                Text(
+                    strings.donationFootnote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    )
+}
+
 // -------------------------------------------------------------------------------------------------
 // THE LIFETIME MANIFESTO DIALOG
 // -------------------------------------------------------------------------------------------------
 @Composable
 private fun ManifestoDialog(onDismiss: () -> Unit) {
     val strings = DesktopLocalization.strings
-    fun openBrowser(url: String) {
-        try {
-            if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
-                java.awt.Desktop.getDesktop().browse(java.net.URI(url))
-            }
-        } catch (_: Exception) {}
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
