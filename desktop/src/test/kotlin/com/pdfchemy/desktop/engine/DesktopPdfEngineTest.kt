@@ -192,4 +192,77 @@ class DesktopPdfEngineTest {
         assertTrue(signed.exists() && signed.length() > pdf.length())
         assertEquals(1, DesktopPdfEngine.getPageCount(signed))
     }
+
+    @Test
+    fun testAddTextAnnotations_FormFill() {
+        val pdf = createTestPdf(pages = 2, text = "Official Employment Contract")
+        val annotated = tempFolder.newFile("annotated_doc.pdf")
+
+        val items = listOf(
+            TextAnnotationItem(text = "Jane Doe", xRatio = 0.2f, yRatio = 0.3f, fontSize = 14f, colorHex = "#18181B"),
+            TextAnnotationItem(text = "✓", xRatio = 0.5f, yRatio = 0.4f, fontSize = 18f, colorHex = "#1E3A8A"),
+            TextAnnotationItem(text = "✕", xRatio = 0.6f, yRatio = 0.4f, fontSize = 18f, colorHex = "#DC2626"),
+            TextAnnotationItem(text = "2026-09-06", xRatio = 0.2f, yRatio = 0.7f, fontSize = 12f, colorHex = "#18181B")
+        )
+
+        val success = DesktopPdfEngine.addTextAnnotations(
+            inputFile = pdf,
+            outputFile = annotated,
+            pageIndex = 0,
+            items = items
+        )
+        assertTrue(success)
+        assertTrue(annotated.exists() && annotated.length() > 0)
+        assertEquals(2, DesktopPdfEngine.getPageCount(annotated))
+
+        val text = DesktopPdfEngine.extractText(annotated)
+        assertTrue("Extracted text should contain Jane Doe", text.contains("Jane Doe"))
+        assertTrue("Extracted text should contain 2026-09-06", text.contains("2026-09-06"))
+    }
+
+    @Test
+    fun testAddWatermark() {
+        val pdf = createTestPdf(pages = 3, text = "Confidential Financial Data")
+        val watermarked = tempFolder.newFile("watermarked_doc.pdf")
+
+        val success = DesktopPdfEngine.addWatermark(
+            inputFile = pdf,
+            outputFile = watermarked,
+            watermarkText = "CONFIDENTIAL",
+            opacity = 0.25f,
+            rotationDegrees = 45f,
+            colorHex = "#DC2626"
+        )
+        assertTrue(success)
+        assertTrue(watermarked.exists() && watermarked.length() > pdf.length())
+        assertEquals(3, DesktopPdfEngine.getPageCount(watermarked))
+
+        PDDocument.load(watermarked).use { doc ->
+            val page = doc.getPage(0)
+            val streamText = page.contentStreams.asSequence().joinToString("") { it.createInputStream().bufferedReader().readText() }
+            assertTrue("Page content stream should contain CONFIDENTIAL", streamText.contains("CONFIDENTIAL"))
+        }
+    }
+
+    @Test
+    fun testAddPageNumbers() {
+        val pdf = createTestPdf(pages = 3, text = "Project Proposal")
+        val numbered = tempFolder.newFile("numbered_doc.pdf")
+
+        val success = DesktopPdfEngine.addPageNumbers(
+            inputFile = pdf,
+            outputFile = numbered,
+            formatPattern = "Page %1\$d of %2\$d",
+            position = HeaderFooterPos.BOTTOM_CENTER,
+            fontSize = 10f
+        )
+        assertTrue(success)
+        assertTrue(numbered.exists() && numbered.length() > 0)
+        assertEquals(3, DesktopPdfEngine.getPageCount(numbered))
+
+        val text = DesktopPdfEngine.extractText(numbered)
+        assertTrue("Extracted text should contain page number 1 of 3", text.contains("Page 1 of 3"))
+        assertTrue("Extracted text should contain page number 2 of 3", text.contains("Page 2 of 3"))
+        assertTrue("Extracted text should contain page number 3 of 3", text.contains("Page 3 of 3"))
+    }
 }

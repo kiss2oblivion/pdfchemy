@@ -205,7 +205,27 @@ data class DesktopStrings(
     val signedSuccess: String = "Document signed successfully: %1\$s",
     val drawHint: String = "Draw your signature above using your mouse or stylus",
     val btnPickSignatureFile: String = "Choose PNG / JPG Image",
-    val clearSignature: String = "Clear Canvas"
+    val clearSignature: String = "Clear Canvas",
+    val modeType: String = "Type / Form Filler",
+    val toolAddText: String = "Add Text",
+    val toolCheckmark: String = "Check (✓)",
+    val toolCrossmark: String = "Cross (✕)",
+    val toolInsertDate: String = "Date",
+    val watermarkTitle: String = "Diagonal Watermark",
+    val watermarkDraft: String = "DRAFT",
+    val watermarkConfidential: String = "CONFIDENTIAL",
+    val watermarkCopy: String = "COPY",
+    val watermarkCustom: String = "Custom Watermark...",
+    val pageNumbersTitle: String = "Page Numbers",
+    val pageNumbersFormat: String = "Page %1\$d of %2\$d",
+    val positionBottomCenter: String = "Bottom Center",
+    val clickToPlaceTextHint: String = "Click on preview to place text, checks or date",
+    val btnAnnotateAndSave: String = "Apply Annotations & Save",
+    val annotatedSuccess: String = "Document saved with annotations & marks: %1\$s",
+    val clearAnnotations: String = "Clear Annotations",
+    val fontSizeLabel: String = "Font Size",
+    val watermarkOpacity: String = "Watermark Opacity",
+    val watermarkAngle: String = "Angle"
 )
 
 /**
@@ -949,7 +969,27 @@ object DesktopStringStore {
         signedSuccess = "Document semnat cu succes: %1\$s",
         drawHint = "Desenează semnătura mai sus folosind mouse-ul sau stylus-ul",
         btnPickSignatureFile = "Alege Imagine PNG / JPG",
-        clearSignature = "Șterge Planșa"
+        clearSignature = "Șterge Planșa",
+        modeType = "Completare Formular / Text",
+        toolAddText = "Adaugă Text",
+        toolCheckmark = "Bifă (✓)",
+        toolCrossmark = "Cruce (✕)",
+        toolInsertDate = "Data Curentă",
+        watermarkTitle = "Filigran Diagonal",
+        watermarkDraft = "CIORNĂ",
+        watermarkConfidential = "CONFIDENȚIAL",
+        watermarkCopy = "COPIE",
+        watermarkCustom = "Filigran Personalizat...",
+        pageNumbersTitle = "Numerotare Pagini",
+        pageNumbersFormat = "Pagina %1\$d din %2\$d",
+        positionBottomCenter = "Centru Jos",
+        clickToPlaceTextHint = "Apasă pe previzualizare pentru a plasa text, bife sau data",
+        btnAnnotateAndSave = "Aplică Adnotările & Salvează",
+        annotatedSuccess = "Document salvat cu adnotări & marcaje: %1\$s",
+        clearAnnotations = "Șterge Adnotările",
+        fontSizeLabel = "Mărime Font",
+        watermarkOpacity = "Opacitate Filigran",
+        watermarkAngle = "Unghi"
     )
 
     val IT = DesktopStrings(
