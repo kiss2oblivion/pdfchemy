@@ -63,6 +63,7 @@ import com.pdfchemy.desktop.engine.DesktopBatesPosition
 import com.pdfchemy.desktop.engine.RedactPattern
 import com.pdfchemy.desktop.engine.DesktopSanitizeResult
 import com.pdfchemy.desktop.engine.DesktopRepairResult
+import com.pdfchemy.desktop.engine.DesktopOfficeExportEngine
 import com.pdfchemy.desktop.engine.DesktopCropConfig
 import com.pdfchemy.desktop.engine.DesktopAttachment
 import java.awt.Toolkit
@@ -4642,6 +4643,170 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                                 Text(strings.btnCopyCsv)
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Microsoft Office Export Card (.docx, .xlsx, .pptx)
+        // ---------------------------------------------------------------------
+        var isExportingOffice by remember { mutableStateOf(false) }
+        var officeExportFormatName by remember { mutableStateOf("") }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(strings.tabOfficeExport, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(strings.officeExportDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Generates clean, native OpenXML archives directly from the document without external office suites or cloud APIs. 100% offline and confidential.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Export to Word
+                    Button(
+                        onClick = {
+                            if (file == null) {
+                                statusText = "Please select a PDF document first."
+                                return@Button
+                            }
+                            val outFile = DesktopFileDialog.saveDocx(suggestedName = "${file.nameWithoutExtension}.docx") ?: return@Button
+                            isExportingOffice = true
+                            officeExportFormatName = "Word (.docx)"
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val report = DesktopOfficeExportEngine.exportToWord(file, outFile)
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        lastConvertedTarget = outFile
+                                        val kb = report.outputSizeBytes / 1024.0
+                                        val sizeStr = if (kb >= 1024) String.format("%.1f MB", kb / 1024.0) else String.format("%.1f KB", kb)
+                                        statusText = String.format(strings.officeExportSuccess, outFile.name, sizeStr)
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        statusText = "Word export failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = file != null && !isExportingOffice,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Notes, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnExportWord, maxLines = 1)
+                    }
+
+                    // Export to Excel
+                    Button(
+                        onClick = {
+                            if (file == null) {
+                                statusText = "Please select a PDF document first."
+                                return@Button
+                            }
+                            val outFile = DesktopFileDialog.saveXlsx(suggestedName = "${file.nameWithoutExtension}.xlsx") ?: return@Button
+                            isExportingOffice = true
+                            officeExportFormatName = "Excel (.xlsx)"
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val report = DesktopOfficeExportEngine.exportToExcel(file, outFile)
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        lastConvertedTarget = outFile
+                                        val kb = report.outputSizeBytes / 1024.0
+                                        val sizeStr = if (kb >= 1024) String.format("%.1f MB", kb / 1024.0) else String.format("%.1f KB", kb)
+                                        statusText = String.format(strings.officeExportSuccess, outFile.name, sizeStr)
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        statusText = "Excel export failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = file != null && !isExportingOffice,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.GridView, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnExportExcel, maxLines = 1)
+                    }
+
+                    // Export to PowerPoint
+                    Button(
+                        onClick = {
+                            if (file == null) {
+                                statusText = "Please select a PDF document first."
+                                return@Button
+                            }
+                            val outFile = DesktopFileDialog.savePptx(suggestedName = "${file.nameWithoutExtension}.pptx") ?: return@Button
+                            isExportingOffice = true
+                            officeExportFormatName = "PowerPoint (.pptx)"
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val report = DesktopOfficeExportEngine.exportToPowerPoint(file, outFile)
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        lastConvertedTarget = outFile
+                                        val kb = report.outputSizeBytes / 1024.0
+                                        val sizeStr = if (kb >= 1024) String.format("%.1f MB", kb / 1024.0) else String.format("%.1f KB", kb)
+                                        statusText = String.format(strings.officeExportSuccess, outFile.name, sizeStr)
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isExportingOffice = false
+                                        statusText = "PowerPoint export failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = file != null && !isExportingOffice,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Layers, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnExportPowerPoint, maxLines = 1)
+                    }
+                }
+
+                if (isExportingOffice) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(strings.officeExportConverting, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

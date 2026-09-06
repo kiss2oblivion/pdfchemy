@@ -265,6 +265,22 @@ fun OrganizeCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     onClick = { onNavigate(Screen.NUp) }
                 )
             }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_deskew),
+                    subtitle = stringResource(R.string.menu_deskew_desc),
+                    icon = Icons.Rounded.RotateRight,
+                    onClick = { onNavigate(Screen.Deskew) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_quick_fill_sign),
+                    subtitle = stringResource(R.string.menu_quick_fill_sign_desc),
+                    icon = Icons.Rounded.Draw,
+                    onClick = { onNavigate(Screen.QuickFillSign) }
+                )
+            }
         }
         }
     }
@@ -552,8 +568,12 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     ) { treeUri ->
         if (treeUri != null) {
             val file = selectedFile ?: return@rememberLauncherForActivityResult
-            val range = if (extractMode == 1) customRange else null
-            viewModel.splitPdf(context, file.uri, treeUri, range)
+            when (extractMode) {
+                0 -> viewModel.splitPdf(context, file.uri, treeUri, null)
+                1 -> viewModel.splitPdf(context, file.uri, treeUri, customRange)
+                2 -> viewModel.splitByBlankPages(context, file.uri, treeUri)
+                3 -> viewModel.splitByBookmarks(context, file.uri, treeUri)
+            }
         }
     }
 
@@ -582,7 +602,8 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Button(
@@ -592,30 +613,29 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 Text(stringResource(R.string.select_pdf))
             }
 
-                val file = selectedFile
-                if (file != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(file.name, fontWeight = FontWeight.Bold)
-                        }
+            val file = selectedFile
+            if (file != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(file.name, fontWeight = FontWeight.Bold)
                     }
+                }
 
                 Text(stringResource(R.string.extraction_options), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = extractMode == 0, onClick = { extractMode = 0 })
-                    Text(stringResource(R.string.extract_all_pages_as_individua), modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.split_mode_all), modifier = Modifier.padding(start = 8.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = extractMode == 1, onClick = { extractMode = 1 })
-                    Text(stringResource(R.string.extract_custom_range), modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.split_mode_range), modifier = Modifier.padding(start = 8.dp))
                 }
-
                 if (extractMode == 1) {
                     OutlinedTextField(
                         value = customRange,
@@ -623,6 +643,22 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         label = { Text(stringResource(R.string.e_g_1_3_5_7_10)) },
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = extractMode == 2, onClick = { extractMode = 2 })
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(stringResource(R.string.split_mode_blank), fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.split_mode_blank_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = extractMode == 3, onClick = { extractMode = 3 })
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(stringResource(R.string.split_mode_bookmarks), fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.split_mode_bookmarks_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

@@ -111,6 +111,10 @@ import com.pdfchemy.app.ui.LinearizePdfScreen
 import com.pdfchemy.app.ui.NUpScreen
 import com.pdfchemy.app.ui.PdfAValidatorScreen
 import com.pdfchemy.app.ui.FontInspectorScreen
+import com.pdfchemy.app.ui.DeskewScreen
+import com.pdfchemy.app.ui.TableExtractorScreen
+import com.pdfchemy.app.ui.DocumentSanitizerScreen
+import com.pdfchemy.app.ui.QuickFillSignScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
@@ -670,6 +674,10 @@ fun MainApp(
                 Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 is Screen.OfficeExport -> OfficeExportScreen((targetScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.Deskew -> DeskewScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                Screen.TableExtractor -> TableExtractorScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                Screen.DocumentSanitizer -> DocumentSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.QuickFillSign -> QuickFillSignScreen(viewModel) { currentScreen = Screen.CreateCategory }
                 Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
             }
         }
@@ -967,6 +975,10 @@ sealed class Screen {
     object PdfAValidator : Screen()
     object FontInspector : Screen()
     data class OfficeExport(val initialFormat: com.pdfchemy.app.logic.OfficeFormat = com.pdfchemy.app.logic.OfficeFormat.WORD) : Screen()
+    object Deskew : Screen()
+    object TableExtractor : Screen()
+    object DocumentSanitizer : Screen()
+    object QuickFillSign : Screen()
     object Premium : Screen()
 }
 
@@ -1048,6 +1060,10 @@ val ScreenSaver: Saver<Screen, String> = Saver(
             str == "NUp" -> Screen.NUp
             str == "PdfAValidator" -> Screen.PdfAValidator
             str == "FontInspector" -> Screen.FontInspector
+            str == "Deskew" -> Screen.Deskew
+            str == "TableExtractor" -> Screen.TableExtractor
+            str == "DocumentSanitizer" -> Screen.DocumentSanitizer
+            str == "QuickFillSign" -> Screen.QuickFillSign
             str == "Premium" -> Screen.Premium
             else -> Screen.Home
         }
@@ -1618,6 +1634,22 @@ fun CreateCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.menu_ebook_suite_desc),
                     icon = Icons.Rounded.AutoStories,
                     onClick = { onNavigate(Screen.EbookConverter) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_quick_fill_sign),
+                    subtitle = stringResource(R.string.menu_quick_fill_sign_desc),
+                    icon = Icons.Rounded.Draw,
+                    onClick = { onNavigate(Screen.QuickFillSign) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_table_extractor),
+                    subtitle = stringResource(R.string.menu_table_extractor_desc),
+                    icon = Icons.Rounded.TableChart,
+                    onClick = { onNavigate(Screen.TableExtractor) }
                 )
             }
         }
