@@ -979,4 +979,6 @@
     <string name="manifesto_btn_email">Email John Langsung</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">Versi Aplikasi &amp; Pembaruan</string>
+    <string name="settings_version_desc">%1$s • Periksa pembaruan di Google Play</string>
 </resources>

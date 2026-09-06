@@ -980,4 +980,6 @@
     <string name="manifesto_btn_email">Scrie-i lui John</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">Versiune aplicație și actualizări</string>
+    <string name="settings_version_desc">%1$s • Verifică actualizări pe Google Play</string>
 </resources>

@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">直接电邮联系 John</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">应用版本与更新</string>
+    <string name="settings_version_desc">%1$s • 在 Google Play 检查更新</string>
 </resources>

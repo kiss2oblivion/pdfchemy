@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">Написать Джону</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">Версия приложения и обновления</string>
+    <string name="settings_version_desc">%1$s • Проверить обновления в Google Play</string>
 </resources>

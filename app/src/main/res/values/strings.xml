@@ -1014,4 +1014,6 @@
     <string name="manifesto_btn_email">Email John Directly</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">App Version &amp; Updates</string>
+    <string name="settings_version_desc">%1$s • Check for updates on Google Play</string>
 </resources>

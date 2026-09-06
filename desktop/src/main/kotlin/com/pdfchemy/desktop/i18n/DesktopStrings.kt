@@ -162,7 +162,22 @@ data class DesktopStrings(
     val btnRemindLater: String = "Remind Me Later",
     val whatsNew: String = "What's New:",
     val updateCheckFailed: String = "Could not reach update server. Check your connection or visit GitHub.",
-    val btnViewReleases: String = "View on GitHub"
+    val btnViewReleases: String = "View on GitHub",
+    val tabMerge: String = "Merge",
+    val toolMergeTitle: String = "Merge PDFs",
+    val toolMergeDesc: String = "Combine multiple PDF documents into a single file in any order.",
+    val mergeHeader: String = "Merge PDF Documents",
+    val mergeSubtitle: String = "Select two or more PDF files, arrange them in order, and merge them into one.",
+    val btnAddPdfs: String = "Add PDF Files",
+    val btnClearList: String = "Clear List",
+    val btnMergeNow: String = "Merge Documents",
+    val mergingPdfs: String = "Merging documents...",
+    val mergedSuccess: String = "Successfully merged %1\$d files into %2\$s (%3\$s)",
+    val totalFilesAndPages: String = "%1\$d files • %2\$d total pages",
+    val moveUp: String = "Move Up",
+    val moveDown: String = "Move Down",
+    val removeFile: String = "Remove",
+    val noPdfsSelected: String = "No PDF files selected yet. Click 'Add PDF Files' to get started."
 )
 
 /**
@@ -864,7 +879,22 @@ object DesktopStringStore {
         btnRemindLater = "Amintește-mi mai târziu",
         whatsNew = "Noutăți în această versiune:",
         updateCheckFailed = "Nu s-a putut contacta serverul de actualizări. Verifică conexiunea sau vizitează GitHub.",
-        btnViewReleases = "Vezi pe GitHub"
+        btnViewReleases = "Vezi pe GitHub",
+        tabMerge = "Combină",
+        toolMergeTitle = "Combină PDF-uri",
+        toolMergeDesc = "Unește mai multe documente PDF într-un singur fișier în orice ordine.",
+        mergeHeader = "Combină documente PDF",
+        mergeSubtitle = "Selectează două sau mai multe fișiere PDF, aranjează-le în ordine și unește-le.",
+        btnAddPdfs = "Adaugă fișiere PDF",
+        btnClearList = "Golește lista",
+        btnMergeNow = "Combină documentele",
+        mergingPdfs = "Se combină documentele...",
+        mergedSuccess = "S-au combinat cu succes %1\$d fișiere în %2\$s (%3\$s)",
+        totalFilesAndPages = "%1\$d fișiere • %2\$d pagini în total",
+        moveUp = "Mută mai sus",
+        moveDown = "Mută mai jos",
+        removeFile = "Elimină",
+        noPdfsSelected = "Niciun fișier PDF selectat. Apasă pe 'Adaugă fișiere PDF' pentru a începe."
     )
 
     val IT = DesktopStrings(

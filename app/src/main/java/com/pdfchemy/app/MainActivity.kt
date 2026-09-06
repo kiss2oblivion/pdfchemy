@@ -3275,6 +3275,46 @@ fun SettingsScreen(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            // App Version & Check for Updates
+                            val appVersion = remember {
+                                try {
+                                    val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                                    "v${pInfo.versionName ?: "1.0.2"}"
+                                } catch (_: Exception) {
+                                    "v1.0.2"
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/kiss2oblivion/pdfchemy/releases"))
+                                        context.startActivity(intent)
+                                    }
+                                },
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.settings_version_title), style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        stringResource(R.string.settings_version_desc, appVersion),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                     

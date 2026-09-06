@@ -970,4 +970,6 @@
     <string name="manifesto_btn_email">John\'a E-posta Gönder</string>
     <string name="manifesto_btn_kofi">Ko-fi Tip</string>
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
+    <string name="settings_version_title">Uygulama Sürümü ve Güncellemeler</string>
+    <string name="settings_version_desc">%1$s • Google Play üzerinden güncellemeleri denetle</string>
 </resources>
