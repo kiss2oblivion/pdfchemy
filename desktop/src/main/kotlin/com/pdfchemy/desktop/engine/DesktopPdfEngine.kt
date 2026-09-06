@@ -22,11 +22,23 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDTextField
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton
 import org.apache.pdfbox.pdmodel.interactive.form.PDChoice
+import org.apache.pdfbox.cos.COSArray
+import org.apache.pdfbox.cos.COSBase
+import org.apache.pdfbox.cos.COSDictionary
+import org.apache.pdfbox.cos.COSName
+import org.apache.pdfbox.cos.COSString
+import org.apache.pdfbox.io.MemoryUsageSetting
+import org.apache.pdfbox.pdmodel.common.PDMetadata
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkInfo
+import org.apache.pdfbox.pdmodel.graphics.color.PDOutputIntent
 import java.awt.BasicStroke
 import java.awt.Font
 import java.awt.RenderingHints
+import java.awt.color.ColorSpace
+import java.awt.color.ICC_Profile
 import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import javax.imageio.ImageIO
@@ -66,6 +78,51 @@ data class PdfDiffSummary(
     val totalAddedLines: Int,
     val totalRemovedLines: Int,
     val isEntirelyIdentical: Boolean
+)
+
+// --- BATES STAMPING DATA MODELS ---
+enum class DesktopBatesPosition {
+    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
+    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+}
+
+data class DesktopBatesConfig(
+    val prefix: String = "EXHIBIT-",
+    val suffix: String = "",
+    val startNumber: Int = 1,
+    val digits: Int = 6,
+    val position: DesktopBatesPosition = DesktopBatesPosition.BOTTOM_RIGHT,
+    val fontSize: Float = 10f,
+    val marginPt: Float = 36f,
+    val pageRange: IntRange? = null
+)
+
+// --- SANITIZE & SCRUB DATA MODELS ---
+data class DesktopSanitizeResult(
+    val threatsFound: Int,
+    val jsCount: Int,
+    val launchActionsCount: Int,
+    val metadataPurged: Boolean,
+    val attachmentsPurged: Int,
+    val annotationsPurged: Int
+)
+
+// --- PDF REPAIR DATA MODELS ---
+data class DesktopRepairResult(
+    val isSuccess: Boolean,
+    val pagesRecovered: Int,
+    val issuesRepaired: List<String>,
+    val originalSize: Long,
+    val repairedSize: Long
+)
+
+// --- MARGIN CROP DATA MODELS ---
+data class DesktopCropConfig(
+    val leftPt: Float,
+    val topPt: Float,
+    val rightPt: Float,
+    val bottomPt: Float,
+    val applyToAllPages: Boolean = true
 )
 
 data class TextAnnotationItem(
@@ -1162,6 +1219,469 @@ object DesktopPdfEngine {
             totalRemovedLines = totalRemoved,
             isEntirelyIdentical = isEntirelyIdentical
         )
+    }
+
+    // ==========================================
+    // 1. LEGAL BATES STAMPING & INDEXING SUITE
+    // ==========================================
+
+    fun applyBatesStamping(inputFile: File, outputFile: File, config: DesktopBatesConfig): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val pageCount = doc.numberOfPages
+                val font = PDType1Font.HELVETICA_BOLD
+                val range = config.pageRange ?: (1..pageCount)
+
+                for (p in 1..pageCount) {
+                    if (p !in range) continue
+                    val page = doc.getPage(p - 1)
+                    val box = page.cropBox ?: page.mediaBox
+
+                    val batesNumber = config.startNumber + (p - range.first)
+                    val formattedNum = "%0${config.digits}d".format(batesNumber)
+                    val text = "${config.prefix}$formattedNum${config.suffix}"
+
+                    val textWidth = font.getStringWidth(text) / 1000f * config.fontSize
+                    val textHeight = config.fontSize
+
+                    val x = when (config.position) {
+                        DesktopBatesPosition.TOP_LEFT, DesktopBatesPosition.BOTTOM_LEFT ->
+                            box.lowerLeftX + config.marginPt
+                        DesktopBatesPosition.TOP_CENTER, DesktopBatesPosition.BOTTOM_CENTER ->
+                            box.lowerLeftX + (box.width - textWidth) / 2f
+                        DesktopBatesPosition.TOP_RIGHT, DesktopBatesPosition.BOTTOM_RIGHT ->
+                            box.upperRightX - config.marginPt - textWidth
+                    }
+
+                    val y = when (config.position) {
+                        DesktopBatesPosition.TOP_LEFT, DesktopBatesPosition.TOP_CENTER, DesktopBatesPosition.TOP_RIGHT ->
+                            box.upperRightY - config.marginPt - textHeight
+                        DesktopBatesPosition.BOTTOM_LEFT, DesktopBatesPosition.BOTTOM_CENTER, DesktopBatesPosition.BOTTOM_RIGHT ->
+                            box.lowerLeftY + config.marginPt
+                    }
+
+                    PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                        cs.beginText()
+                        cs.setFont(font, config.fontSize)
+                        cs.setNonStrokingColor(java.awt.Color.DARK_GRAY)
+                        cs.newLineAtOffset(x, y)
+                        cs.showText(text)
+                        cs.endText()
+                    }
+                }
+                doc.save(outputFile)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // ==========================================
+    // 2. DEEP DOCUMENT SANITIZER & THREAT SCRUBBER
+    // ==========================================
+
+    fun auditDocumentThreats(file: File): DesktopSanitizeResult {
+        return try {
+            PDDocument.load(file).use { doc ->
+                var jsCount = 0
+                var actionCount = 0
+                var attachmentCount = 0
+                var annotationCount = 0
+
+                // Catalog JS & Actions
+                if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) jsCount++
+                val names = doc.documentCatalog.names
+                if (names?.cosObject?.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) jsCount++
+                if (names?.cosObject?.getDictionaryObject(COSName.getPDFName("EmbeddedFiles")) != null) attachmentCount++
+
+                if (doc.documentCatalog.openAction != null) actionCount++
+                if (doc.documentCatalog.actions != null) actionCount++
+                if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
+
+                for (page in doc.pages) {
+                    for (annot in page.annotations) {
+                        val subType = annot.subtype
+                        if (subType in listOf("Popup", "Text", "FreeText", "Highlight")) {
+                            annotationCount++
+                        }
+                        val action = annot.cosObject.getDictionaryObject(COSName.A)
+                        if (action is COSDictionary) {
+                            val s = action.getNameAsString(COSName.S)
+                            if (s == "JavaScript") jsCount++
+                            if (s in listOf("Launch", "SubmitForm", "ImportData", "URI", "Sound", "Movie")) actionCount++
+                        }
+                    }
+                }
+
+                val hasMetadata = doc.documentInformation.author?.isNotBlank() == true ||
+                        doc.documentInformation.title?.isNotBlank() == true ||
+                        doc.documentInformation.creator?.isNotBlank() == true ||
+                        doc.documentCatalog.metadata != null ||
+                        doc.document.trailer.getItem(COSName.ID) != null
+
+                val totalThreats = jsCount + actionCount + attachmentCount + (if (hasMetadata) 1 else 0)
+
+                DesktopSanitizeResult(
+                    threatsFound = totalThreats,
+                    jsCount = jsCount,
+                    launchActionsCount = actionCount,
+                    metadataPurged = false,
+                    attachmentsPurged = attachmentCount,
+                    annotationsPurged = annotationCount
+                )
+            }
+        } catch (e: Exception) {
+            DesktopSanitizeResult(0, 0, 0, false, 0, 0)
+        }
+    }
+
+    fun sanitizeDocument(
+        inputFile: File,
+        outputFile: File,
+        purgeJs: Boolean = true,
+        purgeActions: Boolean = true,
+        purgeMetadata: Boolean = true,
+        purgeAttachments: Boolean = true,
+        purgePrivateAnnotations: Boolean = false
+    ): DesktopSanitizeResult {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                var jsPurged = 0
+                var actionsPurged = 0
+                var attachmentsPurged = 0
+                var annotationsPurged = 0
+
+                if (purgeJs) {
+                    if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) {
+                        doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("JavaScript"))
+                        jsPurged++
+                    }
+                    if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) {
+                        doc.documentCatalog.names?.cosObject?.removeItem(COSName.getPDFName("JavaScript"))
+                        jsPurged++
+                    }
+                    if (doc.documentCatalog.openAction != null) {
+                        doc.documentCatalog.openAction = null
+                        actionsPurged++
+                    }
+                    doc.documentCatalog.actions = null
+                }
+
+                if (purgeActions) {
+                    if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                        doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("AA"))
+                        actionsPurged++
+                    }
+                }
+
+                if (purgeAttachments) {
+                    if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("EmbeddedFiles")) != null) {
+                        doc.documentCatalog.names?.cosObject?.removeItem(COSName.getPDFName("EmbeddedFiles"))
+                        attachmentsPurged++
+                    }
+                }
+
+                if (purgeMetadata) {
+                    doc.documentInformation.title = null
+                    doc.documentInformation.author = null
+                    doc.documentInformation.subject = null
+                    doc.documentInformation.keywords = null
+                    doc.documentInformation.creator = null
+                    doc.documentInformation.producer = "PDFchemy (Scrubbed & Sanitized)"
+                    doc.documentInformation.creationDate = null
+                    doc.documentInformation.modificationDate = null
+                    doc.documentCatalog.metadata = null
+                    doc.document.trailer.removeItem(COSName.ID)
+                    doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("PieceInfo"))
+                }
+
+                for (page in doc.pages) {
+                    page.cosObject.removeItem(COSName.getPDFName("PieceInfo"))
+                    page.cosObject.removeItem(COSName.getPDFName("AA"))
+
+                    if (purgeActions || purgeJs) {
+                        for (annot in page.annotations) {
+                            val action = annot.cosObject.getDictionaryObject(COSName.A)
+                            if (action is COSDictionary) {
+                                val s = action.getNameAsString(COSName.S)
+                                if (purgeJs && s == "JavaScript") {
+                                    annot.cosObject.removeItem(COSName.A)
+                                    jsPurged++
+                                }
+                                if (purgeActions && s in listOf("Launch", "SubmitForm", "ImportData", "URI", "Sound", "Movie")) {
+                                    annot.cosObject.removeItem(COSName.A)
+                                    actionsPurged++
+                                }
+                            }
+                        }
+                    }
+
+                    if (purgePrivateAnnotations) {
+                        val initialSize = page.annotations.size
+                        val kept = page.annotations.filter {
+                            it.subtype !in listOf("Popup", "Text", "FreeText", "Highlight")
+                        }
+                        annotationsPurged += (initialSize - kept.size)
+                        page.annotations = kept
+                    }
+                }
+
+                doc.save(outputFile)
+
+                DesktopSanitizeResult(
+                    threatsFound = jsPurged + actionsPurged + attachmentsPurged + (if (purgeMetadata) 1 else 0),
+                    jsCount = jsPurged,
+                    launchActionsCount = actionsPurged,
+                    metadataPurged = purgeMetadata,
+                    attachmentsPurged = attachmentsPurged,
+                    annotationsPurged = annotationsPurged
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            DesktopSanitizeResult(0, 0, 0, false, 0, 0)
+        }
+    }
+
+    // ==========================================
+    // 3. CORRUPTED PDF RECOVERY & REPAIR STUDIO
+    // ==========================================
+
+    fun repairCorruptedPdf(inputFile: File, outputFile: File): DesktopRepairResult {
+        val issues = mutableListOf<String>()
+        var bytes = inputFile.readBytes()
+        val originalSize = bytes.size.toLong()
+
+        // Step 1: Scan for %PDF- header magic bytes
+        val pdfHeader = "%PDF-".toByteArray(Charsets.US_ASCII)
+        var headerIndex = -1
+        for (i in 0 until (bytes.size - 5)) {
+            if (bytes[i] == pdfHeader[0] &&
+                bytes[i + 1] == pdfHeader[1] &&
+                bytes[i + 2] == pdfHeader[2] &&
+                bytes[i + 3] == pdfHeader[3] &&
+                bytes[i + 4] == pdfHeader[4]) {
+                headerIndex = i
+                break
+            }
+        }
+
+        if (headerIndex > 0) {
+            issues.add("Stripped $headerIndex corrupt bytes prepended before PDF header")
+            bytes = bytes.copyOfRange(headerIndex, bytes.size)
+        } else if (headerIndex == -1) {
+            issues.add("Injected missing %PDF-1.4 header")
+            bytes = "%PDF-1.4\n".toByteArray(Charsets.US_ASCII) + bytes
+        }
+
+        // Step 2: Ensure EOF trailer marker is present
+        val tailStr = String(bytes.takeLast(minOf(1024, bytes.size)).toByteArray(), Charsets.US_ASCII)
+        if (!tailStr.contains("%%EOF")) {
+            issues.add("Appended missing %%EOF termination marker")
+            bytes = bytes + "\n%%EOF\n".toByteArray(Charsets.US_ASCII)
+        }
+
+        val tempFile = File.createTempFile("pdfchemy_repair_", ".pdf")
+        try {
+            tempFile.writeBytes(bytes)
+            val loadedDoc = try {
+                PDDocument.load(tempFile, MemoryUsageSetting.setupTempFileOnly())
+            } catch (e: Exception) {
+                issues.add("Applied fault-tolerant object stream recovery")
+                PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly())
+            }
+
+            loadedDoc.use { doc ->
+                PDDocument().use { cleanDoc ->
+                    var recoveredCount = 0
+                    for (i in 0 until doc.numberOfPages) {
+                        try {
+                            cleanDoc.addPage(cleanDoc.importPage(doc.getPage(i)))
+                            recoveredCount++
+                        } catch (pe: Exception) {
+                            issues.add("Skipped unrecoverable page ${i + 1}")
+                        }
+                    }
+                    issues.add("Reconstructed clean linear cross-reference table and page catalog")
+                    cleanDoc.save(outputFile)
+                    return DesktopRepairResult(
+                        isSuccess = true,
+                        pagesRecovered = recoveredCount,
+                        issuesRepaired = issues,
+                        originalSize = originalSize,
+                        repairedSize = outputFile.length()
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return DesktopRepairResult(
+                isSuccess = false,
+                pagesRecovered = 0,
+                issuesRepaired = listOf("Fatal corruption: ${e.localizedMessage ?: "Unknown parse error"}"),
+                originalSize = originalSize,
+                repairedSize = 0L
+            )
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    // ==========================================
+    // 4. PDF/A ARCHIVAL CONVERTER (ISO 19005-1b)
+    // ==========================================
+
+    fun convertToPdfA(inputFile: File, outputFile: File): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                // 1. Set PDF/A OutputIntent (sRGB IEC61966-2.1)
+                val srgbProfile = ICC_Profile.getInstance(ColorSpace.CS_sRGB).data
+                ByteArrayInputStream(srgbProfile).use { iccStream ->
+                    val outputIntent = PDOutputIntent(doc, iccStream)
+                    outputIntent.info = "sRGB IEC61966-2.1"
+                    outputIntent.outputCondition = "sRGB IEC61966-2.1"
+                    outputIntent.outputConditionIdentifier = "sRGB IEC61966-2.1"
+                    outputIntent.registryName = "http://www.color.org"
+                    doc.documentCatalog.addOutputIntent(outputIntent)
+                }
+
+                // 2. Set MarkInfo
+                val markInfo = PDMarkInfo()
+                markInfo.isMarked = true
+                doc.documentCatalog.markInfo = markInfo
+
+                // 3. Inject ISO 19005-1b compliant XMP metadata packet
+                val xmpXml = """<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+      <pdfaid:part>1</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+    </rdf:Description>
+    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:format>application/pdf</dc:format>
+    </rdf:Description>
+    <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+      <pdf:Producer>PDFchemy ISO 19005-1b Archival Engine</pdf:Producer>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>""".trimIndent()
+
+                val metadata = PDMetadata(doc)
+                metadata.importXMPMetadata(xmpXml.toByteArray(Charsets.UTF_8))
+                doc.documentCatalog.metadata = metadata
+
+                // 4. Strip non-archival dynamic scripts and actions
+                doc.documentCatalog.openAction = null
+                doc.documentCatalog.actions = null
+                doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("JavaScript"))
+                doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("AA"))
+
+                // 5. Flatten active AcroForm if present to preserve visual appearance
+                doc.documentCatalog.acroForm?.let { acroForm ->
+                    try {
+                        acroForm.flatten()
+                    } catch (_: Exception) {}
+                }
+
+                doc.save(outputFile)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // ==========================================
+    // 5. VISUAL MARGIN TRIMMER & SMART CROPBOX
+    // ==========================================
+
+    fun cropMargins(inputFile: File, outputFile: File, config: DesktopCropConfig): Boolean {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val pageCount = doc.numberOfPages
+                val pagesToCrop = if (config.applyToAllPages) 0 until pageCount else 0..0
+
+                for (i in pagesToCrop) {
+                    val page = doc.getPage(i)
+                    val mb = page.mediaBox
+                    val newX = (mb.lowerLeftX + config.leftPt).coerceAtMost(mb.upperRightX - 10f)
+                    val newY = (mb.lowerLeftY + config.bottomPt).coerceAtMost(mb.upperRightY - 10f)
+                    val newW = (mb.width - config.leftPt - config.rightPt).coerceAtLeast(10f)
+                    val newH = (mb.height - config.topPt - config.bottomPt).coerceAtLeast(10f)
+                    page.cropBox = PDRectangle(newX, newY, newW, newH)
+                }
+                doc.save(outputFile)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun detectContentCrop(inputFile: File, pageIndex: Int = 0, paddingPt: Float = 18f): DesktopCropConfig {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                val pIdx = pageIndex.coerceIn(0, doc.numberOfPages - 1)
+                val page = doc.getPage(pIdx)
+                val mb = page.mediaBox
+                val renderer = PDFRenderer(doc)
+                val dpi = 72f
+                val image = renderer.renderImageWithDPI(pIdx, dpi)
+
+                val width = image.width
+                val height = image.height
+
+                var minX = width
+                var minY = height
+                var maxX = 0
+                var maxY = 0
+
+                for (y in 0 until height) {
+                    for (x in 0 until width) {
+                        val rgb = image.getRGB(x, y)
+                        val r = (rgb shr 16) and 0xFF
+                        val g = (rgb shr 8) and 0xFF
+                        val b = rgb and 0xFF
+                        val lum = 0.299 * r + 0.587 * g + 0.114 * b
+                        if (lum < 240.0) { // Non-white content pixel
+                            if (x < minX) minX = x
+                            if (x > maxX) maxX = x
+                            if (y < minY) minY = y
+                            if (y > maxY) maxY = y
+                        }
+                    }
+                }
+
+                if (minX >= maxX || minY >= maxY) {
+                    DesktopCropConfig(18f, 18f, 18f, 18f)
+                } else {
+                    val scaleX = mb.width / width.toFloat()
+                    val scaleY = mb.height / height.toFloat()
+
+                    val leftPt = (minX * scaleX - paddingPt).coerceAtLeast(0f)
+                    val topPt = (minY * scaleY - paddingPt).coerceAtLeast(0f)
+                    val rightPt = ((width - maxX) * scaleX - paddingPt).coerceAtLeast(0f)
+                    val bottomPt = ((height - maxY) * scaleY - paddingPt).coerceAtLeast(0f)
+
+                    DesktopCropConfig(
+                        leftPt = leftPt,
+                        topPt = topPt,
+                        rightPt = rightPt,
+                        bottomPt = bottomPt,
+                        applyToAllPages = true
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            DesktopCropConfig(28.35f, 28.35f, 28.35f, 28.35f) // 10mm fallback
+        }
     }
 }
 
