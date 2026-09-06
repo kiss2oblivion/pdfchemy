@@ -132,5 +132,48 @@ object DesktopFileDialog {
             return if (result == javax.swing.JFileChooser.APPROVE_OPTION) chooser.selectedFile else null
         }
     }
+
+    /**
+     * Opens native file dialog to save a Microsoft Word (.docx) document.
+     */
+    fun saveDocx(parent: Frame? = null, suggestedName: String = "document.docx"): File? {
+        val dialog = FileDialog(parent, "Save Word Document", FileDialog.SAVE).apply {
+            file = if (suggestedName.lowercase().endsWith(".docx")) suggestedName else "$suggestedName.docx"
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        val target = File(dir, file)
+        return if (target.name.lowercase().endsWith(".docx")) target else File(dir, "${target.name}.docx")
+    }
+
+    /**
+     * Opens native file dialog to save a Microsoft Excel (.xlsx) workbook.
+     */
+    fun saveXlsx(parent: Frame? = null, suggestedName: String = "workbook.xlsx"): File? {
+        val dialog = FileDialog(parent, "Save Excel Workbook", FileDialog.SAVE).apply {
+            file = if (suggestedName.lowercase().endsWith(".xlsx")) suggestedName else "$suggestedName.xlsx"
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        val target = File(dir, file)
+        return if (target.name.lowercase().endsWith(".xlsx")) target else File(dir, "${target.name}.xlsx")
+    }
+
+    /**
+     * Opens native file dialog to save a Microsoft PowerPoint (.pptx) presentation.
+     */
+    fun savePptx(parent: Frame? = null, suggestedName: String = "presentation.pptx"): File? {
+        val dialog = FileDialog(parent, "Save PowerPoint Presentation", FileDialog.SAVE).apply {
+            file = if (suggestedName.lowercase().endsWith(".pptx")) suggestedName else "$suggestedName.pptx"
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        val target = File(dir, file)
+        return if (target.name.lowercase().endsWith(".pptx")) target else File(dir, "${target.name}.pptx")
+    }
 }
+
 

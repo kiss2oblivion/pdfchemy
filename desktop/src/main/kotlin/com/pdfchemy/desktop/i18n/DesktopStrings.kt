@@ -343,6 +343,15 @@ data class DesktopStrings(
     var noAttachmentsFound: String = "No embedded file attachments found in this document."
     var embedSuccess: String = "File embedded successfully: %1\$s"
     var extractSuccess: String = "Attachments extracted to: %1\$s"
+
+    // 7. Desktop Office Export (.docx, .xlsx, .pptx)
+    var tabOfficeExport: String = "Export to Office (.docx, .xlsx, .pptx)"
+    var officeExportDesc: String = "Convert PDF documents directly into editable Microsoft Word documents, Excel spreadsheets, and PowerPoint presentation slides completely offline without cloud conversion."
+    var btnExportWord: String = "Export to Word (.docx)"
+    var btnExportExcel: String = "Export to Excel (.xlsx)"
+    var btnExportPowerPoint: String = "Export to PowerPoint (.pptx)"
+    var officeExportSuccess: String = "Successfully exported to %1\$s (%2\$s)"
+    var officeExportConverting: String = "Exporting document to Office format..."
 }
 
 /**

@@ -3,6 +3,9 @@ package com.pdfchemy.app.ui
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import java.util.Locale
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -96,6 +99,60 @@ fun ReflowReaderScreen(
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var currentMatchIndex by remember { mutableIntStateOf(0) }
+
+    var isTtsBarVisible by remember { mutableStateOf(false) }
+    var isTtsPlaying by remember { mutableStateOf(false) }
+    var ttsRate by remember { mutableFloatStateOf(1.0f) }
+    var currentSpeakingIndex by remember { mutableIntStateOf(0) }
+    var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
+
+    val allParagraphs = remember(reflowSections) {
+        reflowSections.flatMap { it.paragraphs }.filter { it.isNotBlank() }
+    }
+
+    fun speakParagraph(index: Int) {
+        if (index in allParagraphs.indices && ttsEngine != null) {
+            currentSpeakingIndex = index
+            val text = allParagraphs[index]
+            val params = android.os.Bundle()
+            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "para_$index")
+            ttsEngine?.setSpeechRate(ttsRate)
+            ttsEngine?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "para_$index")
+            isTtsPlaying = true
+        } else {
+            isTtsPlaying = false
+        }
+    }
+
+    DisposableEffect(context) {
+        var localTts: TextToSpeech? = null
+        localTts = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                localTts?.language = Locale.getDefault()
+                localTts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {
+                        isTtsPlaying = true
+                    }
+                    override fun onDone(utteranceId: String?) {
+                        if (currentSpeakingIndex + 1 < allParagraphs.size) {
+                            speakParagraph(currentSpeakingIndex + 1)
+                        } else {
+                            isTtsPlaying = false
+                        }
+                    }
+                    override fun onError(utteranceId: String?) {
+                        isTtsPlaying = false
+                    }
+                })
+                ttsEngine = localTts
+            }
+        }
+        onDispose {
+            localTts?.stop()
+            localTts?.shutdown()
+            ttsEngine = null
+        }
+    }
 
     val searchMatches = remember(searchQuery, reflowSections) {
         val q = searchQuery.trim()
@@ -217,6 +274,21 @@ fun ReflowReaderScreen(
                             }
                             if (selectedPdfUri != null && reflowSections.isNotEmpty()) {
                                 IconButton(onClick = {
+                                    isTtsBarVisible = !isTtsBarVisible
+                                    if (isTtsBarVisible && !isTtsPlaying) {
+                                        speakParagraph(currentSpeakingIndex)
+                                    } else if (!isTtsBarVisible) {
+                                        ttsEngine?.stop()
+                                        isTtsPlaying = false
+                                    }
+                                }) {
+                                    Icon(
+                                        if (isTtsPlaying) Icons.Rounded.VolumeUp else Icons.Rounded.VolumeMute,
+                                        contentDescription = "Read Aloud",
+                                        tint = if (isTtsBarVisible) MaterialTheme.colorScheme.primary else selectedTheme.text
+                                    )
+                                }
+                                IconButton(onClick = {
                                     isSearchActive = !isSearchActive
                                     if (!isSearchActive) searchQuery = ""
                                 }) {
@@ -312,6 +384,94 @@ fun ReflowReaderScreen(
                                     ) {
                                         Icon(Icons.Rounded.ExpandMore, contentDescription = "Next Match", tint = selectedTheme.text)
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = isTtsBarVisible,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Surface(
+                            color = selectedTheme.bg,
+                            tonalElevation = 4.dp,
+                            shadowElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            if (currentSpeakingIndex > 0) {
+                                                speakParagraph(currentSpeakingIndex - 1)
+                                            }
+                                        },
+                                        enabled = currentSpeakingIndex > 0,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous Paragraph", tint = selectedTheme.text)
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            if (isTtsPlaying) {
+                                                ttsEngine?.stop()
+                                                isTtsPlaying = false
+                                            } else {
+                                                speakParagraph(currentSpeakingIndex)
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            if (isTtsPlaying) Icons.Rounded.PauseCircle else Icons.Rounded.PlayCircle,
+                                            contentDescription = "Play/Pause",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            if (currentSpeakingIndex + 1 < allParagraphs.size) {
+                                                speakParagraph(currentSpeakingIndex + 1)
+                                            }
+                                        },
+                                        enabled = currentSpeakingIndex + 1 < allParagraphs.size,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.SkipNext, contentDescription = "Next Paragraph", tint = selectedTheme.text)
+                                    }
+                                }
+
+                                Text(
+                                    text = "${currentSpeakingIndex + 1}/${allParagraphs.size.coerceAtLeast(1)}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = selectedTheme.text.copy(alpha = 0.7f)
+                                )
+
+                                TextButton(onClick = {
+                                    ttsRate = when (ttsRate) {
+                                        0.75f -> 1.0f
+                                        1.0f -> 1.25f
+                                        1.25f -> 1.5f
+                                        1.5f -> 2.0f
+                                        else -> 0.75f
+                                    }
+                                    ttsEngine?.setSpeechRate(ttsRate)
+                                }) {
+                                    Text("${ttsRate}x", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }

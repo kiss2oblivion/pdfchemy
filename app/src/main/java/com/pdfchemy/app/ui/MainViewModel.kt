@@ -723,6 +723,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    fun splitByBlankPages(context: Context, sourceUri: Uri, destTreeUri: Uri) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                val directory = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, destTreeUri)
+                if (directory == null || !directory.exists()) {
+                    _uiState.value = UiState.Error(context.getString(R.string.msg_invalid_folder))
+                    return@launch
+                }
+                val baseName = com.pdfchemy.app.utils.FileUtils.getFileName(context, sourceUri)?.substringBeforeLast(".") ?: "split_doc"
+                val results = PdfManipulator.splitByBlankPages(context, sourceUri, directory, baseName)
+                if (results.isEmpty()) {
+                    _uiState.value = UiState.Error("No blank divider pages detected.")
+                    return@launch
+                }
+                historyRepository.addHistoryItem(destTreeUri, context.getString(R.string.history_split_pdf_folder), context.getString(R.string.desc_split))
+                refreshHistory()
+                _uiState.value = UiState.Success(context.getString(R.string.success_split_complete), context.getString(R.string.split_blank_pages_found, results.size), listOf(destTreeUri))
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Failed to split PDF by blank pages.")
+            }
+        }
+    }
+
+    fun splitByBookmarks(context: Context, sourceUri: Uri, destTreeUri: Uri) {
+        if (_uiState.value is UiState.Processing) return
+
+        viewModelScope.launch {
+            _uiState.value = UiState.Processing
+            try {
+                val directory = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, destTreeUri)
+                if (directory == null || !directory.exists()) {
+                    _uiState.value = UiState.Error(context.getString(R.string.msg_invalid_folder))
+                    return@launch
+                }
+                val baseName = com.pdfchemy.app.utils.FileUtils.getFileName(context, sourceUri)?.substringBeforeLast(".") ?: "split_doc"
+                val results = PdfManipulator.splitByBookmarks(context, sourceUri, directory, baseName)
+                if (results.isEmpty()) {
+                    _uiState.value = UiState.Error(context.getString(R.string.split_no_bookmarks))
+                    return@launch
+                }
+                historyRepository.addHistoryItem(destTreeUri, context.getString(R.string.history_split_pdf_folder), context.getString(R.string.desc_split))
+                refreshHistory()
+                _uiState.value = UiState.Success(context.getString(R.string.success_split_complete), context.getString(R.string.split_bookmarks_found, results.size), listOf(destTreeUri))
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Failed to split PDF by bookmarks.")
+            }
+        }
+    }
+
     
     fun deletePages(context: Context, sourceUri: Uri, destUri: Uri, pageRange: String) {
         if (_uiState.value is UiState.Processing) return

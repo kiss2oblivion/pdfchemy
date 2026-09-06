@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.Difference
 import androidx.compose.material.icons.rounded.CleaningServices
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -166,6 +167,14 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     subtitle = stringResource(R.string.menu_font_inspector_desc),
                     icon = Icons.Rounded.Edit,
                     onClick = { onNavigate(Screen.FontInspector) }
+                )
+            }
+            item {
+                ToolCard(
+                    title = stringResource(R.string.menu_doc_sanitizer),
+                    subtitle = stringResource(R.string.menu_doc_sanitizer_desc),
+                    icon = Icons.Rounded.VerifiedUser,
+                    onClick = { onNavigate(Screen.DocumentSanitizer) }
                 )
             }
         }
