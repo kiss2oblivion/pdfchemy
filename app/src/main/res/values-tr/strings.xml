@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">Uygulama Sürümü ve Güncellemeler</string>
     <string name="settings_version_desc">%1$s • Google Play üzerinden güncellemeleri denetle</string>
+    <string name="label_quick_tools_stamps">Form Araçları ve Mühürler</string>
 </resources>

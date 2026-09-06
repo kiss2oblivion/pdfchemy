@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">إصدار التطبيق والتحديثات</string>
     <string name="settings_version_desc">%1$s • التحقق من وجود تحديثات على Google Play</string>
+    <string name="label_quick_tools_stamps">أدوات النماذج والأختام</string>
 </resources>

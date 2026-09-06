@@ -981,4 +981,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">Versi Aplikasi &amp; Pembaruan</string>
     <string name="settings_version_desc">%1$s • Periksa pembaruan di Google Play</string>
+    <string name="label_quick_tools_stamps">Alat Formulir &amp; Stempel</string>
 </resources>

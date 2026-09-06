@@ -3,6 +3,11 @@ package com.pdfchemy.app.logic
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.net.Uri
 import com.pdfchemy.app.utils.AppLogger
 import com.tom_roush.pdfbox.pdmodel.PDDocument
@@ -140,5 +145,76 @@ object SignatureEngine {
         } finally {
             doc?.close()
         }
+    }
+
+    fun createMarkBitmap(symbol: String, colorHex: String, size: Int = 120): Bitmap {
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint().apply {
+            isAntiAlias = true
+            color = Color.parseColor(colorHex)
+            textSize = size * 0.75f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val yOffset = (canvas.height / 2f) - ((paint.descent() + paint.ascent()) / 2f)
+        canvas.drawText(symbol, canvas.width / 2f, yOffset, paint)
+        return bmp
+    }
+
+    fun createBusinessStampBitmap(
+        title: String,
+        subtext: String? = null,
+        colorHex: String,
+        width: Int = 360,
+        height: Int = 120
+    ): Bitmap {
+        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val colorInt = Color.parseColor(colorHex)
+
+        val borderPaint = Paint().apply {
+            isAntiAlias = true
+            color = colorInt
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+        }
+        val rect = RectF(8f, 8f, width - 8f, height - 8f)
+        canvas.drawRoundRect(rect, 16f, 16f, borderPaint)
+
+        val innerPaint = Paint().apply {
+            isAntiAlias = true
+            color = colorInt
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        val innerRect = RectF(14f, 14f, width - 14f, height - 14f)
+        canvas.drawRoundRect(innerRect, 12f, 12f, innerPaint)
+
+        val titlePaint = Paint().apply {
+            isAntiAlias = true
+            color = colorInt
+            textSize = if (subtext.isNullOrBlank()) 26f else 22f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        if (subtext.isNullOrBlank()) {
+            val yOffset = (height / 2f) - ((titlePaint.descent() + titlePaint.ascent()) / 2f)
+            canvas.drawText(title, width / 2f, yOffset, titlePaint)
+        } else {
+            canvas.drawText(title, width / 2f, 50f, titlePaint)
+
+            val subPaint = Paint().apply {
+                isAntiAlias = true
+                color = colorInt
+                textSize = 14f
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            canvas.drawText(subtext, width / 2f, 85f, subPaint)
+        }
+
+        return bmp
     }
 }

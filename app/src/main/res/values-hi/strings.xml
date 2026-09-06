@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">ऐप संस्करण और अपडेट</string>
     <string name="settings_version_desc">%1$s • Google Play पर अपडेट की जांच करें</string>
+    <string name="label_quick_tools_stamps">फ़ॉर्म उपकरण और टिकटें</string>
 </resources>

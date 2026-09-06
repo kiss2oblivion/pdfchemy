@@ -972,4 +972,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">앱 버전 및 업데이트</string>
     <string name="settings_version_desc">%1$s • Google Play에서 업데이트 확인</string>
+    <string name="label_quick_tools_stamps">양식 도구 및 스탬프</string>
 </resources>

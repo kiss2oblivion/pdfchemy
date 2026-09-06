@@ -4,6 +4,9 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm
+import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -264,5 +267,123 @@ class DesktopPdfEngineTest {
         assertTrue("Extracted text should contain page number 1 of 3", text.contains("Page 1 of 3"))
         assertTrue("Extracted text should contain page number 2 of 3", text.contains("Page 2 of 3"))
         assertTrue("Extracted text should contain page number 3 of 3", text.contains("Page 3 of 3"))
+    }
+
+    @Test
+    fun testAcroFormExtractionAndFlattening() {
+        val file = tempFolder.newFile("test_acroform.pdf")
+        val doc = PDDocument()
+        val page = PDPage()
+        doc.addPage(page)
+
+        val acroForm = PDAcroForm(doc)
+        doc.documentCatalog.acroForm = acroForm
+
+        val res = org.apache.pdfbox.pdmodel.PDResources()
+        res.put(org.apache.pdfbox.cos.COSName.getPDFName("Helv"), PDType1Font.HELVETICA)
+        acroForm.defaultResources = res
+        acroForm.defaultAppearance = "/Helv 12 Tf 0 g"
+
+        val textField = PDTextField(acroForm)
+        textField.partialName = "ApplicantName"
+        textField.defaultAppearance = "/Helv 12 Tf 0 g"
+        textField.value = "Original Name"
+        acroForm.fields.add(textField)
+
+        val checkBox = PDCheckBox(acroForm)
+        checkBox.partialName = "TermsAccepted"
+        checkBox.unCheck()
+        acroForm.fields.add(checkBox)
+
+        doc.save(file)
+        doc.close()
+
+        // 1. Detection
+        assertTrue(DesktopPdfEngine.hasAcroForm(file))
+
+        // 2. Extraction
+        val fields = DesktopPdfEngine.extractAcroFields(file)
+        assertEquals(2, fields.size)
+        val nameField = fields.find { it.name == "ApplicantName" }
+        assertNotNull(nameField)
+        assertEquals(AcroFieldType.TEXT, nameField!!.type)
+        assertEquals("Original Name", nameField.value)
+
+        val checkField = fields.find { it.name == "TermsAccepted" }
+        assertNotNull(checkField)
+        assertEquals(AcroFieldType.CHECKBOX, checkField!!.type)
+
+        // 3. Fill and Flatten
+        val flattened = tempFolder.newFile("flattened_form.pdf")
+        val filled = DesktopPdfEngine.fillAndFlattenAcroForm(
+            inputFile = file,
+            outputFile = flattened,
+            fieldValues = mapOf("ApplicantName" to "John Doe", "TermsAccepted" to "Yes"),
+            flatten = true
+        )
+        assertTrue(filled)
+        assertTrue(flattened.exists() && flattened.length() > 0)
+
+        // Once flattened, interactive form is removed
+        assertFalse(DesktopPdfEngine.hasAcroForm(flattened))
+    }
+
+    @Test
+    fun testCompareDocumentsIdentical() {
+        val pdf1 = createTestPdf(pages = 2, text = "Legal Contract Revision 1")
+        val pdf2 = createTestPdf(pages = 2, text = "Legal Contract Revision 1")
+
+        val summary = DesktopPdfEngine.compareDocuments(pdf1, pdf2)
+        assertTrue(summary.isEntirelyIdentical)
+        assertEquals(2, summary.pagesA)
+        assertEquals(2, summary.pagesB)
+        assertEquals(0, summary.totalAddedLines)
+        assertEquals(0, summary.totalRemovedLines)
+        assertEquals(2, summary.pageDiffs.size)
+        assertTrue(summary.pageDiffs[0].isIdentical)
+        assertTrue(summary.pageDiffs[1].isIdentical)
+    }
+
+    @Test
+    fun testCompareDocumentsDiffering() {
+        val pdf1 = tempFolder.newFile("diff_a.pdf")
+        val doc1 = PDDocument()
+        val page1 = PDPage()
+        doc1.addPage(page1)
+        PDPageContentStream(doc1, page1).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA, 12f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Clause 1: Scope of Work")
+            cs.newLineAtOffset(0f, -20f)
+            cs.showText("Clause 2: Payment in 30 Days")
+            cs.endText()
+        }
+        doc1.save(pdf1)
+        doc1.close()
+
+        val pdf2 = tempFolder.newFile("diff_b.pdf")
+        val doc2 = PDDocument()
+        val page2 = PDPage()
+        doc2.addPage(page2)
+        PDPageContentStream(doc2, page2).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA, 12f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Clause 1: Scope of Work")
+            cs.newLineAtOffset(0f, -20f)
+            cs.showText("Clause 2: Payment in 14 Days (Accelerated)")
+            cs.newLineAtOffset(0f, -20f)
+            cs.showText("Clause 3: Confidentiality Warranty")
+            cs.endText()
+        }
+        doc2.save(pdf2)
+        doc2.close()
+
+        val summary = DesktopPdfEngine.compareDocuments(pdf1, pdf2)
+        assertFalse(summary.isEntirelyIdentical)
+        assertEquals(1, summary.pageDiffs.size)
+        assertFalse(summary.pageDiffs[0].isIdentical)
+        assertTrue(summary.totalAddedLines > 0)
     }
 }

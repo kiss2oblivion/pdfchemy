@@ -1016,4 +1016,5 @@
     <string name="manifesto_btn_revolut">Revolut (@andreiy886)</string>
     <string name="settings_version_title">App Version &amp; Updates</string>
     <string name="settings_version_desc">%1$s • Check for updates on Google Play</string>
+    <string name="label_quick_tools_stamps">Form Tools &amp; Stamps</string>
 </resources>
