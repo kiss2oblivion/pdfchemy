@@ -104,7 +104,10 @@ fun DesktopApp(
     }
 
     if (showManifestoDialog) {
-        ManifestoDialog(onDismiss = { showManifestoDialog = false })
+        ManifestoDialog(
+            onDismiss = { showManifestoDialog = false },
+            onOpenTipJar = { showTipJarDialog = true }
+        )
     }
 
     if (showSetupDialog) {
@@ -2805,25 +2808,13 @@ private fun TipJarDialog(onDismiss: () -> Unit) {
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.padding(16.dp)) {
                         Text(
                             strings.tipJarDesc,
                             style = MaterialTheme.typography.bodyMedium,
-                            lineHeight = 20.sp,
+                            lineHeight = 22.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Rounded.Shield, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(14.dp))
-                            Text(
-                                "100% Free • Forever Offline • No Ads • Independent Developer",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
                     }
                 }
 
@@ -2985,11 +2976,12 @@ private fun TipJarDialog(onDismiss: () -> Unit) {
                     }
                 }
 
-                // Footnote
+                // Friendly closing
                 Text(
-                    strings.donationFootnote,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    "❤️ Andrei Ioan Cucoș (John)",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -3002,7 +2994,10 @@ private fun TipJarDialog(onDismiss: () -> Unit) {
 // THE LIFETIME MANIFESTO DIALOG
 // -------------------------------------------------------------------------------------------------
 @Composable
-private fun ManifestoDialog(onDismiss: () -> Unit) {
+private fun ManifestoDialog(
+    onDismiss: () -> Unit,
+    onOpenTipJar: () -> Unit = {}
+) {
     val strings = DesktopLocalization.strings
 
     AlertDialog(
@@ -3094,41 +3089,19 @@ private fun ManifestoDialog(onDismiss: () -> Unit) {
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        onOpenTipJar()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5E5B))
                 ) {
-                    OutlinedButton(
-                        onClick = { openBrowser("https://ko-fi.com/andreiioancucos") },
-                        modifier = Modifier.weight(1f).height(42.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5E5B))
-                    ) {
-                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFF5E5B))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.btnKofi, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    OutlinedButton(
-                        onClick = { openBrowser("https://revolut.me/andreiy886") },
-                        modifier = Modifier.weight(1f).height(42.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0075EB))
-                    ) {
-                        Icon(Icons.Rounded.CreditCard, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF0075EB))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.btnRevolut, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                    Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFF5E5B))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnOpenTipJar, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-
-                // Quiet, humble footnote for anyone seeking to support
-                Text(
-                    strings.donationFootnote,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     )

@@ -135,9 +135,9 @@ data class DesktopStrings(
     val clear: String,
     val clearAll: String,
     val error: String,
-    val tipJarTitle: String = "The PDFchemy Tip Jar",
-    val tipJarSubtitle: String = "Support Independent & 100% Offline Software",
-    val tipJarDesc: String = "PDFchemy on Windows & Linux is completely free, private, and local-first. Zero telemetry, zero cloud tracking, and no paywalls. If PDFchemy saved your day or helps you at work, consider leaving a tip to support development!",
+    val tipJarTitle: String = "The Tip Jar",
+    val tipJarSubtitle: String = "Buy the developer a coffee • Optional tip",
+    val tipJarDesc: String = "If PDFchemy saved you time, salvaged a deadline, or made your day easier, you can toss a tip in the jar to support development and keep the coffee flowing! ☕",
     val tierCoffee: String = "Espresso",
     val tierCoffeeDesc: String = "$3 • Quick energy boost",
     val tierSnack: String = "Snack & Coffee",
@@ -149,9 +149,9 @@ data class DesktopStrings(
     val revolutTagCopied: String = "Copied: @andreiy886",
     val btnCopyRevolutTag: String = "Copy Tag: @andreiy886",
     val btnStarGitHub: String = "Star on GitHub",
-    val tipJarHomeCardTitle: String = "Enjoying PDFchemy Desktop?",
-    val tipJarHomeCardDesc: String = "100% offline, privacy-guaranteed & free forever. Leave a tip in the Tip Jar to support independent development.",
-    val btnOpenTipJar: String = "Tip Jar"
+    val tipJarHomeCardTitle: String = "The Tip Jar",
+    val tipJarHomeCardDesc: String = "If this tool helped you out today, consider buying the developer a coffee.",
+    val btnOpenTipJar: String = "Leave a Tip"
 )
 
 /**
@@ -826,9 +826,9 @@ object DesktopStringStore {
         clear = "Curăță",
         clearAll = "Curăță Tot",
         error = "Eroare",
-        tipJarTitle = "Borcanul cu Bacșiș PDFchemy",
-        tipJarSubtitle = "Susține Software-ul Independent & 100% Offline",
-        tipJarDesc = "PDFchemy pe Windows & Linux este complet gratuit, privat și local-first. Fără telemetrie, fără cloud și fără reclame sau abonamente. Este creat cu pasiune de Andrei Ioan Cucoș (John). Dacă PDFchemy te-a ajutat sau ți-a salvat ziua, poți lăsa un bacșiș pentru a susține dezvoltarea!",
+        tipJarTitle = "Borcanul cu Bacșiș",
+        tipJarSubtitle = "Cinstește dezvoltatorul cu o cafea • Bacșiș opțional",
+        tipJarDesc = "Dacă PDFchemy ți-a salvat un deadline sau ți-a făcut munca mai ușoară, poți lăsa un bacșiș pentru o cafea sau o pizza! ☕",
         tierCoffee = "Espresso",
         tierCoffeeDesc = "3$ (15 lei) • Energie rapidă",
         tierSnack = "Gustare & Cafea",
@@ -840,9 +840,9 @@ object DesktopStringStore {
         revolutTagCopied = "Tag copiat: @andreiy886",
         btnCopyRevolutTag = "Copiază Tag: @andreiy886",
         btnStarGitHub = "Steluță pe GitHub",
-        tipJarHomeCardTitle = "Îți place PDFchemy Desktop?",
-        tipJarHomeCardDesc = "100% offline, confidențialitate garantată și gratuit pentru totdeauna. Lasă un bacșiș în Borcanul de Bacșiș pentru a susține dezvoltarea independentă.",
-        btnOpenTipJar = "Borcanul cu Bacșiș"
+        tipJarHomeCardTitle = "Borcanul cu Bacșiș",
+        tipJarHomeCardDesc = "Dacă unealta ți-a fost utilă, poți susține dezvoltatorul cu o cafea.",
+        btnOpenTipJar = "Lasă un bacșiș"
     )
 
     val IT = DesktopStrings(
