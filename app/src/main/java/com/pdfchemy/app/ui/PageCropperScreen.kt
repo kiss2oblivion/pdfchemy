@@ -32,15 +32,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.NormalizedCropRect
 import com.pdfchemy.app.logic.PdfCropEngine
@@ -60,6 +63,7 @@ fun PageCropperScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     BackHandler { onBack() }
 
@@ -168,6 +172,7 @@ fun PageCropperScreen(
                 actions = {
                     if (selectedPdfUri != null) {
                         IconButton(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             previewBitmap?.let { bmp ->
                                 cropRect = PdfCropEngine.detectContentBounds(bmp)
                             }
@@ -179,6 +184,7 @@ fun PageCropperScreen(
                             )
                         }
                         IconButton(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             cropRect = NormalizedCropRect(0.05f, 0.05f, 0.95f, 0.95f)
                         }) {
                             Icon(Icons.Rounded.RestartAlt, contentDescription = stringResource(R.string.btn_reset_crop))
@@ -337,6 +343,7 @@ fun PageCropperScreen(
                     FilledTonalButton(
                         modifier = Modifier.weight(1f),
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             previewBitmap?.let { bmp ->
                                 cropRect = PdfCropEngine.detectContentBounds(bmp)
                             }
@@ -350,12 +357,35 @@ fun PageCropperScreen(
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             cropRect = NormalizedCropRect(0.05f, 0.05f, 0.95f, 0.95f)
                         }
                     ) {
                         Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(R.string.btn_reset_crop))
+                    }
+                }
+
+                // Margin Presets
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Margins:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf(
+                        "Minimal (2%)" to 0.02f,
+                        "Standard (5%)" to 0.05f,
+                        "Wide (10%)" to 0.10f
+                    ).forEach { (label, margin) ->
+                        AssistChip(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                cropRect = NormalizedCropRect(margin, margin, 1f - margin, 1f - margin)
+                            },
+                            label = { Text(label, fontSize = 11.sp) }
+                        )
                     }
                 }
 
@@ -386,7 +416,10 @@ fun PageCropperScreen(
                         }
                         Switch(
                             checked = applyToAllPages,
-                            onCheckedChange = { applyToAllPages = it }
+                            onCheckedChange = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                applyToAllPages = it
+                            }
                         )
                     }
                 }

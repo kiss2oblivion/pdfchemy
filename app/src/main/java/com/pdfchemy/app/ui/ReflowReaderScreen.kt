@@ -33,6 +33,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -90,6 +92,45 @@ fun ReflowReaderScreen(
     var useSerifFont by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val listState = rememberLazyListState()
+
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var currentMatchIndex by remember { mutableIntStateOf(0) }
+
+    val searchMatches = remember(searchQuery, reflowSections) {
+        val q = searchQuery.trim()
+        if (q.length < 2) emptyList()
+        else {
+            val list = mutableListOf<Int>()
+            reflowSections.forEachIndexed { sIdx, section ->
+                val hasMatch = section.paragraphs.any { p -> p.contains(q, ignoreCase = true) }
+                if (hasMatch) list.add(sIdx)
+            }
+            list
+        }
+    }
+
+    val onPreviousMatch = {
+        if (searchMatches.isNotEmpty()) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            val newIdx = if (currentMatchIndex > 0) currentMatchIndex - 1 else searchMatches.size - 1
+            currentMatchIndex = newIdx
+            scope.launch {
+                listState.animateScrollToItem(searchMatches[newIdx])
+            }
+        }
+    }
+
+    val onNextMatch = {
+        if (searchMatches.isNotEmpty()) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            val newIdx = if (currentMatchIndex < searchMatches.size - 1) currentMatchIndex + 1 else 0
+            currentMatchIndex = newIdx
+            scope.launch {
+                listState.animateScrollToItem(searchMatches[newIdx])
+            }
+        }
+    }
 
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -150,41 +191,132 @@ fun ReflowReaderScreen(
         Scaffold(
             containerColor = selectedTheme.bg,
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = if (selectedPdfUri != null) FileUtils.getFileName(context, selectedPdfUri!!) ?: "Reader" else stringResource(R.string.menu_reflow_reader),
-                            color = selectedTheme.text,
-                            maxLines = 1
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = selectedTheme.bg,
-                        scrolledContainerColor = selectedTheme.bg
-                    ),
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back), tint = selectedTheme.text)
-                        }
-                    },
-                    actions = {
-                        if (bookmarks.isNotEmpty()) {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Rounded.MenuBook, contentDescription = "Table of Contents", tint = selectedTheme.text)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = if (selectedPdfUri != null) FileUtils.getFileName(context, selectedPdfUri!!) ?: "Reader" else stringResource(R.string.menu_reflow_reader),
+                                color = selectedTheme.text,
+                                maxLines = 1
+                            )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = selectedTheme.bg,
+                            scrolledContainerColor = selectedTheme.bg
+                        ),
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.desc_back), tint = selectedTheme.text)
+                            }
+                        },
+                        actions = {
+                            if (bookmarks.isNotEmpty()) {
+                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(Icons.Rounded.MenuBook, contentDescription = "Table of Contents", tint = selectedTheme.text)
+                                }
+                            }
+                            if (selectedPdfUri != null && reflowSections.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    isSearchActive = !isSearchActive
+                                    if (!isSearchActive) searchQuery = ""
+                                }) {
+                                    Icon(
+                                        Icons.Rounded.Search,
+                                        contentDescription = "Search Text",
+                                        tint = if (isSearchActive) MaterialTheme.colorScheme.primary else selectedTheme.text
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { forceTabletopMode = !forceTabletopMode }) {
+                                Icon(
+                                    imageVector = if (isTabletopMode) Icons.Rounded.LaptopMac else Icons.Rounded.PhoneAndroid,
+                                    contentDescription = stringResource(if (isTabletopMode) R.string.flip_fullscreen_mode else R.string.flip_tabletop_mode),
+                                    tint = if (isTabletopMode) MaterialTheme.colorScheme.primary else selectedTheme.text
+                                )
+                            }
+                            IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf", "application/epub+zip", "application/zip", "application/octet-stream")) }) {
+                                Icon(Icons.Rounded.FolderOpen, contentDescription = "Open Document", tint = selectedTheme.text)
                             }
                         }
-                        IconButton(onClick = { forceTabletopMode = !forceTabletopMode }) {
-                            Icon(
-                                imageVector = if (isTabletopMode) Icons.Rounded.LaptopMac else Icons.Rounded.PhoneAndroid,
-                                contentDescription = stringResource(if (isTabletopMode) R.string.flip_fullscreen_mode else R.string.flip_tabletop_mode),
-                                tint = if (isTabletopMode) MaterialTheme.colorScheme.primary else selectedTheme.text
-                            )
-                        }
-                        IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf", "application/epub+zip", "application/zip", "application/octet-stream")) }) {
-                            Icon(Icons.Rounded.FolderOpen, contentDescription = "Open Document", tint = selectedTheme.text)
+                    )
+
+                    AnimatedVisibility(
+                        visible = isSearchActive,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Surface(
+                            color = selectedTheme.bg,
+                            tonalElevation = 4.dp,
+                            shadowElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = {
+                                        searchQuery = it
+                                        currentMatchIndex = 0
+                                        if (it.trim().length >= 2) {
+                                            val firstMatch = reflowSections.indexOfFirst { s ->
+                                                s.paragraphs.any { p -> p.contains(it.trim(), ignoreCase = true) }
+                                            }
+                                            if (firstMatch >= 0) {
+                                                scope.launch { listState.animateScrollToItem(firstMatch) }
+                                            }
+                                        }
+                                    },
+                                    placeholder = { Text("Find text in document...", fontSize = 13.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    trailingIcon = {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(Icons.Rounded.Close, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = selectedTheme.text,
+                                        unfocusedTextColor = selectedTheme.text
+                                    )
+                                )
+
+                                if (searchQuery.trim().length >= 2) {
+                                    Text(
+                                        text = if (searchMatches.isEmpty()) "0" else "${currentMatchIndex + 1}/${searchMatches.size}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (searchMatches.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                    )
+
+                                    IconButton(
+                                        onClick = onPreviousMatch,
+                                        enabled = searchMatches.isNotEmpty(),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.ExpandLess, contentDescription = "Previous Match", tint = selectedTheme.text)
+                                    }
+
+                                    IconButton(
+                                        onClick = onNextMatch,
+                                        enabled = searchMatches.isNotEmpty(),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.ExpandMore, contentDescription = "Next Match", tint = selectedTheme.text)
+                                    }
+                                }
+                            }
                         }
                     }
-                )
+                }
             },
             bottomBar = {
                 if (selectedPdfUri != null && reflowSections.isNotEmpty() && !isTabletopMode) {
@@ -359,13 +491,12 @@ fun ReflowReaderScreen(
                                         }
 
                                         section.paragraphs.forEach { p ->
-                                            Text(
+                                            HighlightedParagraph(
                                                 text = p,
-                                                color = selectedTheme.text,
-                                                fontSize = fontSizeSp.sp,
-                                                lineHeight = (fontSizeSp * 1.55f).sp,
-                                                fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
-                                                textAlign = TextAlign.Start
+                                                searchQuery = searchQuery,
+                                                textColor = selectedTheme.text,
+                                                fontSizeSp = fontSizeSp,
+                                                useSerifFont = useSerifFont
                                             )
                                         }
                                     }
@@ -520,13 +651,12 @@ fun ReflowReaderScreen(
                                 }
 
                                 section.paragraphs.forEach { p ->
-                                    Text(
+                                    HighlightedParagraph(
                                         text = p,
-                                        color = selectedTheme.text,
-                                        fontSize = fontSizeSp.sp,
-                                        lineHeight = (fontSizeSp * 1.55f).sp,
-                                        fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
-                                        textAlign = TextAlign.Start
+                                        searchQuery = searchQuery,
+                                        textColor = selectedTheme.text,
+                                        fontSizeSp = fontSizeSp,
+                                        useSerifFont = useSerifFont
                                     )
                                 }
                             }
@@ -562,13 +692,12 @@ fun ReflowReaderScreen(
                                 }
 
                                 section.paragraphs.forEach { p ->
-                                    Text(
+                                    HighlightedParagraph(
                                         text = p,
-                                        color = selectedTheme.text,
-                                        fontSize = fontSizeSp.sp,
-                                        lineHeight = (fontSizeSp * 1.55f).sp,
-                                        fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
-                                        textAlign = TextAlign.Start
+                                        searchQuery = searchQuery,
+                                        textColor = selectedTheme.text,
+                                        fontSizeSp = fontSizeSp,
+                                        useSerifFont = useSerifFont
                                     )
                                 }
                             }
@@ -578,5 +707,61 @@ fun ReflowReaderScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HighlightedParagraph(
+    text: String,
+    searchQuery: String,
+    textColor: Color,
+    fontSizeSp: Float,
+    useSerifFont: Boolean
+) {
+    val trimmed = searchQuery.trim()
+    if (trimmed.length < 2 || !text.contains(trimmed, ignoreCase = true)) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = fontSizeSp.sp,
+            lineHeight = (fontSizeSp * 1.55f).sp,
+            fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
+            textAlign = TextAlign.Start
+        )
+    } else {
+        val annotated = buildAnnotatedString {
+            var startIndex = 0
+            val lowerText = text.lowercase()
+            val lowerQuery = trimmed.lowercase()
+            while (startIndex < text.length) {
+                val matchIdx = lowerText.indexOf(lowerQuery, startIndex)
+                if (matchIdx == -1) {
+                    append(text.substring(startIndex))
+                    break
+                }
+                if (matchIdx > startIndex) {
+                    append(text.substring(startIndex, matchIdx))
+                }
+                val matchEnd = matchIdx + trimmed.length
+                pushStyle(
+                    SpanStyle(
+                        background = Color(0xFFFFD54F),
+                        color = Color(0xFF1E293B),
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                append(text.substring(matchIdx, matchEnd))
+                pop()
+                startIndex = matchEnd
+            }
+        }
+        Text(
+            text = annotated,
+            color = textColor,
+            fontSize = fontSizeSp.sp,
+            lineHeight = (fontSizeSp * 1.55f).sp,
+            fontFamily = if (useSerifFont) FontFamily.Serif else FontFamily.SansSerif,
+            textAlign = TextAlign.Start
+        )
     }
 }

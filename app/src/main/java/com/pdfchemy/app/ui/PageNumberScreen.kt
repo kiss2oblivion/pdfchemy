@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +51,7 @@ fun PageNumberScreen(
 ) {
     androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
@@ -200,7 +203,7 @@ fun PageNumberScreen(
                     }
                 }
             } else {
-                // Page Preview
+                // Page Preview with Live Number Placement Overlay
                 if (previewBitmap != null) {
                     Box(
                         modifier = Modifier
@@ -217,6 +220,45 @@ fun PageNumberScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
+
+                        // Visual Live Page Number Indicator
+                        val overlayAlignment = when (selectedPosition) {
+                            NumberPosition.TOP_LEFT -> Alignment.TopStart
+                            NumberPosition.TOP_CENTER -> Alignment.TopCenter
+                            NumberPosition.TOP_RIGHT -> Alignment.TopEnd
+                            NumberPosition.BOTTOM_LEFT -> Alignment.BottomStart
+                            NumberPosition.BOTTOM_CENTER -> Alignment.BottomCenter
+                            NumberPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
+                        }
+
+                        val sampleNumberText = when (selectedFormat) {
+                            NumberFormat.PAGE_X_OF_Y -> "Page 1 of $totalPages"
+                            NumberFormat.SLASH -> "1 / $totalPages"
+                            NumberFormat.SIMPLE -> "1"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            contentAlignment = overlayAlignment
+                        ) {
+                            Surface(
+                                color = if (skipFirstPage) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
+                                shape = RoundedCornerShape(6.dp),
+                                shadowElevation = 2.dp
+                            ) {
+                                Text(
+                                    text = if (skipFirstPage) "$sampleNumberText (Cover: Skipped)" else sampleNumberText,
+                                    color = if (skipFirstPage) MaterialTheme.colorScheme.onSurfaceVariant
+                                            else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -233,7 +275,10 @@ fun PageNumberScreen(
                     ).forEach { (fmt, label) ->
                         FilterChip(
                             selected = selectedFormat == fmt,
-                            onClick = { selectedFormat = fmt },
+                            onClick = {
+                                selectedFormat = fmt
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            },
                             label = { Text(label, fontSize = 12.sp) }
                         )
                     }
@@ -249,16 +294,58 @@ fun PageNumberScreen(
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.label_top_header), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                            FilterChip(selected = selectedPosition == NumberPosition.TOP_LEFT, onClick = { selectedPosition = NumberPosition.TOP_LEFT }, label = { Text(stringResource(R.string.pos_left), fontSize = 11.sp) })
-                            FilterChip(selected = selectedPosition == NumberPosition.TOP_CENTER, onClick = { selectedPosition = NumberPosition.TOP_CENTER }, label = { Text(stringResource(R.string.pos_center), fontSize = 11.sp) })
-                            FilterChip(selected = selectedPosition == NumberPosition.TOP_RIGHT, onClick = { selectedPosition = NumberPosition.TOP_RIGHT }, label = { Text(stringResource(R.string.pos_right), fontSize = 11.sp) })
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.TOP_LEFT,
+                                onClick = {
+                                    selectedPosition = NumberPosition.TOP_LEFT
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_left), fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.TOP_CENTER,
+                                onClick = {
+                                    selectedPosition = NumberPosition.TOP_CENTER
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_center), fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.TOP_RIGHT,
+                                onClick = {
+                                    selectedPosition = NumberPosition.TOP_RIGHT
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_right), fontSize = 11.sp) }
+                            )
                         }
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         Text(stringResource(R.string.label_bottom_footer), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                            FilterChip(selected = selectedPosition == NumberPosition.BOTTOM_LEFT, onClick = { selectedPosition = NumberPosition.BOTTOM_LEFT }, label = { Text(stringResource(R.string.pos_left), fontSize = 11.sp) })
-                            FilterChip(selected = selectedPosition == NumberPosition.BOTTOM_CENTER, onClick = { selectedPosition = NumberPosition.BOTTOM_CENTER }, label = { Text(stringResource(R.string.pos_center), fontSize = 11.sp) })
-                            FilterChip(selected = selectedPosition == NumberPosition.BOTTOM_RIGHT, onClick = { selectedPosition = NumberPosition.BOTTOM_RIGHT }, label = { Text(stringResource(R.string.pos_right), fontSize = 11.sp) })
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.BOTTOM_LEFT,
+                                onClick = {
+                                    selectedPosition = NumberPosition.BOTTOM_LEFT
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_left), fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.BOTTOM_CENTER,
+                                onClick = {
+                                    selectedPosition = NumberPosition.BOTTOM_CENTER
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_center), fontSize = 11.sp) }
+                            )
+                            FilterChip(
+                                selected = selectedPosition == NumberPosition.BOTTOM_RIGHT,
+                                onClick = {
+                                    selectedPosition = NumberPosition.BOTTOM_RIGHT
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                label = { Text(stringResource(R.string.pos_right), fontSize = 11.sp) }
+                            )
                         }
                     }
                 }
@@ -277,7 +364,10 @@ fun PageNumberScreen(
                     }
                     Switch(
                         checked = skipFirstPage,
-                        onCheckedChange = { skipFirstPage = it }
+                        onCheckedChange = {
+                            skipFirstPage = it
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                     )
                 }
 

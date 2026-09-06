@@ -30,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,6 +69,7 @@ fun ImageCompressorScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     BackHandler { onBack() }
 
     var selectedTab by remember { mutableIntStateOf(initialTab) }
@@ -352,7 +355,12 @@ fun ImageCompressorScreen(
 
                                     Slider(
                                         value = quality,
-                                        onValueChange = { quality = it },
+                                        onValueChange = { newValue ->
+                                            if ((newValue * 100).roundToInt() != (quality * 100).roundToInt()) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            quality = newValue
+                                        },
                                         valueRange = 0.10f..1.00f,
                                         steps = 17,
                                         colors = SliderDefaults.colors(
@@ -366,10 +374,22 @@ fun ImageCompressorScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        PresetChip(label = stringResource(R.string.preset_extreme), active = (quality * 100).roundToInt() == 40) { quality = 0.40f }
-                                        PresetChip(label = stringResource(R.string.preset_optimal), active = (quality * 100).roundToInt() == 65) { quality = 0.65f }
-                                        PresetChip(label = stringResource(R.string.preset_crisp), active = (quality * 100).roundToInt() == 85) { quality = 0.85f }
-                                        PresetChip(label = stringResource(R.string.preset_max), active = (quality * 100).roundToInt() == 100) { quality = 1.00f }
+                                        PresetChip(label = stringResource(R.string.preset_extreme), active = (quality * 100).roundToInt() == 40) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            quality = 0.40f
+                                        }
+                                        PresetChip(label = stringResource(R.string.preset_optimal), active = (quality * 100).roundToInt() == 65) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            quality = 0.65f
+                                        }
+                                        PresetChip(label = stringResource(R.string.preset_crisp), active = (quality * 100).roundToInt() == 85) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            quality = 0.85f
+                                        }
+                                        PresetChip(label = stringResource(R.string.preset_max), active = (quality * 100).roundToInt() == 100) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            quality = 1.00f
+                                        }
                                     }
                                 }
                             } else {

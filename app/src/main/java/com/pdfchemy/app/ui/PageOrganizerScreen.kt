@@ -28,8 +28,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -62,10 +64,12 @@ fun PageOrganizerScreen(
 ) {
     androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
     var pageItems by remember { mutableStateOf<List<OrganizerPageItem>>(emptyList()) }
+    var originalPageItems by remember { mutableStateOf<List<OrganizerPageItem>>(emptyList()) }
     var selectedItemIndex by remember { mutableIntStateOf(-1) }
     var isOrganizing by remember { mutableStateOf(false) }
 
@@ -115,6 +119,7 @@ fun PageOrganizerScreen(
 
                     withContext(Dispatchers.Main) {
                         pageItems = items
+                        originalPageItems = items
                         selectedItemIndex = if (items.isNotEmpty()) 0 else -1
                     }
                 } catch (e: Exception) {
@@ -231,6 +236,65 @@ fun PageOrganizerScreen(
                     }
                 }
             } else {
+                // Global Quick Action Chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AssistChip(
+                        onClick = {
+                            if (pageItems.isNotEmpty()) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                pageItems = pageItems.reversed()
+                                if (selectedItemIndex >= 0) {
+                                    selectedItemIndex = pageItems.size - 1 - selectedItemIndex
+                                }
+                            }
+                        },
+                        label = { Text("Reverse", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.SyncAlt, contentDescription = null, modifier = Modifier.size(15.dp))
+                        }
+                    )
+
+                    AssistChip(
+                        onClick = {
+                            if (pageItems.isNotEmpty()) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                pageItems = pageItems.map { it.copy(rotation = (it.rotation + 90) % 360) }
+                            }
+                        },
+                        label = { Text("Rotate All", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.RotateRight, contentDescription = null, modifier = Modifier.size(15.dp))
+                        }
+                    )
+
+                    AssistChip(
+                        onClick = {
+                            if (originalPageItems.isNotEmpty()) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                pageItems = originalPageItems.map { it.copy(rotation = 0) }
+                                selectedItemIndex = if (pageItems.isNotEmpty()) 0 else -1
+                            }
+                        },
+                        label = { Text("Reset", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(15.dp))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = "${pageItems.size} p.",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 // Grid of Reorderable Page Thumbnails
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 100.dp),
@@ -252,7 +316,10 @@ fun PageOrganizerScreen(
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.25f),
                                     shape = RoundedCornerShape(10.dp)
                                 )
-                                .clickable { selectedItemIndex = index },
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedItemIndex = index
+                                },
                             shape = RoundedCornerShape(10.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
@@ -310,6 +377,7 @@ fun PageOrganizerScreen(
                         IconButton(
                             onClick = {
                                 if (selectedItemIndex > 0) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     val list = pageItems.toMutableList()
                                     val item = list.removeAt(selectedItemIndex)
                                     list.add(selectedItemIndex - 1, item)
@@ -326,6 +394,7 @@ fun PageOrganizerScreen(
                         IconButton(
                             onClick = {
                                 if (selectedItemIndex in pageItems.indices) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     val list = pageItems.toMutableList()
                                     val item = list[selectedItemIndex]
                                     list[selectedItemIndex] = item.copy(rotation = (item.rotation + 90) % 360)
@@ -341,6 +410,7 @@ fun PageOrganizerScreen(
                         IconButton(
                             onClick = {
                                 if (selectedItemIndex in pageItems.indices) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     val list = pageItems.toMutableList()
                                     val item = list[selectedItemIndex]
                                     list.add(selectedItemIndex + 1, item.copy(id = UUID.randomUUID().toString()))
@@ -356,6 +426,7 @@ fun PageOrganizerScreen(
                         // Insert Blank
                         IconButton(
                             onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 val insertIdx = if (selectedItemIndex in pageItems.indices) selectedItemIndex + 1 else pageItems.size
                                 val list = pageItems.toMutableList()
                                 list.add(insertIdx, OrganizerPageItem(isBlank = true))
@@ -370,6 +441,7 @@ fun PageOrganizerScreen(
                         IconButton(
                             onClick = {
                                 if (selectedItemIndex in pageItems.indices && pageItems.size > 1) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     val list = pageItems.toMutableList()
                                     list.removeAt(selectedItemIndex)
                                     pageItems = list
@@ -385,6 +457,7 @@ fun PageOrganizerScreen(
                         IconButton(
                             onClick = {
                                 if (selectedItemIndex < pageItems.size - 1) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     val list = pageItems.toMutableList()
                                     val item = list.removeAt(selectedItemIndex)
                                     list.add(selectedItemIndex + 1, item)

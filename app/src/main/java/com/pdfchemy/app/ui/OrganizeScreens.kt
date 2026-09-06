@@ -44,12 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.Screen
 import com.pdfchemy.app.ToolCard
 import android.widget.Toast
@@ -274,6 +277,7 @@ data class PdfItem(val uri: Uri, val name: String)
 fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var selectedFiles by remember { mutableStateOf(listOf<PdfItem>()) }
     var showHistorySheet by remember { mutableStateOf(false) }
     val historyRepo = remember { com.pdfchemy.app.logic.HistoryRepository(context) }
@@ -413,7 +417,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     itemsIndexed(
                         items = selectedFiles,
                         key = { _, item -> item.uri.toString() }
-                    ) { _, item ->
+                    ) { index, item ->
                         var isDragging by remember { mutableStateOf(false) }
                         var accumulatedY by remember { mutableStateOf(0f) }
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp)
@@ -426,6 +430,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                 .pointerInput(item) {
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = { 
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             isDragging = true 
                                             accumulatedY = 0f
                                         },
@@ -437,6 +442,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                             val currentIndex = selectedFiles.indexOf(item)
                                             if (currentIndex != -1) {
                                                 if (accumulatedY > 150f && currentIndex < selectedFiles.size - 1) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                     val list = selectedFiles.toMutableList()
                                                     val temp = list[currentIndex]
                                                     list[currentIndex] = list[currentIndex + 1]
@@ -444,6 +450,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                                                     selectedFiles = list
                                                     accumulatedY = 0f
                                                 } else if (accumulatedY < -150f && currentIndex > 0) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                     val list = selectedFiles.toMutableList()
                                                     val temp = list[currentIndex]
                                                     list[currentIndex] = list[currentIndex - 1]
@@ -458,14 +465,61 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Row(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Rounded.DragHandle, contentDescription = stringResource(R.string.desc_drag), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.width(16.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Icon(Icons.Rounded.PictureAsPdf, contentDescription = stringResource(R.string.desc_pdf), tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(item.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(item.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+                                // Quick Reorder & Remove Actions
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = {
+                                            if (index > 0) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                val list = selectedFiles.toMutableList()
+                                                val temp = list[index]
+                                                list[index] = list[index - 1]
+                                                list[index - 1] = temp
+                                                selectedFiles = list
+                                            }
+                                        },
+                                        enabled = index > 0,
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Text("▲", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            if (index < selectedFiles.size - 1) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                val list = selectedFiles.toMutableList()
+                                                val temp = list[index]
+                                                list[index] = list[index + 1]
+                                                list[index + 1] = temp
+                                                selectedFiles = list
+                                            }
+                                        },
+                                        enabled = index < selectedFiles.size - 1,
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Text("▼", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (index < selectedFiles.size - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            selectedFiles = selectedFiles.filterIndexed { i, _ -> i != index }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.Delete, contentDescription = "Remove file", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                    }
+                                }
                             }
                         }
                     }

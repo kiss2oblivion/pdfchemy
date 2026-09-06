@@ -2411,6 +2411,10 @@ fun RightPanel(
         return
     }
 
+    val view = androidx.compose.ui.platform.LocalView.current
+    val isHaptic by viewModel.isHapticEnabled.collectAsState()
+    val isSfx by viewModel.isSfxEnabled.collectAsState()
+
     val targetMb by viewModel.targetMb.collectAsState()
     var isTargetSizeEnabled by remember { mutableStateOf(targetMb != null) }
     val customPresetStr = stringResource(R.string.preset_custom)
@@ -2431,6 +2435,7 @@ fun RightPanel(
                 Switch(
                     checked = isTargetSizeEnabled,
                     onCheckedChange = { 
+                        playFeedback(view, isHaptic, isSfx)
                         isTargetSizeEnabled = it 
                         if (!it) {
                             viewModel.setTargetMb(null)
@@ -2452,9 +2457,18 @@ fun RightPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    CompressionPresetButton(stringResource(R.string.preset_smallest), 0.25f, currentQuality, recQuality == 0.25f) { viewModel.setQuality(0.25f) }
-                    CompressionPresetButton(stringResource(R.string.preset_balanced), 0.50f, currentQuality, recQuality == 0.50f) { viewModel.setQuality(0.50f) }
-                    CompressionPresetButton(stringResource(R.string.preset_best), 0.75f, currentQuality, recQuality == 0.75f) { viewModel.setQuality(0.75f) }
+                    CompressionPresetButton(stringResource(R.string.preset_smallest), 0.25f, currentQuality, recQuality == 0.25f) {
+                        playFeedback(view, isHaptic, isSfx)
+                        viewModel.setQuality(0.25f)
+                    }
+                    CompressionPresetButton(stringResource(R.string.preset_balanced), 0.50f, currentQuality, recQuality == 0.50f) {
+                        playFeedback(view, isHaptic, isSfx)
+                        viewModel.setQuality(0.50f)
+                    }
+                    CompressionPresetButton(stringResource(R.string.preset_best), 0.75f, currentQuality, recQuality == 0.75f) {
+                        playFeedback(view, isHaptic, isSfx)
+                        viewModel.setQuality(0.75f)
+                    }
                 }
             } else {
                 Text(stringResource(R.string.select_target_size_mb), style = MaterialTheme.typography.titleSmall)
@@ -2466,14 +2480,17 @@ fun RightPanel(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TargetPresetChip("2 MB", selectedTargetPreset == "2 MB", Modifier.weight(1f)) { 
+                        playFeedback(view, isHaptic, isSfx)
                         selectedTargetPreset = "2 MB"
                         viewModel.setTargetMb(2f)
                     }
                     TargetPresetChip("5 MB", selectedTargetPreset == "5 MB", Modifier.weight(1f)) { 
+                        playFeedback(view, isHaptic, isSfx)
                         selectedTargetPreset = "5 MB"
                         viewModel.setTargetMb(5f)
                     }
                     TargetPresetChip("10 MB", selectedTargetPreset == "10 MB", Modifier.weight(1f)) { 
+                        playFeedback(view, isHaptic, isSfx)
                         selectedTargetPreset = "10 MB"
                         viewModel.setTargetMb(10f)
                     }
@@ -2485,10 +2502,12 @@ fun RightPanel(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TargetPresetChip("20 MB", selectedTargetPreset == "20 MB", Modifier.weight(1f)) { 
+                        playFeedback(view, isHaptic, isSfx)
                         selectedTargetPreset = "20 MB"
                         viewModel.setTargetMb(20f)
                     }
                     TargetPresetChip(stringResource(R.string.preset_custom), selectedTargetPreset == customPresetStr, Modifier.weight(1f)) { 
+                        playFeedback(view, isHaptic, isSfx)
                         selectedTargetPreset = customPresetStr
                         viewModel.setTargetMb(customTargetValue.toFloatOrNull())
                     }
