@@ -157,6 +157,13 @@ enum class HeaderFooterPos {
     TOP_RIGHT
 }
 
+enum class RedactPattern(val regex: Regex, val label: String) {
+    SSN(Regex("""\b\d{3}-\d{2}-\d{4}\b"""), "SSN"),
+    CREDIT_CARD(Regex("""\b(?:\d[ -]*?){13,16}\b"""), "Credit Card"),
+    EMAIL(Regex("""\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"""), "Email"),
+    PHONE(Regex("""\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"""), "Phone Number")
+}
+
 data class PageItemSpec(
     val originalPageIndex: Int,
     val rotation: Int = 0
@@ -1353,6 +1360,123 @@ object DesktopPdfEngine {
         }
     }
 
+    /**
+     * Finds sensitive patterns in the document, draws black redaction rectangles over them, 
+     * and rasterizes the pages to permanently destroy the underlying vector text.
+     */
+    fun smartRedact(
+        inputFile: File,
+        outputFile: File,
+        patterns: List<RedactPattern>
+    ): File {
+        val tempRedacted = File.createTempFile("pdfchemy_redacted_", ".pdf")
+        val pagesToSanitize = mutableSetOf<Int>()
+        
+        PDDocument.load(inputFile).use { doc ->
+            for (pageIdx in 0 until doc.numberOfPages) {
+                val page = doc.getPage(pageIdx)
+                val origBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
+                
+                val stripper = object : PDFTextStripper() {
+                    val textPositions = mutableListOf<org.apache.pdfbox.text.TextPosition>()
+                    override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
+                        textPositions.add(text)
+                        super.processTextPosition(text)
+                    }
+                }
+                
+                stripper.startPage = pageIdx + 1
+                stripper.endPage = pageIdx + 1
+                stripper.getText(doc) // populate textPositions
+                
+                val chars = stripper.textPositions
+                val charMap = mutableMapOf<Int, org.apache.pdfbox.text.TextPosition>()
+                var currentText = ""
+                for (c in chars) {
+                    charMap[currentText.length] = c
+                    currentText += c.unicode
+                }
+                
+                var pageHasMatches = false
+                
+                PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+                    cs.setNonStrokingColor(0f, 0f, 0f) // Black
+                    
+                    for (pattern in patterns) {
+                        val exactMatches = pattern.regex.findAll(currentText)
+                        for (exactMatch in exactMatches) {
+                            pageHasMatches = true
+                            val matchStart = exactMatch.range.first
+                            val matchEnd = exactMatch.range.last
+                            
+                            var minX = Float.MAX_VALUE
+                            var minY = Float.MAX_VALUE
+                            var maxX = Float.MIN_VALUE
+                            var maxY = Float.MIN_VALUE
+                            
+                            for (i in matchStart..matchEnd) {
+                                val pos = charMap[i]
+                                if (pos != null) {
+                                    if (pos.xDirAdj < minX) minX = pos.xDirAdj
+                                    if (pos.yDirAdj - pos.heightDir < minY) minY = pos.yDirAdj - pos.heightDir
+                                    if (pos.xDirAdj + pos.widthDirAdj > maxX) maxX = pos.xDirAdj + pos.widthDirAdj
+                                    if (pos.yDirAdj > maxY) maxY = pos.yDirAdj
+                                }
+                            }
+                            
+                            if (minX < maxX && minY < maxY) {
+                                val padding = 2f
+                                val pdfY = origBox.upperRightY - maxY
+                                val rectHeight = maxY - minY
+                                cs.addRect(minX - padding, pdfY - padding, (maxX - minX) + padding * 2, rectHeight + padding * 2)
+                                cs.fill()
+                            }
+                        }
+                    }
+                }
+                
+                if (pageHasMatches) {
+                    pagesToSanitize.add(pageIdx)
+                }
+            }
+            doc.save(tempRedacted)
+        }
+        
+        // Forensic Pass: Rasterize redacted pages to clean images to eliminate underlying text bytes completely
+        if (pagesToSanitize.isNotEmpty()) {
+            PDDocument.load(tempRedacted).use { redactedDoc ->
+                val renderer = org.apache.pdfbox.rendering.PDFRenderer(redactedDoc)
+                val sanitizedDoc = PDDocument()
+                val dpi = 150f
+                
+                for (i in 0 until redactedDoc.numberOfPages) {
+                    val origPage = redactedDoc.getPage(i)
+                    if (pagesToSanitize.contains(i)) {
+                        val origBox = origPage.cropBox ?: origPage.mediaBox ?: PDRectangle.A4
+                        val rendered = renderer.renderImageWithDPI(i, dpi)
+                        val newPage = PDPage(PDRectangle(origBox.width, origBox.height))
+                        newPage.rotation = origPage.rotation
+                        sanitizedDoc.addPage(newPage)
+                        val pdImg = org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory.createFromImage(sanitizedDoc, rendered, 0.90f)
+                        PDPageContentStream(sanitizedDoc, newPage).use { cs ->
+                            cs.drawImage(pdImg, 0f, 0f, origBox.width, origBox.height)
+                        }
+                    } else {
+                        sanitizedDoc.importPage(origPage)
+                    }
+                }
+                sanitizedDoc.save(outputFile)
+                sanitizedDoc.close()
+            }
+        } else {
+            // No matches, just copy
+            java.nio.file.Files.copy(tempRedacted.toPath(), outputFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+        
+        tempRedacted.delete()
+        return outputFile
+    }
+
     fun sanitizeDocument(
         inputFile: File,
         outputFile: File,
@@ -2198,6 +2322,44 @@ object DesktopPdfEngine {
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    // ==========================================
+    // 11. PKI DIGITAL SIGNATURES (Sign & Stamp)
+    // ==========================================
+
+    fun signDocument(inputFile: File, outputFile: File, signerName: String, reason: String, location: String): Result<Boolean> {
+        return try {
+            // Generate ephemeral key pair and self-signed certificate for the specified name
+            val subjectStr = "CN=$signerName, O=PDFchemy, C=US"
+            val keyPairInfo = PdfCryptoSigner.generateSelfSignedCertificate(subjectStr)
+            
+            PdfCryptoSigner.signPdf(
+                sourceFile = inputFile,
+                destFile = outputFile,
+                keyPairInfo = keyPairInfo,
+                reason = reason,
+                location = location
+            )
+            Result.success(true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    // ==========================================
+    // 12. OCR (Optical Character Recognition)
+    // ==========================================
+
+    fun makeSearchable(inputFile: File, outputFile: File, onProgress: (current: Int, total: Int) -> Unit = { _, _ -> }): Result<Boolean> {
+        return try {
+            val success = PdfOcrEngine.createSearchablePdf(inputFile, outputFile, onProgress)
+            if (success) Result.success(true) else Result.failure(Exception("OCR failed"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
     }
 }

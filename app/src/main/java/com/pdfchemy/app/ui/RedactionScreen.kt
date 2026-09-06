@@ -26,9 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.PdfRedactionEngine
 import com.pdfchemy.app.logic.RedactionBox
+import com.pdfchemy.app.logic.RedactPattern
 import com.pdfchemy.app.logic.RedactionConfig
 import com.pdfchemy.app.utils.FileUtils
 import kotlinx.coroutines.launch
@@ -49,7 +51,10 @@ fun RedactionScreen(
     var isRegex by remember { mutableStateOf(false) }
 
     var isBlackout by remember { mutableStateOf(true) }
+    var forensicSanitize by remember { mutableStateOf(true) }
     var overlayText by remember { mutableStateOf("[REDACTED]") }
+    
+    var smartPatterns by remember { mutableStateOf(setOf<RedactPattern>()) }
 
     var foundBoxes by remember { mutableStateOf<List<RedactionBox>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
@@ -94,7 +99,8 @@ fun RedactionScreen(
                     defaultOverlayText = overlayText,
                     searchKeyword = searchQuery,
                     isRegex = isRegex,
-                    manualBoxes = foundBoxes
+                    manualBoxes = foundBoxes,
+                    forensicSanitize = forensicSanitize
                 )
 
                 val result = PdfRedactionEngine.applyRedactions(
@@ -106,6 +112,41 @@ fun RedactionScreen(
                 )
                 isProcessing = false
 
+                if (result.isSuccess) {
+                    viewModel.showSuccessToast(
+                        context.getString(R.string.title_redaction_success),
+                        context.getString(R.string.desc_redaction_success, result.getOrThrow())
+                    )
+                    onBack()
+                } else {
+                    viewModel.showErrorToast(
+                        context.getString(R.string.error_redaction_failed),
+                        result.exceptionOrNull()?.localizedMessage ?: ""
+                    )
+                }
+            }
+        }
+    }
+
+    val smartRedactLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { destUri ->
+        if (destUri != null && selectedPdfUri != null && smartPatterns.isNotEmpty()) {
+            coroutineScope.launch {
+                isProcessing = true
+                val config = RedactionConfig(
+                    isBlackout = isBlackout,
+                    defaultOverlayText = overlayText,
+                    forensicSanitize = forensicSanitize
+                )
+                val result = PdfRedactionEngine.smartRedact(
+                    context = context,
+                    pdfUri = selectedPdfUri!!,
+                    destUri = destUri,
+                    patterns = smartPatterns.toList(),
+                    config = config
+                )
+                isProcessing = false
                 if (result.isSuccess) {
                     viewModel.showSuccessToast(
                         context.getString(R.string.title_redaction_success),
@@ -280,6 +321,65 @@ fun RedactionScreen(
                         label = { Text(stringResource(R.string.opt_whiteout)) },
                         modifier = Modifier.weight(1f)
                     )
+                }
+
+                // Forensic Vector Sanitization Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("Forensic Vector Sanitization", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        Text("Rasterizes redacted pages to obliterate underlying text bytes completely.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = forensicSanitize,
+                        onCheckedChange = { forensicSanitize = it }
+                    )
+                }
+
+                // Smart PII Redaction
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Smart PII Redaction", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RedactPattern.values().forEach { pattern ->
+                                FilterChip(
+                                    selected = smartPatterns.contains(pattern),
+                                    onClick = {
+                                        if (smartPatterns.contains(pattern)) {
+                                            smartPatterns -= pattern
+                                        } else {
+                                            smartPatterns += pattern
+                                        }
+                                    },
+                                    label = { Text(pattern.label, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                        if (smartPatterns.isNotEmpty()) {
+                            Button(
+                                onClick = {
+                                    val base = selectedPdfUri?.let { FileUtils.getFileName(context, it)?.removeSuffix(".pdf") } ?: "document"
+                                    smartRedactLauncher.launch("${base}_smart_redacted.pdf")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isProcessing
+                            ) {
+                                if (isProcessing) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Icon(Icons.Rounded.AutoFixHigh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Auto-Scrub Selected PII")
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
