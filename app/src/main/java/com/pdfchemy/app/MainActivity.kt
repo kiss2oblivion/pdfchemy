@@ -595,6 +595,9 @@ fun MainApp(
             modifier = Modifier.fillMaxSize()
         ) { targetScreen ->
             when (targetScreen) {
+                // =========================================================================================
+                // 🏠 CORE NAVIGATION & SETTINGS
+                // =========================================================================================
                 Screen.Home -> HomeScreen(
                     windowWidthSizeClass = windowWidthSizeClass,
                     isDarkTheme = isDarkTheme,
@@ -609,78 +612,151 @@ fun MainApp(
                     onNavigate = { screen -> currentScreen = screen },
                     viewModel = viewModel
                 )
-                Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
-                Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
-                Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
-                Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
-                Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.TextConverter -> TextConverterScreen(textConverterViewModel, viewModel) { currentScreen = Screen.CreateCategory }
                 Screen.Settings -> SettingsScreen(
                     viewModel = viewModel,
                     themeMode = themeMode,
                     onChangeThemeMode = onChangeThemeMode,
                     onOpenTour = onOpenTour
                 ) { currentScreen = Screen.Home }
+                Screen.CompressCategory -> CompressCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
                 Screen.CreateCategory -> CreateCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
                 Screen.OrganizeCategory -> OrganizeCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
+
+                // =========================================================================================
+                // 1. 🗜️ COMPRESSION & OPTIMIZATION (FEATURES_REGISTRY Section 1)
+                // =========================================================================================
+                // [FEATURE: PDF Compressor] — 4 Presets (Extreme, Recommended, High Quality, Custom DPI/Quality)
+                Screen.CompressPdf -> CompressPdfScreen(viewModel, 0, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+                // [FEATURE: Batch PDF Compressor] — Parallel multi-file background compression
+                Screen.BatchCompressPdf -> CompressPdfScreen(viewModel, 1, isScreenshotRun) { currentScreen = Screen.CompressCategory }
+                // [FEATURE: Image Compressor] — Compress standalone JPEG/PNG/WEBP photos
+                Screen.ImageCompressor -> ImageCompressorScreen(viewModel) { currentScreen = Screen.CompressCategory }
+                // [FEATURE: Grayscale Optimizer] — Converts color PDF streams to monochrome/grayscale
+                Screen.GrayscaleOptimizer -> GrayscaleOptimizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Linearize (Fast Web View)] — Restructures PDF dictionary for instant streaming
+                Screen.LinearizePdf -> LinearizePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Flatten PDF] — Permanently bakes form fields, comments, and annotations into page layer
+                Screen.FlattenPdf -> FlattenPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+
+                // =========================================================================================
+                // 2. 📑 PAGE STUDIO & ORGANIZATION (FEATURES_REGISTRY Section 2)
+                // =========================================================================================
+                // [FEATURE: Merge PDFs] — Multi-document combiner with drag-and-drop reordering
+                Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Split PDFs (Range / All)] — Split into individual pages or arbitrary page ranges
+                Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Page Organizer] — Visual thumbnail grid: reorder, delete, duplicate, rotate
+                Screen.PageOrganizer -> PageOrganizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Delete Pages] — Visual single-page or multi-page removal
+                Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Rotate Pages] — Lossless 90°, 180°, 270° orientation correction
+                Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Auto-Deskew & Straighten] — Hough transform scan tilt auto-correction
+                Screen.Deskew -> DeskewScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Page Cropper & Margin Trimmer] — CropBox adjustment to remove scanner borders
+                Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Paper Canvas Resizer] — Standard paper dimension imposition (A4, Letter, Legal, A3)
+                Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: N-Up Handouts] — Imposes 2, 4, 6, 9, 16 pages per sheet with border guides
+                Screen.NUp -> NUpScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Booklet Imposition] — Saddle-stitch fold printer ordering
+                Screen.Booklet -> BookletScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+
+                // =========================================================================================
+                // 3. 🔄 CREATION & CONVERSION (FEATURES_REGISTRY Section 3)
+                // =========================================================================================
+                // [FEATURE: Images to PDF] — Converts camera photos, receipts, and gallery images to PDF
+                Screen.ImagesToPdf -> ImagesToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: PDF to High-Res Images] — Exports pages as PNG or JPEG image files
+                Screen.PdfToImages -> PdfToImagesScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Scan to PDF] — Hardware camera scan with edge auto-detection and perspective correction
+                Screen.ScanPdf -> ScanPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: EPUB to PDF Converter] — Standard EPUB parsing with fonts/margins to paginated PDF
+                Screen.EbookConverter -> EbookConverterScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Markdown to PDF Studio] — Rich Markdown editor with live preview
+                Screen.MarkdownStudio -> MarkdownStudioScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Text to PDF Converter] — Converts .txt, source code, and logs into paginated PDF
+                Screen.TextToPdf -> TextToPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Text Format Converter] — Inter-converts between TXT, RTF, and HTML
+                Screen.TextConverter -> TextConverterScreen(textConverterViewModel, viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Table Extractor to CSV] — 2D column clustering: extracts tables to RFC 4180 CSV / Excel
+                Screen.TableExtractor -> TableExtractorScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Office Export (Word / Excel / PPTX)] — Pure OpenXML generators: PDF to DOCX, XLSX, PPTX
+                is Screen.OfficeExport -> OfficeExportScreen((targetScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: On-Device OCR] — 100% offline optical character recognition
+                Screen.OcrPdf -> OcrPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Extract Text & Images] — Strips raw uncompressed text and raster bitmaps
+                Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+
+                // =========================================================================================
+                // 4. ✍️ FORM FILLING & DOCUMENT EDITING (FEATURES_REGISTRY Section 4)
+                // =========================================================================================
+                // [FEATURE: Visual PDF Editor] — Pen, highlighter, text overlays, shape rectangles, signature stamp
                 is Screen.PdfEditor -> {
                     val editorScreen = targetScreen as Screen.PdfEditor
                     PdfEditorScreen(viewModel, editorScreen.initialPdfUri) {
                         currentScreen = if (editorScreen.initialPdfUri != null) Screen.Home else Screen.OrganizeCategory
                     }
                 }
-                Screen.MergePdf -> MergePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.SplitPdf -> SplitPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.DeletePages -> DeletePagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.ExtractImages -> ExtractImagesScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.CheckCategory -> CheckCategoryScreen(onNavigate = { screen -> currentScreen = screen }, onBack = { currentScreen = Screen.Home })
+                // [FEATURE: Quick Fill & Sign] — Flat PDF tap-to-place annotations (Text, ✓, ✗, Date, Signatures)
+                Screen.QuickFillSign -> QuickFillSignScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Interactive Form Builder] — Converts flat PDFs into genuine fillable forms (PDAcroForm)
+                Screen.FormBuilder -> FormBuilderScreen { currentScreen = Screen.CreateCategory }
+                // [FEATURE: AcroForm Interactive Filler] — Inspects and fills standard interactive PDF forms
+                Screen.FillForm -> FillFormScreen(viewModel) { currentScreen = Screen.CreateCategory }
+                // [FEATURE: Visual Signer] — Draw smoothed vector signatures and place on page
+                Screen.SignPdf -> SignPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Watermark Studio] — Custom text/image watermarks with opacity and diagonal tiling
+                Screen.Watermark -> WatermarkScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Header & Footer Studio] — Running headers and footers with custom margins
+                Screen.HeaderFooter -> HeaderFooterScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Page Numbering Studio] — Page numbers (Page X of Y, X/Y), position, font, start offset
+                Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Bookmark Editor] — Edit document outline tree and table of contents
+                Screen.BookmarkEditor -> BookmarkEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Find & Replace Text] — Text search across pages with replacement or redaction
+                Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: Image Replacer] — Replace embedded raster objects in PDF stream
+                Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+
+                // =========================================================================================
+                // 5. 🛡️ SECURITY, PRIVACY & COMPLIANCE (FEATURES_REGISTRY Section 5)
+                // =========================================================================================
+                // [FEATURE: Encrypt / Password Protect] — AES-128 / AES-256 standard PDF encryption
+                Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Decrypt / Unlock PDF] — Strips passwords and permission restrictions
+                Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Permanent Smart Redaction] — PII auto-detection (emails, phones, SSNs) + stream scrubbing
+                Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Deep Threat Sanitizer] — Strips embedded JavaScript, launch actions, URI tracking beacons
+                Screen.DocumentSanitizer -> DocumentSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Metadata Sanitizer] — Purges author name, software creator, GPS coordinates, history
+                Screen.MetadataSanitizer -> MetadataSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 Screen.InspectMetadata -> InspectMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 Screen.StripMetadata -> StripMetadataScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 Screen.TextCleaner -> TextCleanerScreen { currentScreen = Screen.CheckCategory }
-                Screen.RotatePdf -> RotatePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.ExtractText -> ExtractTextScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.PdfToImages -> PdfToImagesScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.FillForm -> FillFormScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.OcrPdf -> OcrPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.ScanPdf -> ScanPdfScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.SignPdf -> SignPdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.PageOrganizer -> PageOrganizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.Watermark -> WatermarkScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.PageNumber -> PageNumberScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.PageLayout -> PageLayoutScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: PDF/A Preflight Validator] — Audits ISO 19005 compliance (OutputIntents, fonts, XMP)
+                Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Typography & Font Inspector] — Lists embedded font programs, TrueType/Type1, subsets
+                Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Embedded Attachments Manager] — Inspects, extracts, and embeds arbitrary file attachments
+                Screen.AttachmentManager -> AttachmentManagerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
+                // [FEATURE: PDF Repair Studio] — Reconstructs broken cross-reference tables and truncated trailers
+                Screen.RepairPdf -> RepairPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                // [FEATURE: Document Visual Comparison] — Side-by-side synchronized comparison & textual diffs
                 Screen.ComparePdf -> PdfCompareScreen(viewModel) { currentScreen = Screen.CheckCategory }
+
+                // =========================================================================================
+                // 6. 📖 READING & ACCESSIBILITY (FEATURES_REGISTRY Section 6)
+                // =========================================================================================
+                // [FEATURE: Reflow Reader Studio & Offline TTS] — E-reader reflow, themes, 100% offline TTS
                 is Screen.ReflowReader -> {
                     val reflowScreen = targetScreen as Screen.ReflowReader
                     ReflowReaderScreen(initialUri = reflowScreen.initialUri) { currentScreen = Screen.OrganizeCategory }
                 }
-                Screen.ImageReplacer -> ImageReplacerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.FindAndReplaceText -> FindAndReplaceScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.CropPdf -> PageCropperScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.MetadataSanitizer -> MetadataSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.MarkdownStudio -> MarkdownStudioScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.EbookConverter -> EbookConverterScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.FlattenPdf -> FlattenPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.Booklet -> BookletScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.RepairPdf -> RepairPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.GrayscaleOptimizer -> GrayscaleOptimizerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.HeaderFooter -> HeaderFooterScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.BookmarkEditor -> BookmarkEditorScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.AttachmentManager -> AttachmentManagerScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.LinearizePdf -> LinearizePdfScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.NUp -> NUpScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.PdfAValidator -> PdfAValidatorScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.FontInspector -> FontInspectorScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                is Screen.OfficeExport -> OfficeExportScreen((targetScreen as Screen.OfficeExport).initialFormat, viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.Deskew -> DeskewScreen(viewModel) { currentScreen = Screen.OrganizeCategory }
-                Screen.TableExtractor -> TableExtractorScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.DocumentSanitizer -> DocumentSanitizerScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                Screen.QuickFillSign -> QuickFillSignScreen(viewModel) { currentScreen = Screen.CreateCategory }
-                Screen.FormBuilder -> FormBuilderScreen { currentScreen = Screen.CreateCategory }
-                Screen.Premium -> PremiumUpgradeScreen(viewModel) { currentScreen = Screen.Home }
             }
         }
 
@@ -922,67 +998,132 @@ fun BannerAdView(modifier: Modifier = Modifier) {
     }
 }
 
+// =============================================================================================
+// MASTER SCREENS REGISTRY (Mapped 1:1 to FEATURES_REGISTRY.md)
+// =============================================================================================
 sealed class Screen {
+    // Core Navigation & Settings
     object Home : Screen()
-    object CompressPdf : Screen()
-    object BatchCompressPdf : Screen()
-    object ImageCompressor : Screen()
-    data class PdfEditor(val initialPdfUri: Uri? = null) : Screen()
-    object TextToPdf : Screen()
-    object TextConverter : Screen()
     object Settings : Screen()
+    object Premium : Screen()
     object CompressCategory : Screen()
     object CreateCategory : Screen()
     object OrganizeCategory : Screen()
-    object MergePdf : Screen()
-    object SplitPdf : Screen()
-    object DeletePages : Screen()
-    object ExtractImages : Screen()
     object CheckCategory : Screen()
+
+    // 1. 🗜️ COMPRESSION & OPTIMIZATION (FEATURES_REGISTRY Section 1)
+    // [FEATURE: PDF Compressor] — Presets & custom DPI/Quality
+    object CompressPdf : Screen()
+    // [FEATURE: Batch PDF Compressor] — Multi-file compression
+    object BatchCompressPdf : Screen()
+    // [FEATURE: Image Compressor] — Standalone photo compression
+    object ImageCompressor : Screen()
+    // [FEATURE: Grayscale Optimizer] — Monochrome stream conversion
+    object GrayscaleOptimizer : Screen()
+    // [FEATURE: Linearize (Fast Web View)] — Web streaming dictionary structure
+    object LinearizePdf : Screen()
+    // [FEATURE: Flatten PDF] — Bake form fields and annotations
+    object FlattenPdf : Screen()
+
+    // 2. 📑 PAGE STUDIO & ORGANIZATION (FEATURES_REGISTRY Section 2)
+    // [FEATURE: Merge PDFs] — Multi-document combiner
+    object MergePdf : Screen()
+    // [FEATURE: Split PDFs] — Range or single page split
+    object SplitPdf : Screen()
+    // [FEATURE: Page Organizer] — Visual thumbnail grid
+    object PageOrganizer : Screen()
+    // [FEATURE: Delete Pages] — Visual page deletion
+    object DeletePages : Screen()
+    // [FEATURE: Rotate Pages] — Orientation correction
+    object RotatePdf : Screen()
+    // [FEATURE: Auto-Deskew & Straighten] — Scan tilt correction
+    object Deskew : Screen()
+    // [FEATURE: Page Cropper & Margin Trimmer] — Scanner border trimmer
+    object CropPdf : Screen()
+    // [FEATURE: Paper Canvas Resizer] — Standard paper imposition
+    object PageLayout : Screen()
+    // [FEATURE: N-Up Handouts] — 2, 4, 6, 9, 16 pages per sheet
+    object NUp : Screen()
+    // [FEATURE: Booklet Imposition] — Saddle-stitch fold ordering
+    object Booklet : Screen()
+
+    // 3. 🔄 CREATION & CONVERSION (FEATURES_REGISTRY Section 3)
+    // [FEATURE: Images to PDF] — Gallery photos & receipts to PDF
+    object ImagesToPdf : Screen()
+    // [FEATURE: PDF to High-Res Images] — Export pages to PNG/JPEG
+    object PdfToImages : Screen()
+    // [FEATURE: Scan to PDF] — Camera scan with edge detection
+    object ScanPdf : Screen()
+    // [FEATURE: EPUB to PDF Converter] — Standard EPUB book conversion
+    object EbookConverter : Screen()
+    // [FEATURE: Markdown to PDF Studio] — Markdown editor & PDF compiler
+    object MarkdownStudio : Screen()
+    // [FEATURE: Text to PDF Converter] — Plain text to paginated PDF
+    object TextToPdf : Screen()
+    // [FEATURE: Text Format Converter] — TXT / RTF / HTML converter
+    object TextConverter : Screen()
+    // [FEATURE: Table Extractor to CSV] — 2D column clustering to RFC 4180 CSV
+    object TableExtractor : Screen()
+    // [FEATURE: Office Export] — Word (.docx), Excel (.xlsx), PowerPoint (.pptx)
+    data class OfficeExport(val initialFormat: com.pdfchemy.app.logic.OfficeFormat = com.pdfchemy.app.logic.OfficeFormat.WORD) : Screen()
+    // [FEATURE: On-Device OCR] — Offline OCR text layer generator
+    object OcrPdf : Screen()
+    // [FEATURE: Extract Text & Images] — Stream object dump
+    object ExtractText : Screen()
+    object ExtractImages : Screen()
+
+    // 4. ✍️ FORM FILLING & DOCUMENT EDITING (FEATURES_REGISTRY Section 4)
+    // [FEATURE: Visual PDF Editor] — Pen, highlighter, text, shapes, stamp
+    data class PdfEditor(val initialPdfUri: Uri? = null) : Screen()
+    // [FEATURE: Quick Fill & Sign] — Flat PDF tap-to-place marks (Text, ✓, ✗, Date, Signatures)
+    object QuickFillSign : Screen()
+    // [FEATURE: Interactive Form Builder] — PDAcroForm widget authoring (Text, Checkbox, Dropdown)
+    object FormBuilder : Screen()
+    // [FEATURE: AcroForm Interactive Filler] — Fill standard interactive forms
+    object FillForm : Screen()
+    // [FEATURE: Visual Signer] — Smooth vector signature placement
+    object SignPdf : Screen()
+    // [FEATURE: Watermark Studio] — Text & image watermarking
+    object Watermark : Screen()
+    // [FEATURE: Header & Footer Studio] — Running headers and footers
+    object HeaderFooter : Screen()
+    // [FEATURE: Page Numbering Studio] — Customizable page numbering
+    object PageNumber : Screen()
+    // [FEATURE: Bookmark Editor] — Document outline & TOC editor
+    object BookmarkEditor : Screen()
+    // [FEATURE: Find & Replace Text] — Text search & stream replacement
+    object FindAndReplaceText : Screen()
+    // [FEATURE: Image Replacer] — Stream raster image replacement
+    object ImageReplacer : Screen()
+
+    // 5. 🛡️ SECURITY, PRIVACY & COMPLIANCE (FEATURES_REGISTRY Section 5)
+    // [FEATURE: Encrypt / Password Protect] — AES-128 / AES-256 password protection
+    object ProtectPdf : Screen()
+    // [FEATURE: Decrypt / Unlock PDF] — Restriction & password stripper
+    object UnlockPdf : Screen()
+    // [FEATURE: Permanent Smart Redaction] — PII scrub & stream redaction
+    object Redaction : Screen()
+    // [FEATURE: Deep Threat Sanitizer] — JS, Actions, Beacons removal
+    object DocumentSanitizer : Screen()
+    // [FEATURE: Metadata Sanitizer] — Author, GPS, editing history purge
+    object MetadataSanitizer : Screen()
     object InspectMetadata : Screen()
     object StripMetadata : Screen()
     object TextCleaner : Screen()
-    object ImagesToPdf : Screen()
-    object RotatePdf : Screen()
-    object ExtractText : Screen()
-    object ProtectPdf : Screen()
-    object UnlockPdf : Screen()
-    object PdfToImages : Screen()
-    object FillForm : Screen()
-    object OcrPdf : Screen()
-    object ScanPdf : Screen()
-    object SignPdf : Screen()
-    object PageOrganizer : Screen()
-    object Watermark : Screen()
-    object PageNumber : Screen()
-    object PageLayout : Screen()
-    object ComparePdf : Screen()
-    data class ReflowReader(val initialUri: Uri? = null) : Screen()
-    object ImageReplacer : Screen()
-    object FindAndReplaceText : Screen()
-    object CropPdf : Screen()
-    object MetadataSanitizer : Screen()
-    object MarkdownStudio : Screen()
-    object EbookConverter : Screen()
-    object FlattenPdf : Screen()
-    object Booklet : Screen()
-    object RepairPdf : Screen()
-    object GrayscaleOptimizer : Screen()
-    object HeaderFooter : Screen()
-    object BookmarkEditor : Screen()
-    object Redaction : Screen()
-    object AttachmentManager : Screen()
-    object LinearizePdf : Screen()
-    object NUp : Screen()
+    // [FEATURE: PDF/A Preflight Validator] — ISO 19005 compliance audit
     object PdfAValidator : Screen()
+    // [FEATURE: Typography & Font Inspector] — Embedded font programs & encodings
     object FontInspector : Screen()
-    data class OfficeExport(val initialFormat: com.pdfchemy.app.logic.OfficeFormat = com.pdfchemy.app.logic.OfficeFormat.WORD) : Screen()
-    object Deskew : Screen()
-    object TableExtractor : Screen()
-    object DocumentSanitizer : Screen()
-    object QuickFillSign : Screen()
-    object FormBuilder : Screen()
-    object Premium : Screen()
+    // [FEATURE: Embedded Attachments Manager] — Portfolios & embedded files
+    object AttachmentManager : Screen()
+    // [FEATURE: PDF Repair Studio] — Broken cross-reference table reconstruction
+    object RepairPdf : Screen()
+    // [FEATURE: Document Visual Comparison] — Side-by-side visual & text diffs
+    object ComparePdf : Screen()
+
+    // 6. 📖 READING & ACCESSIBILITY (FEATURES_REGISTRY Section 6)
+    // [FEATURE: Reflow Reader Studio & Offline TTS] — E-reader reflow & 100% offline TTS
+    data class ReflowReader(val initialUri: Uri? = null) : Screen()
 }
 
 val ScreenSaver: Saver<Screen, String> = Saver(
