@@ -40,65 +40,85 @@ object PdfCompressor {
         }
 
         val targetBytes = (targetMb * 1024 * 1024).toLong()
-        var minQuality = 0.05f
-        var maxQuality = 1.0f
-        
-        val cacheDir = context.cacheDir
-        var bestTempFile: java.io.File? = null
-        var bestReport: CompressionReport? = null
+        val contentResolver = context.contentResolver
+        val sourceSize = try {
+            contentResolver.openFileDescriptor(sourceUri, "r")?.use { it.statSize } ?: -1L
+        } catch (_: Exception) {
+            -1L
+        }
 
-        for (i in 0..4) {
-            val currentQuality = (minQuality + maxQuality) / 2
-            val tempFile = java.io.File(cacheDir, "temp_compress_${System.currentTimeMillis()}_$i.pdf")
-            val tempUri = Uri.fromFile(tempFile)
-            
-            val result = compressSinglePass(context, sourceUri, tempUri, currentQuality, useGrayscale, useLossless, stripMetadata)
-            
-            if (result.isFailure) {
-                bestTempFile?.delete()
-                tempFile.delete()
-                return@withContext result
-            }
-            
-            val report = result.getOrThrow()
-            val size = tempFile.length()
-            
-            if (size <= targetBytes) {
-                minQuality = currentQuality // try higher quality
-            } else {
-                maxQuality = currentQuality // need lower quality
-            }
-
-            if (bestTempFile == null) {
-                bestTempFile = tempFile
-                bestReport = report
-            } else {
-                val bTempFile = bestTempFile ?: return@withContext Result.failure(Exception("Compression failed to produce a valid file."))
-                val bestSize = bTempFile.length()
-                if (size <= targetBytes && bestSize <= targetBytes && size > bestSize) {
-                    bestTempFile?.delete()
-                    bestTempFile = tempFile
-                    bestReport = report
-                } else if (size <= targetBytes && bestSize > targetBytes) {
-                    bestTempFile?.delete()
-                    bestTempFile = tempFile
-                    bestReport = report
-                } else if (size > targetBytes && bestSize > targetBytes && size < bestSize) {
-                    bestTempFile?.delete()
-                    bestTempFile = tempFile
-                    bestReport = report
-                } else {
-                    tempFile.delete()
+        // Optimization: If file is already smaller than target, do not degrade it
+        if (sourceSize in 1..targetBytes) {
+            try {
+                contentResolver.openInputStream(sourceUri)?.use { input ->
+                    contentResolver.openOutputStream(destUri)?.use { output ->
+                        input.copyTo(output)
+                    }
                 }
+                return@withContext Result.success(
+                    CompressionReport(
+                        originalSize = sourceSize,
+                        imagesProcessed = 0,
+                        hasSignatures = false,
+                        targetMissed = false
+                    )
+                )
+            } catch (e: Exception) {
+                return@withContext Result.failure(e)
+            }
+        }
+
+        // Calibrate initial quality from required compression ratio
+        val ratio = if (sourceSize > 0) targetBytes.toDouble() / sourceSize.toDouble() else 0.5
+        val initialQuality = when {
+            ratio < 0.20 -> 0.15f
+            ratio < 0.40 -> 0.35f
+            ratio < 0.65 -> 0.55f
+            else -> 0.75f
+        }
+
+        val cacheDir = context.cacheDir
+        val tempFile1 = java.io.File(cacheDir, "temp_compress_${System.currentTimeMillis()}_1.pdf")
+        val tempUri1 = Uri.fromFile(tempFile1)
+
+        val pass1Result = compressSinglePass(context, sourceUri, tempUri1, initialQuality, useGrayscale, useLossless, stripMetadata)
+        if (pass1Result.isFailure) {
+            tempFile1.delete()
+            return@withContext pass1Result
+        }
+
+        val report1 = pass1Result.getOrThrow()
+        val size1 = tempFile1.length()
+
+        var bestTempFile = tempFile1
+        var bestReport = report1
+
+        // If pass 1 exceeds the target size, perform one targeted tightening pass
+        if (size1 > targetBytes && initialQuality > 0.10f) {
+            val scaleFactor = targetBytes.toFloat() / size1.toFloat()
+            val tighterQuality = (initialQuality * scaleFactor * 0.90f).coerceIn(0.05f, initialQuality - 0.05f)
+
+            val tempFile2 = java.io.File(cacheDir, "temp_compress_${System.currentTimeMillis()}_2.pdf")
+            val tempUri2 = Uri.fromFile(tempFile2)
+
+            val pass2Result = compressSinglePass(context, sourceUri, tempUri2, tighterQuality, useGrayscale, useLossless, stripMetadata)
+            if (pass2Result.isSuccess) {
+                val size2 = tempFile2.length()
+                if (size2 < size1) {
+                    tempFile1.delete()
+                    bestTempFile = tempFile2
+                    bestReport = pass2Result.getOrThrow()
+                } else {
+                    tempFile2.delete()
+                }
+            } else {
+                tempFile2.delete()
             }
         }
 
         try {
-            val bTempFile = bestTempFile ?: return@withContext Result.failure(Exception("Failed to create temporary compressed file"))
-            val bReport = bestReport ?: return@withContext Result.failure(Exception("Compression report missing"))
-            
-            val success = bTempFile.inputStream().use { input ->
-                context.contentResolver.openOutputStream(destUri)?.use { output ->
+            val success = bestTempFile.inputStream().use { input ->
+                contentResolver.openOutputStream(destUri)?.use { output ->
                     input.copyTo(output)
                     true
                 } ?: false
@@ -106,13 +126,13 @@ object PdfCompressor {
 
             if (!success) throw Exception("Failed to write to destination")
 
-            val finalSize = bTempFile.length()
-            bTempFile.delete()
-            
-            return@withContext Result.success(bReport.copy(targetMissed = finalSize > targetBytes))
+            val finalSize = bestTempFile.length()
+            bestTempFile.delete()
+
+            Result.success(bestReport.copy(targetMissed = finalSize > targetBytes))
         } catch (e: Exception) {
-            bestTempFile?.delete()
-            return@withContext Result.failure(e)
+            bestTempFile.delete()
+            Result.failure(e)
         }
     }
 
