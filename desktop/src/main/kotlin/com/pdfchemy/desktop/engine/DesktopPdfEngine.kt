@@ -337,7 +337,7 @@ object DesktopPdfEngine {
                 merger.addSource(f)
             }
         }
-        merger.mergeDocuments(org.apache.pdfbox.io.MemoryUsageSetting.setupMainMemoryOnly())
+        merger.mergeDocuments(MemoryUsageSetting.setupTempFileOnly())
         return outputFile.exists() && outputFile.length() > 0
     }
 
@@ -443,16 +443,16 @@ object DesktopPdfEngine {
             return compressRasterizedPages(inputFile, outputFile, targetDpi, quality, onProgress)
         }
 
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val totalPages = document.numberOfPages
             val maxDimension = (11.7f * targetDpi).toInt().coerceAtLeast(600)
-            val processedCosObjects = mutableSetOf<COSBase>()
+            val compressedXObjectCache = mutableMapOf<COSBase, PDImageXObject>()
 
             for (pageIndex in 0 until totalPages) {
                 onProgress(pageIndex + 1, totalPages)
                 val page = document.getPage(pageIndex)
                 val resources = page.resources ?: continue
-                compressResources(resources, document, maxDimension, quality, processedCosObjects)
+                compressResources(resources, document, maxDimension, quality, compressedXObjectCache)
             }
 
             document.save(outputFile)
@@ -471,13 +471,16 @@ object DesktopPdfEngine {
         document: PDDocument,
         maxDimension: Int,
         quality: Float,
-        processedCosObjects: MutableSet<COSBase>
+        compressedXObjectCache: MutableMap<COSBase, PDImageXObject>
     ) {
         for (name in resources.xObjectNames) {
             val xObject = try { resources.getXObject(name) } catch (_: Throwable) { null } ?: continue
             val cosObj = xObject.cosObject
-            if (processedCosObjects.contains(cosObj)) continue
-            processedCosObjects.add(cosObj)
+
+            if (cosObj != null && compressedXObjectCache.containsKey(cosObj)) {
+                resources.put(name, compressedXObjectCache[cosObj]!!)
+                continue
+            }
 
             if (xObject is PDImageXObject) {
                 val origImage = try { xObject.image } catch (_: Throwable) { null } ?: continue
@@ -508,10 +511,13 @@ object DesktopPdfEngine {
 
                 val compressedXObject = JPEGFactory.createFromImage(document, imageToEncode, quality)
                 resources.put(name, compressedXObject)
+                if (cosObj != null) {
+                    compressedXObjectCache[cosObj] = compressedXObject
+                }
             } else if (xObject is PDFormXObject) {
                 val nestedResources = xObject.resources
                 if (nestedResources != null) {
-                    compressResources(nestedResources, document, maxDimension, quality, processedCosObjects)
+                    compressResources(nestedResources, document, maxDimension, quality, compressedXObjectCache)
                 }
             }
         }
