@@ -118,49 +118,68 @@ object DesktopDirectorySearchEngine {
         try {
             PDDocument.load(file).use { doc ->
                 val totalPages = doc.numberOfPages
+                if (totalPages == 0) return null
+
                 val snippets = mutableListOf<SearchMatchSnippet>()
-                val stripper = PDFTextStripper()
                 var matchCount = 0
+                var currentWriter = java.io.StringWriter()
 
-                for (p in 1..totalPages) {
-                    if (cancelFlag.get()) return null
-                    stripper.startPage = p
-                    stripper.endPage = p
-                    val pageText = try { stripper.getText(doc) } catch (_: Exception) { "" }
-                    if (pageText.isBlank()) continue
-
-                    val lines = pageText.lines()
-                    for (line in lines) {
-                        val trimmedLine = line.trim()
-                        if (trimmedLine.isEmpty()) continue
-
-                        val idx = if (matchCase) {
-                            trimmedLine.indexOf(query)
-                        } else {
-                            trimmedLine.indexOf(query, ignoreCase = true)
+                val stripper = object : PDFTextStripper() {
+                    override fun startPage(page: org.apache.pdfbox.pdmodel.PDPage) {
+                        if (cancelFlag.get()) {
+                            throw InterruptedException("Search cancelled")
                         }
+                        currentWriter = java.io.StringWriter()
+                        output = currentWriter
+                    }
 
-                        if (idx >= 0) {
-                            matchCount++
-                            if (snippets.size < 12) {
-                                val start = (idx - 30).coerceAtLeast(0)
-                                val end = (idx + query.length + 30).coerceAtMost(trimmedLine.length)
-                                val snippetText = (if (start > 0) "..." else "") +
-                                        trimmedLine.substring(start, end).trim() +
-                                        (if (end < trimmedLine.length) "..." else "")
+                    override fun endPage(page: org.apache.pdfbox.pdmodel.PDPage) {
+                        output.flush()
+                        val pageText = currentWriter.toString()
+                        if (pageText.isBlank()) return
 
-                                snippets.add(
-                                    SearchMatchSnippet(
-                                        pageNumber = p,
-                                        lineSnippet = snippetText,
-                                        matchStart = idx,
-                                        matchEnd = idx + query.length
+                        val p = currentPageNo
+                        val lines = pageText.lines()
+                        for (line in lines) {
+                            val trimmedLine = line.trim()
+                            if (trimmedLine.isEmpty()) continue
+
+                            val idx = if (matchCase) {
+                                trimmedLine.indexOf(query)
+                            } else {
+                                trimmedLine.indexOf(query, ignoreCase = true)
+                            }
+
+                            if (idx >= 0) {
+                                matchCount++
+                                if (snippets.size < 12) {
+                                    val start = (idx - 30).coerceAtLeast(0)
+                                    val end = (idx + query.length + 30).coerceAtMost(trimmedLine.length)
+                                    val snippetText = (if (start > 0) "..." else "") +
+                                            trimmedLine.substring(start, end).trim() +
+                                            (if (end < trimmedLine.length) "..." else "")
+
+                                    snippets.add(
+                                        SearchMatchSnippet(
+                                            pageNumber = p,
+                                            lineSnippet = snippetText,
+                                            matchStart = idx,
+                                            matchEnd = idx + query.length
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
+
+                stripper.startPage = 1
+                stripper.endPage = totalPages
+                try {
+                    stripper.writeText(doc, java.io.StringWriter())
+                } catch (e: InterruptedException) {
+                    return null
+                } catch (_: Exception) {}
 
                 if (matchCount > 0) {
                     return FileSearchResult(

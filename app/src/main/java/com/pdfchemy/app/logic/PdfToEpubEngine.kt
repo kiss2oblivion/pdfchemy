@@ -43,14 +43,14 @@ object PdfToEpubEngine {
                 return@withContext Result.failure(IllegalStateException("PDF contains no pages"))
             }
 
-            val chapters = mutableListOf<String>()
-            val stripper = PDFTextStripper()
-
-            for (pageIdx in 0 until pageCount) {
-                stripper.startPage = pageIdx + 1
-                stripper.endPage = pageIdx + 1
-                val text = stripper.getText(document).trim()
-                chapters.add(if (text.isNotBlank()) text else "Page ${pageIdx + 1}")
+            val pageTexts = PdfTextExtractor.extractAllPagesText(document)
+            val chapters = if (pageTexts.isNotEmpty()) {
+                pageTexts.mapIndexed { index, text ->
+                    val trimmed = text.trim()
+                    if (trimmed.isNotBlank()) trimmed else "Page ${index + 1}"
+                }
+            } else {
+                (1..pageCount).map { "Page $it" }
             }
 
             document.close()

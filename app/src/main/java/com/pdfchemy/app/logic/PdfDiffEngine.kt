@@ -69,7 +69,8 @@ object PdfDiffEngine {
             val total2 = (renderer2?.pageCount ?: 0).takeIf { it > 0 } ?: (doc2?.numberOfPages ?: 0)
             val maxPages = maxOf(total1, total2)
 
-            val stripper = PDFTextStripper()
+            val allPagesText1 = doc1?.let { PdfTextExtractor.extractAllPagesText(it) } ?: emptyList()
+            val allPagesText2 = doc2?.let { PdfTextExtractor.extractAllPagesText(it) } ?: emptyList()
 
             for (i in 0 until maxPages) {
                 val hasPage1 = i < total1
@@ -100,17 +101,8 @@ object PdfDiffEngine {
                     }
                 }
 
-                val text1 = if (doc1 != null && i < (doc1?.numberOfPages ?: 0)) {
-                    stripper.startPage = i + 1
-                    stripper.endPage = i + 1
-                    stripper.getText(doc1).lines().map { it.trim() }.filter { it.isNotBlank() }
-                } else emptyList()
-
-                val text2 = if (doc2 != null && i < (doc2?.numberOfPages ?: 0)) {
-                    stripper.startPage = i + 1
-                    stripper.endPage = i + 1
-                    stripper.getText(doc2).lines().map { it.trim() }.filter { it.isNotBlank() }
-                } else emptyList()
+                val text1 = allPagesText1.getOrNull(i)?.lines()?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+                val text2 = allPagesText2.getOrNull(i)?.lines()?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
 
                 val addedLines = text2.filter { it !in text1 }
                 val removedLines = text1.filter { it !in text2 }

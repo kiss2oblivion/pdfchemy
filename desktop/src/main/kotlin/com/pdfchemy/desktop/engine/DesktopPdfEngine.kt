@@ -732,24 +732,35 @@ object DesktopPdfEngine {
             val totalPages = doc.numberOfPages
             val pagesToSanitize = mutableSetOf<Int>()
 
+            val pagePositions = mutableMapOf<Int, MutableList<org.apache.pdfbox.text.TextPosition>>()
+            val stripper = object : PDFTextStripper() {
+                private var currentPageList: MutableList<org.apache.pdfbox.text.TextPosition>? = null
+
+                override fun startPage(page: PDPage) {
+                    val list = mutableListOf<org.apache.pdfbox.text.TextPosition>()
+                    currentPageList = list
+                    pagePositions[(currentPageNo - 1).coerceAtLeast(0)] = list
+                }
+
+                override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
+                    currentPageList?.add(text)
+                    super.processTextPosition(text)
+                }
+            }
+            stripper.startPage = 1
+            stripper.endPage = totalPages
+            try {
+                stripper.writeText(doc, java.io.StringWriter())
+            } catch (_: Exception) {}
+
             for (pageIdx in 0 until totalPages) {
                 val page = doc.getPage(pageIdx)
                 val cropBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
 
-                // Search text in page
-                val stripper = object : PDFTextStripper() {
-                    val positions = mutableListOf<org.apache.pdfbox.text.TextPosition>()
-                    override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
-                        positions.add(text)
-                        super.processTextPosition(text)
-                    }
-                }
-                stripper.startPage = pageIdx + 1
-                stripper.endPage = pageIdx + 1
-                val dummyWriter = java.io.StringWriter()
-                stripper.writeText(doc, dummyWriter)
+                val positions = pagePositions[pageIdx] ?: emptyList()
+                val fullText = positions.joinToString("") { it.unicode ?: "" }
+                if (fullText.isBlank()) continue
 
-                val fullText = stripper.positions.joinToString("") { it.unicode ?: "" }
                 val pattern = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(query), java.util.regex.Pattern.CASE_INSENSITIVE)
                 val matcher = pattern.matcher(fullText)
 
@@ -758,9 +769,9 @@ object DesktopPdfEngine {
                 while (matcher.find()) {
                     val start = matcher.start()
                     val end = matcher.end()
-                    if (start in stripper.positions.indices && (end - 1) in stripper.positions.indices) {
-                        val firstPos = stripper.positions[start]
-                        val lastPos = stripper.positions[end - 1]
+                    if (start in positions.indices && (end - 1) in positions.indices) {
+                        val firstPos = positions[start]
+                        val lastPos = positions[end - 1]
 
                         val minX = firstPos.xDirAdj
                         val maxX = lastPos.xDirAdj + lastPos.widthDirAdj
@@ -1309,26 +1320,12 @@ object DesktopPdfEngine {
     // [FEATURE: Document Visual Comparison] (FEATURES_REGISTRY Desktop §Compare Studio)
     // =========================================================================
     fun compareDocuments(fileA: File, fileB: File): PdfDiffSummary {
-        val stripper = PDFTextStripper().apply { sortByPosition = true }
-
         val (pagesA, textPagesA) = PDDocument.load(fileA).use { doc ->
-            val count = doc.numberOfPages
-            val pages = (1..count).map { p ->
-                stripper.startPage = p
-                stripper.endPage = p
-                stripper.getText(doc).trim()
-            }
-            Pair(count, pages)
+            Pair(doc.numberOfPages, extractAllPagesText(doc))
         }
 
         val (pagesB, textPagesB) = PDDocument.load(fileB).use { doc ->
-            val count = doc.numberOfPages
-            val pages = (1..count).map { p ->
-                stripper.startPage = p
-                stripper.endPage = p
-                stripper.getText(doc).trim()
-            }
-            Pair(count, pages)
+            Pair(doc.numberOfPages, extractAllPagesText(doc))
         }
 
         val maxPages = maxOf(pagesA, pagesB)
@@ -1511,23 +1508,32 @@ object DesktopPdfEngine {
         val pagesToSanitize = mutableSetOf<Int>()
         
         PDDocument.load(inputFile).use { doc ->
+            val pagePositions = mutableMapOf<Int, MutableList<org.apache.pdfbox.text.TextPosition>>()
+            val stripper = object : PDFTextStripper() {
+                private var currentPageList: MutableList<org.apache.pdfbox.text.TextPosition>? = null
+
+                override fun startPage(page: PDPage) {
+                    val list = mutableListOf<org.apache.pdfbox.text.TextPosition>()
+                    currentPageList = list
+                    pagePositions[(currentPageNo - 1).coerceAtLeast(0)] = list
+                }
+
+                override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
+                    currentPageList?.add(text)
+                    super.processTextPosition(text)
+                }
+            }
+            stripper.startPage = 1
+            stripper.endPage = doc.numberOfPages
+            try {
+                stripper.writeText(doc, java.io.StringWriter())
+            } catch (_: Exception) {}
+
             for (pageIdx in 0 until doc.numberOfPages) {
                 val page = doc.getPage(pageIdx)
                 val origBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
                 
-                val stripper = object : PDFTextStripper() {
-                    val textPositions = mutableListOf<org.apache.pdfbox.text.TextPosition>()
-                    override fun processTextPosition(text: org.apache.pdfbox.text.TextPosition) {
-                        textPositions.add(text)
-                        super.processTextPosition(text)
-                    }
-                }
-                
-                stripper.startPage = pageIdx + 1
-                stripper.endPage = pageIdx + 1
-                stripper.getText(doc) // populate textPositions
-                
-                val chars = stripper.textPositions
+                val chars = pagePositions[pageIdx] ?: emptyList()
                 val charMap = mutableMapOf<Int, org.apache.pdfbox.text.TextPosition>()
                 var currentText = ""
                 for (c in chars) {
@@ -2628,6 +2634,35 @@ object DesktopPdfEngine {
             e.printStackTrace()
             Result.failure(e)
         }
+    }
+
+    /**
+     * Extracts text from all pages in a single linear O(N) pass using a customized PDFTextStripper.
+     */
+    fun extractAllPagesText(doc: PDDocument): List<String> {
+        val total = doc.numberOfPages
+        if (total == 0) return emptyList()
+        val results = ArrayList<String>(total)
+        var currentWriter = java.io.StringWriter()
+        val stripper = object : PDFTextStripper() {
+            init {
+                sortByPosition = true
+            }
+            override fun startPage(page: PDPage) {
+                currentWriter = java.io.StringWriter()
+                output = currentWriter
+            }
+            override fun endPage(page: PDPage) {
+                output.flush()
+                results.add(currentWriter.toString().trim())
+            }
+        }
+        stripper.startPage = 1
+        stripper.endPage = total
+        try {
+            stripper.writeText(doc, java.io.StringWriter())
+        } catch (_: Exception) {}
+        return results
     }
 }
 

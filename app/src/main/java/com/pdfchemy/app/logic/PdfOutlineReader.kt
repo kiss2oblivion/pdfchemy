@@ -97,23 +97,21 @@ object PdfOutlineReader {
                 doc = PDDocument.load(stream)
                 if (doc != null) {
                     val totalPages = doc!!.numberOfPages
-                    val stripper = PDFTextStripper()
-                    
-                    for (i in 1..totalPages) {
-                        stripper.startPage = i
-                        stripper.endPage = i
-                        val rawText = stripper.getText(doc).trim()
-                        if (rawText.isNotEmpty()) {
+                    val allPagesText = PdfTextExtractor.extractAllPagesText(doc!!)
+                    for ((idx, rawText) in allPagesText.withIndex()) {
+                        val pageNum = idx + 1
+                        val trimmed = rawText.trim()
+                        if (trimmed.isNotEmpty()) {
                             // Split by double newlines or indentations to construct paragraphs
-                            val paragraphs = rawText
+                            val paragraphs = trimmed
                                 .split(Regex("\n\n+"))
                                 .map { it.replace(Regex("\n+"), " ").trim() }
                                 .filter { it.isNotBlank() }
 
                             sections.add(
                                 ReflowSection(
-                                    pageNumber = i,
-                                    title = "Page $i",
+                                    pageNumber = pageNum,
+                                    title = "Page $pageNum",
                                     paragraphs = paragraphs
                                 )
                             )

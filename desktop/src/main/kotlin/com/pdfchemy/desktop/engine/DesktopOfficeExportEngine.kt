@@ -40,15 +40,7 @@ object DesktopOfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val textByPage = mutableListOf<String>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                textByPage.add(pageText)
-            }
+            val textByPage = extractAllPagesText(doc)
 
             var totalParagraphs = 0
             FileOutputStream(destFile).use { out ->
@@ -78,16 +70,8 @@ object DesktopOfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val pagesRows = mutableListOf<List<List<String>>>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                val rows = parsePageToTableRows(pageText)
-                pagesRows.add(rows)
-            }
+            val allPagesText = extractAllPagesText(doc)
+            val pagesRows = allPagesText.map { parsePageToTableRows(it) }
 
             var totalCells = 0
             FileOutputStream(destFile).use { out ->
@@ -117,15 +101,9 @@ object DesktopOfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val slideTexts = mutableListOf<List<String>>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                val lines = pageText.lines().map { it.trim() }.filter { it.isNotEmpty() }
-                slideTexts.add(lines)
+            val allPagesText = extractAllPagesText(doc)
+            val slideTexts = allPagesText.map { pageText ->
+                pageText.lines().map { it.trim() }.filter { it.isNotEmpty() }
             }
 
             val slideImages = mutableListOf<ByteArray>()
@@ -579,5 +557,31 @@ object DesktopOfficeExportEngine {
             .replace(">", "&gt;")
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
+    }
+
+    /**
+     * Extracts text from all pages in a single linear O(N) pass using a customized PDFTextStripper.
+     */
+    fun extractAllPagesText(doc: PDDocument): List<String> {
+        val total = doc.numberOfPages
+        if (total == 0) return emptyList()
+        val results = ArrayList<String>(total)
+        var currentWriter = java.io.StringWriter()
+        val stripper = object : PDFTextStripper() {
+            override fun startPage(page: org.apache.pdfbox.pdmodel.PDPage) {
+                currentWriter = java.io.StringWriter()
+                output = currentWriter
+            }
+            override fun endPage(page: org.apache.pdfbox.pdmodel.PDPage) {
+                output.flush()
+                results.add(currentWriter.toString())
+            }
+        }
+        stripper.startPage = 1
+        stripper.endPage = total
+        try {
+            stripper.writeText(doc, java.io.StringWriter())
+        } catch (_: Exception) {}
+        return results
     }
 }

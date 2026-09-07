@@ -58,6 +58,39 @@ object PdfTextExtractor {
         }
     }
 
+    /**
+     * Extracts text from all pages in a single linear O(N) pass using a customized PDFTextStripper.
+     * Replaces the quadratic O(N^2) page-tree traversal loops previously found across various modules.
+     */
+    fun extractAllPagesText(document: PDDocument): List<String> {
+        val totalPages = document.numberOfPages
+        if (totalPages == 0) return emptyList()
+
+        val pagesText = ArrayList<String>(totalPages)
+        var currentWriter = java.io.StringWriter()
+
+        val stripper = object : PDFTextStripper() {
+            override fun startPage(page: com.tom_roush.pdfbox.pdmodel.PDPage) {
+                currentWriter = java.io.StringWriter()
+                output = currentWriter
+            }
+
+            override fun endPage(page: com.tom_roush.pdfbox.pdmodel.PDPage) {
+                output.flush()
+                pagesText.add(currentWriter.toString())
+            }
+        }
+
+        stripper.startPage = 1
+        stripper.endPage = totalPages
+        try {
+            stripper.writeText(document, java.io.StringWriter())
+        } catch (e: Exception) {
+            AppLogger.e("PdfTextExtractor: Error during single-pass page extraction", e)
+        }
+        return pagesText
+    }
+
     private suspend fun extractUsingOcr(context: Context, sourceUri: Uri): String {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val stringBuilder = java.lang.StringBuilder()

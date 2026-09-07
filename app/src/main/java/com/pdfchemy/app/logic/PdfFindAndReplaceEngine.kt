@@ -47,17 +47,9 @@ object PdfFindAndReplaceEngine {
     ) : PDFTextStripper() {
 
         val matches = mutableListOf<TextMatchOccurrence>()
-        private var currentPage = 0
-        private val currentLinePositions = mutableListOf<TextPosition>()
-        private val currentLineText = StringBuilder()
-
-        fun setTargetPage(page: Int) {
-            currentPage = page
-            startPage = page + 1
-            endPage = page + 1
-        }
 
         override fun writeString(text: String, textPositions: MutableList<TextPosition>) {
+            val currentPage = (currentPageNo - 1).coerceAtLeast(0)
             val line = text
             val target = if (matchCase) query else query.lowercase()
             val source = if (matchCase) line else line.lowercase()
@@ -126,11 +118,9 @@ object PdfFindAndReplaceEngine {
 
             val stripper = PositionalSearchStripper(query, matchCase)
             val nullWriter = OutputStreamWriter(ByteArrayOutputStream())
-
-            for (pageIndex in 0 until document.numberOfPages) {
-                stripper.setTargetPage(pageIndex)
-                stripper.writeText(document, nullWriter)
-            }
+            stripper.startPage = 1
+            stripper.endPage = document.numberOfPages
+            stripper.writeText(document, nullWriter)
             allMatches.addAll(stripper.matches)
         } catch (e: Exception) {
             AppLogger.e("PdfFindAndReplaceEngine: Error finding text occurrences", e)
@@ -169,11 +159,9 @@ object PdfFindAndReplaceEngine {
 
             val stripper = PositionalSearchStripper(findText, matchCase)
             val nullWriter = OutputStreamWriter(ByteArrayOutputStream())
-
-            for (pageIndex in 0 until document.numberOfPages) {
-                stripper.setTargetPage(pageIndex)
-                stripper.writeText(document, nullWriter)
-            }
+            stripper.startPage = 1
+            stripper.endPage = document.numberOfPages
+            stripper.writeText(document, nullWriter)
 
             val matchesByPage = stripper.matches.groupBy { it.pageIndex }
             var totalReplaced = 0
