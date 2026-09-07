@@ -81,5 +81,16 @@ The output JAR is generated at `desktop/build/compose/jars/PDFchemy-<os>-x64-1.0
 
 ---
 
+## 🤖 Development Transparency & AI Disclosure
+
+PDFchemy Tools is conceived, directed, architected, and continuously maintained by **Andrei Ioan Cucoș (John)**. 
+
+In the spirit of complete, radical transparency:
+* **AI-Assisted Pair Programming:** Significant parts of the codebase, multiplatform scaffolding, and iterative refactoring have been developed with the assistance of AI coding agents (including Google Antigravity). 
+* **Human Oversight & Vision:** Every feature, design choice, architectural constraint, and test verification is directed, tested, and vetted by the human developer.
+* **100% Deterministic Local Processing:** While AI tools are used to write and organize the application code, the application itself contains **zero runtime AI dependencies, zero cloud LLMs, and zero network calls**. All PDF compression, image rendering, parsing, and encryption run deterministically and entirely offline on your local device.
+
+---
+
 ## 📄 License
 Built with passion for the people. Free for personal and commercial use.
