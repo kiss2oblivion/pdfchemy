@@ -11,6 +11,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.pdmodel.font.PDType1Font
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
@@ -422,14 +423,106 @@ object DesktopPdfEngine {
     // [FEATURE: PDF Compressor & Target Size Engine] (FEATURES_REGISTRY Desktop §Compress)
     // =========================================================================
     /**
-     * Compresses PDF with preset DPI and JPEG quality.
+     * Compresses a PDF document while preserving vector paths, fonts, selectable text layers,
+     * bookmarks, links, and annotations. Downsamples embedded raster image objects (XObjects) based on
+     * the target DPI and JPEG quality factor.
+     *
+     * @param rasterizePages When false (default), preserves vector graphics and digital text.
+     *                       When true, rasterizes entire pages (only for scanned flattening).
      */
     fun compressPdf(
         inputFile: File,
         outputFile: File,
         targetDpi: Float = 140f,
         quality: Float = 0.7f,
+        rasterizePages: Boolean = false,
         onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ): Long {
+        val originalSize = inputFile.length()
+        if (rasterizePages) {
+            return compressRasterizedPages(inputFile, outputFile, targetDpi, quality, onProgress)
+        }
+
+        PDDocument.load(inputFile).use { document ->
+            val totalPages = document.numberOfPages
+            val maxDimension = (11.7f * targetDpi).toInt().coerceAtLeast(600)
+            val processedCosObjects = mutableSetOf<COSBase>()
+
+            for (pageIndex in 0 until totalPages) {
+                onProgress(pageIndex + 1, totalPages)
+                val page = document.getPage(pageIndex)
+                val resources = page.resources ?: continue
+                compressResources(resources, document, maxDimension, quality, processedCosObjects)
+            }
+
+            document.save(outputFile)
+        }
+
+        // Production Invariant: Never deliver a file that is larger than the original input!
+        if (outputFile.exists() && outputFile.length() >= originalSize) {
+            inputFile.copyTo(outputFile, overwrite = true)
+        }
+
+        return outputFile.length()
+    }
+
+    private fun compressResources(
+        resources: PDResources,
+        document: PDDocument,
+        maxDimension: Int,
+        quality: Float,
+        processedCosObjects: MutableSet<COSBase>
+    ) {
+        for (name in resources.xObjectNames) {
+            val xObject = try { resources.getXObject(name) } catch (_: Throwable) { null } ?: continue
+            val cosObj = xObject.cosObject
+            if (processedCosObjects.contains(cosObj)) continue
+            processedCosObjects.add(cosObj)
+
+            if (xObject is PDImageXObject) {
+                val origImage = try { xObject.image } catch (_: Throwable) { null } ?: continue
+                val origW = origImage.width
+                val origH = origImage.height
+                if (origW <= 0 || origH <= 0) continue
+
+                val scale = if (origW > maxDimension || origH > maxDimension) {
+                    minOf(maxDimension.toFloat() / origW, maxDimension.toFloat() / origH)
+                } else {
+                    1.0f
+                }
+
+                val newW = (origW * scale).toInt().coerceAtLeast(1)
+                val newH = (origH * scale).toInt().coerceAtLeast(1)
+
+                val imageToEncode = if (scale < 1.0f) {
+                    val scaled = BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB)
+                    val g = scaled.createGraphics()
+                    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+                    g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+                    g.drawImage(origImage, 0, 0, newW, newH, null)
+                    g.dispose()
+                    scaled
+                } else {
+                    origImage
+                }
+
+                val compressedXObject = JPEGFactory.createFromImage(document, imageToEncode, quality)
+                resources.put(name, compressedXObject)
+            } else if (xObject is PDFormXObject) {
+                val nestedResources = xObject.resources
+                if (nestedResources != null) {
+                    compressResources(nestedResources, document, maxDimension, quality, processedCosObjects)
+                }
+            }
+        }
+    }
+
+    private fun compressRasterizedPages(
+        inputFile: File,
+        outputFile: File,
+        targetDpi: Float,
+        quality: Float,
+        onProgress: (Int, Int) -> Unit
     ): Long {
         PDDocument.load(inputFile).use { document ->
             val totalPages = document.numberOfPages
@@ -439,35 +532,15 @@ object DesktopPdfEngine {
             for (i in 0 until totalPages) {
                 onProgress(i + 1, totalPages)
                 val renderedImage = renderer.renderImageWithDPI(i, targetDpi)
-                val tempJpg = File.createTempFile("compress_page_$i", ".jpg")
-                try {
-                    val writers = ImageIO.getImageWritersByFormatName("jpg")
-                    if (writers.hasNext()) {
-                        val writer = writers.next()
-                        FileOutputStream(tempJpg).use { os ->
-                            ImageIO.createImageOutputStream(os).use { ios ->
-                                writer.output = ios
-                                val param = writer.defaultWriteParam
-                                param.compressionMode = javax.imageio.ImageWriteParam.MODE_EXPLICIT
-                                param.compressionQuality = quality
-                                writer.write(null, javax.imageio.IIOImage(renderedImage, null, null), param)
-                            }
-                        }
-                    } else {
-                        ImageIO.write(renderedImage, "jpg", tempJpg)
-                    }
+                val origPage = document.getPage(i)
+                val origBox = origPage.cropBox ?: origPage.mediaBox ?: PDRectangle.A4
+                val newPage = PDPage(PDRectangle(origBox.width, origBox.height))
+                newPage.rotation = origPage.rotation
+                compressedDoc.addPage(newPage)
 
-                    val origPage = document.getPage(i)
-                    val origBox = origPage.cropBox ?: origPage.mediaBox ?: PDRectangle.A4
-                    val newPage = PDPage(PDRectangle(origBox.width, origBox.height))
-                    newPage.rotation = origPage.rotation
-                    compressedDoc.addPage(newPage)
-                    val pdImage = PDImageXObject.createFromFileByExtension(tempJpg, compressedDoc)
-                    org.apache.pdfbox.pdmodel.PDPageContentStream(compressedDoc, newPage).use { stream ->
-                        stream.drawImage(pdImage, 0f, 0f, origBox.width, origBox.height)
-                    }
-                } finally {
-                    tempJpg.delete()
+                val pdImage = JPEGFactory.createFromImage(compressedDoc, renderedImage, quality)
+                org.apache.pdfbox.pdmodel.PDPageContentStream(compressedDoc, newPage).use { stream ->
+                    stream.drawImage(pdImage, 0f, 0f, origBox.width, origBox.height)
                 }
             }
 
@@ -495,22 +568,21 @@ object DesktopPdfEngine {
         val totalPages = getPageCount(inputFile).coerceAtLeast(1)
         val budgetPerPage = targetBytes / totalPages
 
-        // Calculate initial heuristic
         val (initialDpi, initialQuality) = when {
-            budgetPerPage < 40_000 -> 90f to 0.40f
-            budgetPerPage < 100_000 -> 120f to 0.55f
-            budgetPerPage < 250_000 -> 140f to 0.65f
-            else -> 160f to 0.75f
+            budgetPerPage < 50_000 -> 96f to 0.40f
+            budgetPerPage < 120_000 -> 120f to 0.55f
+            budgetPerPage < 300_000 -> 150f to 0.65f
+            else -> 180f to 0.75f
         }
 
-        onProgress("Optimizing compression profile for ${targetBytes / 1024 / 1024} MB target...")
+        onProgress("Optimizing document images for target size...")
         var resultSize = compressPdf(inputFile, outputFile, initialDpi, initialQuality)
 
-        // If still exceeding target, perform an aggressive tightening pass
+        // If still exceeding target, perform a tighter downsampling pass
         if (resultSize > targetBytes) {
-            onProgress("Refining compression threshold...")
+            onProgress("Refining compression quality...")
             val ratio = targetBytes.toFloat() / resultSize.toFloat()
-            val tighterDpi = (initialDpi * ratio).coerceIn(54f, 120f)
+            val tighterDpi = (initialDpi * ratio).coerceIn(72f, 130f)
             val tighterQuality = (initialQuality * ratio).coerceIn(0.25f, 0.50f)
             resultSize = compressPdf(inputFile, outputFile, tighterDpi, tighterQuality)
         }

@@ -223,6 +223,9 @@ class StressGauntletTest {
         assertTrue("Optimized file must be significantly smaller than original (Original: $originalSize, Final: $finalSize)", finalSize < originalSize)
         assertTrue("Optimized file must achieve compression reduction > 50%", finalSize < (originalSize * 0.5))
         assertEquals("Page count must be strictly preserved", 2, DesktopPdfEngine.getPageCount(optimizedOut))
+        val extractedText = DesktopPdfEngine.extractText(optimizedOut)
+        assertTrue("Vector text must be preserved after compression (not rasterized)", extractedText.contains("High Detail Lossless Scan Page 1"))
+        assertTrue("Vector text must be preserved after compression (not rasterized)", extractedText.contains("High Detail Lossless Scan Page 2"))
     }
 
     /**
