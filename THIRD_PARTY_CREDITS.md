@@ -1,63 +1,66 @@
 # Third-Party Open-Source Credits & Attributions 💖
 
-PDFchemy Tools stands on the shoulders of giants. We believe in absolute, uncompromised honesty, ethical development, and giving credit where credit is due.
+PDFchemy Tools stands on the shoulders of the global open-source community. We believe in absolute honesty, radical transparency, and giving credit where credit is due.
 
-The core promise of PDFchemy is **100% offline, local-first document utility**. Every single feature—from rendering and compressing to signing, form building, and optical character recognition—is powered by battle-tested, permissive open-source software running locally on your device.
+The core promise of PDFchemy is **100% offline, local-first document utility**. Every single feature—from rendering and compressing to signing, form building, and optical character recognition—is powered by battle-tested, permissive open-source software running locally on your device with **zero cloud dependencies and zero telemetry**.
 
-Below is the complete, comprehensive record of all open-source libraries, engines, and frameworks that make PDFchemy possible, along with their respective authors and licenses.
+Below is the exhaustive, complete record of every open-source library, engine, model asset, icon set, and framework that powers PDFchemy across Android and Desktop.
 
 ---
 
-## 🏛️ Core PDF & Document Processing Engines
+## 🏛️ 1. Core PDF & Document Processing Engines
 
-### 1. [Apache PDFBox](https://pdfbox.apache.org/)
+### [Apache PDFBox](https://pdfbox.apache.org/)
 * **Authors:** The Apache Software Foundation & PDFBox Community
-* **Version:** 2.0.31
+* **Version:** `2.0.31`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy (Desktop):**
-  * Powers document parsing, page geometry, visual thumbnail extraction, and iterative compression.
-  * Interactive AcroForms architecture (field generation, form inspection, text field, checkbox, and radio button authoring).
-  * PDF/A archiving conversion, linear fast web view optimization, Bates numbering, and watermarking.
-  * PDF text extraction and search indexing for the Directory Spotlight Search.
+  * Powers document parsing, page geometry, visual thumbnail rendering, and iterative target-size compression.
+  * Interactive AcroForms architecture: field discovery, interactive field authoring (Text, Checkboxes, Radio buttons), and form flattening.
+  * Document security: 128/256-bit AES encryption, decryption, and password protection.
+  * PDF/A compliance conversion, linear Fast Web View optimization, Bates numbering, and watermarking.
+  * Full-text document extraction for the local Directory Spotlight Search engine.
 
-### 2. [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android)
+### [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android)
 * **Authors:** Tom Roush & The Apache Software Foundation
-* **Version:** 2.0.27.0
+* **Version:** `2.0.27.0`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy (Android):**
-  * Mobile port of Apache PDFBox enabling native Android PDF parsing, AcroForm filler, metadata editing, page tree restructuring, and document manipulation without any remote cloud dependency.
+  * Mobile port of Apache PDFBox enabling native Android PDF parsing, AcroForm filler, metadata editing, page tree reordering, and document manipulation without any remote cloud dependencies.
 
 ---
 
-## 🎨 UI Frameworks & Language Tooling
+## 🎨 2. UI Frameworks & Language Ecosystems
 
-### 3. [JetBrains Compose Multiplatform & Kotlin](https://github.com/JetBrains/compose-multiplatform)
+### [JetBrains Compose Multiplatform & Skiko](https://github.com/JetBrains/compose-multiplatform)
 * **Authors:** JetBrains s.r.o. & Contributors
+* **Version:** `1.7.3`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy:**
   * Cross-platform declarative UI for the Desktop application (Linux & Windows).
-  * Modern, reactive state management and high-performance hardware-accelerated desktop rendering via Skiko/Skia.
+  * Modern, reactive state management and high-performance hardware-accelerated desktop canvas rendering via Skia/Skiko.
 
-### 4. [Kotlinx Coroutines](https://github.com/Kotlin/kotlinx.coroutines)
+### [Kotlinx Coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 * **Authors:** JetBrains s.r.o.
+* **Version:** `1.8.0` (Desktop) / `1.7.3` (Android)
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy:**
   * Asynchronous processing pipelines, non-blocking UI operations, and multi-core parallel execution across CPU threads in the Batch Processing Queue.
 
-### 5. [Android Jetpack & Jetpack Compose](https://developer.android.com/jetpack)
+### [Android Jetpack & Jetpack Compose](https://developer.android.com/jetpack)
 * **Authors:** Google LLC & The Android Open Source Project (AOSP)
+* **Components:** `androidx.compose.material3`, `androidx.compose.ui`, `androidx.core:core-ktx`, `androidx.lifecycle`, `androidx.activity:activity-compose`, `androidx.window`, `androidx.documentfile`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy (Android):**
-  * Native modern Android declarative UI (`Material3`, navigation, window size classes, dynamic color, edge-to-edge window insets).
-  * Core system integration (`androidx.core`, `androidx.lifecycle`, `androidx.activity`).
+  * Modern declarative UI architecture, Material 3 theming, adaptive window sizes for foldable devices and tablets, and Android Storage Access Framework (SAF) integration.
 
 ---
 
-## 🔐 Cryptography, PKI & Security
+## 🔐 3. Cryptography, PKI & Document Security
 
-### 6. [The Legion of the Bouncy Castle](https://www.bouncycastle.org/)
+### [The Legion of the Bouncy Castle](https://www.bouncycastle.org/)
 * **Authors:** The Legion of the Bouncy Castle Inc.
-* **Libraries:** `bcprov-jdk18on`, `bcpkix-jdk18on` (v1.78)
+* **Libraries:** `org.bouncycastle:bcprov-jdk18on`, `org.bouncycastle:bcpkix-jdk18on` (v1.78)
 * **License:** [Bouncy Castle Licence](https://www.bouncycastle.org/licence.html) (Permissive MIT/BSD-style license)
 * **Usage in PDFchemy (Android & Desktop):**
   * Industrial-grade cryptographic provider.
@@ -65,66 +68,107 @@ Below is the complete, comprehensive record of all open-source libraries, engine
 
 ---
 
-## 👁️ Optical Character Recognition (OCR) & Scanning
+## 👁️ 4. Optical Character Recognition (OCR) & Scanning
 
-### 7. [Tess4J & Tesseract OCR](https://tess4j.sourceforge.net/)
+### [Tess4J & Tesseract OCR](https://tess4j.sourceforge.net/)
 * **Authors:** Quan Nguyen, Ray Smith, Google Inc. & Tesseract OCR Contributors
-* **Version:** 5.7.0
+* **Version:** `5.7.0`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy (Desktop):**
-  * Local, offline Optical Character Recognition (OCR) engine for converting scanned PDFs into searchable, selectable text without third-party web services.
+  * Local, offline Optical Character Recognition (OCR) engine for converting scanned PDFs and bitmap pages into searchable text.
 
-### 8. [Google ML Kit (On-Device Vision)](https://developers.google.com/ml-kit)
+### [Tesseract OCR English Trained Data Model (`eng.traineddata`)](https://github.com/tesseract-ocr/tessdata)
+* **Authors:** Ray Smith & The Tesseract OCR Open Source Community
+* **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* **Usage in PDFchemy (Desktop):**
+  * Bundled offline neural OCR model enabling instantaneous character recognition without needing an internet connection or external downloads.
+
+### [Google ML Kit (On-Device Vision)](https://developers.google.com/ml-kit)
 * **Authors:** Google LLC
 * **Libraries:** `play-services-mlkit-document-scanner`, `com.google.mlkit:text-recognition`
-* **License:** Android Software Development Kit License / Google APIs Terms
+* **License:** Android Software Development Kit License
 * **Usage in PDFchemy (Android):**
   * High-speed on-device document camera perspective warping, boundary detection, and offline mobile text recognition.
 
 ---
 
-## 🔄 Document Parsing, Formats & Text Converters
+## 🔄 5. Document Formats, Parsers & Text Converters
 
-### 9. [jsoup: Java HTML Parser](https://jsoup.org/)
+### [jsoup: Java HTML Parser](https://jsoup.org/)
 * **Authors:** Jonathan Hedley
-* **Version:** 1.17.2
+* **Version:** `1.17.2`
 * **License:** [MIT License](https://jsoup.org/license)
 * **Usage in PDFchemy:**
-  * Fast HTML and EPUB eBook DOM parsing, tag stripping, entity unescaping, and structured text extraction for the EPUB-to-PDF and Web-to-PDF engines.
+  * HTML and EPUB eBook DOM parsing, tag stripping, entity unescaping, and structured text extraction for the EPUB-to-PDF and Web-to-PDF engines.
 
-### 10. [Flexmark-Java](https://github.com/vsch/flexmark-java)
+### [Flexmark-Java](https://github.com/vsch/flexmark-java)
 * **Authors:** Vladimir Schneider & Contributors
-* **Version:** 0.64.8
+* **Version:** `0.64.8`
 * **License:** [BSD 2-Clause License](https://github.com/vsch/flexmark-java/blob/master/LICENSE.txt)
 * **Usage in PDFchemy:**
-  * CommonMark / Markdown parser and AST renderer for Markdown-to-PDF document compiling.
+  * CommonMark / Markdown parser and AST renderer for compiling Markdown files into structured PDFs.
 
-### 11. [FasterXML Jackson](https://github.com/FasterXML/jackson)
+### [FasterXML Jackson](https://github.com/FasterXML/jackson)
 * **Authors:** FasterXML, LLC & Tatu Saloranta
 * **Libraries:** `jackson-module-kotlin`, `jackson-dataformat-csv`, `jackson-dataformat-yaml`, `jackson-dataformat-xml` (v2.17.0)
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy:**
-  * High-performance structured data streaming and formatting for CSV table, XML, and YAML document export tools.
+  * Structured data streaming and formatting for CSV spreadsheet tables, XML, and YAML document export tools.
 
 ---
 
-## 🖼️ Media & Asset Loading
+## 🖼️ 6. Media, Assets & Typography
 
-### 12. [Coil (Coroutine Image Loader)](https://coil-kt.github.io/coil/)
+### [Coil (Coroutine Image Loader)](https://coil-kt.github.io/coil/)
 * **Authors:** Colin White & Coil Contributors
-* **Version:** 2.6.0
+* **Version:** `2.6.0`
 * **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * **Usage in PDFchemy (Android):**
-  * High-performance, lightweight, coroutine-based image loading and caching for page previews and UI graphics.
+  * Asynchronous image loading and memory caching for page previews and UI graphics.
+
+### [Google Material Design Icons & Symbols](https://fonts.google.com/icons)
+* **Authors:** Google LLC
+* **Libraries:** `androidx.compose.material:material-icons-extended` (Android) & `libs/material-icons-pruned.jar` (Desktop)
+* **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* **Usage in PDFchemy:**
+  * Visual iconography across all desktop and mobile navigation bars, buttons, and studio toolbars.
 
 ---
 
-## ⚖️ License Summary & Compliance
+## 🧪 7. Quality Assurance & Testing Frameworks
 
-All third-party open-source components used in PDFchemy are distributed under permissive licenses:
-* **Apache License 2.0** (Apache PDFBox, PdfBox-Android, JetBrains Compose, Kotlin Coroutines, Android Jetpack, Tess4J, Jackson, Coil)
-* **MIT License** (jsoup)
+### [JUnit 4](https://junit.org/junit4/)
+* **Authors:** Kent Beck, Erich Gamma & JUnit team
+* **License:** [Eclipse Public License 1.0](https://www.eclipse.org/legal/epl-v10.html)
+* **Usage in PDFchemy:** Unit testing runner for core compression, parsing, and arithmetic algorithms.
+
+### [MockK](https://mockk.io/)
+* **Authors:** Oleksii Tymchenko & MockK Contributors
+* **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+* **Usage in PDFchemy:** Kotlin-first mocking framework for Android and JVM unit tests.
+
+### [Robolectric](https://robolectric.org/)
+* **Authors:** Google LLC & Robolectric Contributors
+* **License:** [MIT License](https://github.com/robolectric/robolectric/blob/master/LICENSE)
+* **Usage in PDFchemy:** Headless Android environment runner for fast unit testing of Android framework logic on the host JVM.
+
+---
+
+## 📦 8. Platform Ecosystems & Packaging
+
+* **[Gradle Build Tool](https://gradle.org/)** (Apache 2.0) — Automation build system for JVM and Android compilation.
+* **[AppStream Specification](https://www.freedesktop.org/wiki/Distributions/AppStream/)** (CC0-1.0 / LGPL) — Standard Linux metadata format for software distribution.
+* **[WiX Toolset](https://wixtoolset.org/)** (MS-RL / Open Source) — Windows `.msi` native installer compilation via Compose Desktop native packager.
+
+---
+
+## ⚖️ License Summary & Open-Source Gratitude
+
+All third-party open-source components used in PDFchemy are distributed under permissive, open-source licenses:
+* **Apache License 2.0** (Apache PDFBox, PdfBox-Android, JetBrains Compose, Kotlin Coroutines, Android Jetpack, Tess4J, Jackson, Coil, Material Icons)
+* **MIT License** (jsoup, Robolectric)
 * **BSD 2-Clause License** (flexmark-java)
 * **Bouncy Castle Licence** (Bouncy Castle Cryptography)
+* **Eclipse Public License 1.0** (JUnit 4)
 
-These permissive licenses explicitly allow free use, modification, and redistribution. We express our deepest gratitude to all authors and communities who created and maintain these incredible open-source tools.
+These permissive licenses explicitly allow free use, modification, and redistribution. We express our deepest gratitude to all authors, maintainers, and communities who created these incredible tools. PDFchemy could not exist without your generous contribution to humanity.
