@@ -80,6 +80,46 @@ class PdfCompressorTest {
     }
 
     @Test
+    fun testCompressPdfDeduplicatesSharedImagesOnAndroid() = runBlocking {
+        val sourceFile = File(context.cacheDir, "shared_source.pdf")
+        val doc = PDDocument()
+        val bitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.RED)
+        val pdImage = LosslessFactory.createFromImage(doc, bitmap)
+
+        for (i in 1..3) {
+            val page = PDPage()
+            doc.addPage(page)
+            PDPageContentStream(doc, page).use { cs ->
+                cs.drawImage(pdImage, 50f, 50f, 200f, 200f)
+            }
+        }
+        FileOutputStream(sourceFile).use { doc.save(it) }
+        doc.close()
+        bitmap.recycle()
+
+        val destFile = File(context.cacheDir, "shared_compressed.pdf")
+        if (destFile.exists()) destFile.delete()
+
+        val result = PdfCompressor.compressPdf(
+            context,
+            Uri.fromFile(sourceFile),
+            Uri.fromFile(destFile),
+            quality = 0.5f
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(destFile.exists() && destFile.length() > 0)
+        PDDocument.load(destFile).use { cDoc ->
+            org.junit.Assert.assertEquals(3, cDoc.numberOfPages)
+            val p0Cos = cDoc.getPage(0).resources.xObjectNames.map { cDoc.getPage(0).resources.getXObject(it).cosObject }
+            val p1Cos = cDoc.getPage(1).resources.xObjectNames.map { cDoc.getPage(1).resources.getXObject(it).cosObject }
+            org.junit.Assert.assertEquals("Shared image COS object should be identical across pages", p0Cos, p1Cos)
+        }
+    }
+
+    @Test
     fun testRealDizertatieFiles() {
         runBlocking {
             val dizDir = File("C:\\Users\\cucos\\Downloads\\dizertatie")

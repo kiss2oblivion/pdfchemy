@@ -4,7 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
+import com.tom_roush.pdfbox.cos.COSBase
+import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
 import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
@@ -162,8 +165,9 @@ object PdfCompressor {
             inputStream = contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("The selected file is no longer available."))
             
+            val memoryUsage = MemoryUsageSetting.setupTempFileOnly()
             val doc = try {
-                PDDocument.load(inputStream)
+                PDDocument.load(inputStream, memoryUsage)
             } catch (e: Exception) {
                 return@withContext Result.failure(Exception("This file cannot be opened or is not a valid PDF."))
             }
@@ -183,20 +187,20 @@ object PdfCompressor {
             var imagesProcessed = 0
             var imagesSkipped = 0
             val maxDimension = if (quality < 0.2f) 800f else if (quality < 0.4f) 1200f else if (quality < 0.6f) 1800f else 3000f
+            val compressedImageCache = mutableMapOf<COSBase, PDImageXObject>()
 
-            for (page in doc.pages) {
-                coroutineContext.ensureActive()
-                if (com.pdfchemy.app.logic.DeviceGuard.isMemoryCritical(context)) {
-                    AppLogger.w("PdfCompressor: Memory critical threshold reached during page processing. Running memory cleanup.")
-                    System.gc()
-                }
-                val resources = page.resources ?: continue
-                val processedNames = mutableSetOf<String>()
-
+            fun processResources(resources: com.tom_roush.pdfbox.pdmodel.PDResources) {
                 for (name in resources.xObjectNames) {
-                    val xObject = try { resources.getXObject(name) } catch (e: Throwable) { null }
+                    val xObject = try { resources.getXObject(name) } catch (_: Throwable) { null } ?: continue
 
-                    if (xObject is PDImageXObject && !processedNames.contains(name.name)) {
+                    if (xObject is PDImageXObject) {
+                        val cosObj = xObject.cosObject
+                        if (cosObj != null && compressedImageCache.containsKey(cosObj)) {
+                            resources.put(name, compressedImageCache[cosObj]!!)
+                            imagesProcessed++
+                            continue
+                        }
+
                         var originalBitmap: Bitmap? = null
                         var scaledBitmap: Bitmap? = null
                         var grayscaleBitmap: Bitmap? = null
@@ -213,7 +217,6 @@ object PdfCompressor {
 
                             if (originalBitmap == null || originalBitmap.width <= 0 || originalBitmap.height <= 0) {
                                 imagesSkipped++
-                                processedNames.add(name.name)
                                 continue
                             }
 
@@ -225,11 +228,19 @@ object PdfCompressor {
                                 matrix.postScale(scale, scale)
                                 scaledBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
                                 bitmap = scaledBitmap
+                                if (bitmap !== originalBitmap) {
+                                    try { originalBitmap.recycle() } catch (_: Throwable) {}
+                                    originalBitmap = null
+                                }
                             }
 
                             if (useGrayscale) {
                                 grayscaleBitmap = convertToGrayscale(bitmap)
+                                val prevBitmap = bitmap
                                 bitmap = grayscaleBitmap
+                                if (prevBitmap !== originalBitmap && prevBitmap !== grayscaleBitmap) {
+                                    try { prevBitmap.recycle() } catch (_: Throwable) {}
+                                }
                             }
 
                             val compressedImage = if (useLossless) {
@@ -239,23 +250,38 @@ object PdfCompressor {
                             }
 
                             resources.put(name, compressedImage)
-                            processedNames.add(name.name)
+                            if (cosObj != null) {
+                                compressedImageCache[cosObj] = compressedImage
+                            }
                             imagesProcessed++
                         } catch (oom: OutOfMemoryError) {
                             AppLogger.e("PdfCompressor: OutOfMemoryError while compressing image '${name.name}', preserving original", oom)
                             imagesSkipped++
-                            processedNames.add(name.name)
                         } catch (e: Throwable) {
                             AppLogger.w("PdfCompressor: Non-fatal error while re-encoding image '${name.name}': ${e.message}, preserving original", e)
                             imagesSkipped++
-                            processedNames.add(name.name)
                         } finally {
                             try { grayscaleBitmap?.recycle() } catch (_: Throwable) {}
-                            try { if (scaledBitmap != null && scaledBitmap !== originalBitmap) scaledBitmap.recycle() } catch (_: Throwable) {}
+                            try { scaledBitmap?.recycle() } catch (_: Throwable) {}
                             try { originalBitmap?.recycle() } catch (_: Throwable) {}
+                        }
+                    } else if (xObject is PDFormXObject) {
+                        val formRes = xObject.resources
+                        if (formRes != null) {
+                            processResources(formRes)
                         }
                     }
                 }
+            }
+
+            for (page in doc.pages) {
+                coroutineContext.ensureActive()
+                if (com.pdfchemy.app.logic.DeviceGuard.isMemoryCritical(context)) {
+                    AppLogger.w("PdfCompressor: Memory critical threshold reached during page processing. Running memory cleanup.")
+                    System.gc()
+                }
+                val resources = page.resources ?: continue
+                processResources(resources)
             }
 
             outputStream = contentResolver.openOutputStream(destUri)

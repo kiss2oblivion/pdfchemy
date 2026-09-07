@@ -684,6 +684,40 @@ class DesktopPdfEngineTest {
         assertTrue(extractedFile!!.exists())
         assertEquals(embedTarget.readText(), extractedFile.readText())
     }
+
+    @Test
+    fun testCompressPdfDeduplicatesSharedImages() {
+        val multiPageSharedPdf = tempFolder.newFile("shared_images.pdf")
+        val doc = PDDocument()
+        val img = BufferedImage(300, 300, BufferedImage.TYPE_INT_RGB)
+        val g = img.createGraphics()
+        g.color = java.awt.Color.BLUE
+        g.fillRect(0, 0, 300, 300)
+        g.dispose()
+
+        val pdImage = org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(doc, img)
+        for (i in 1..3) {
+            val page = PDPage()
+            doc.addPage(page)
+            PDPageContentStream(doc, page).use { cs ->
+                cs.drawImage(pdImage, 50f, 50f, 200f, 200f)
+            }
+        }
+        doc.save(multiPageSharedPdf)
+        doc.close()
+
+        val compressedPdf = tempFolder.newFile("shared_images_compressed.pdf")
+        val compressedSize = DesktopPdfEngine.compressPdf(multiPageSharedPdf, compressedPdf, targetDpi = 72f, quality = 0.5f)
+
+        assertTrue(compressedPdf.exists())
+        assertTrue(compressedSize > 0)
+        PDDocument.load(compressedPdf).use { cDoc ->
+            assertEquals(3, cDoc.numberOfPages)
+            val p0Cos = cDoc.getPage(0).resources.xObjectNames.map { cDoc.getPage(0).resources.getXObject(it).cosObject }
+            val p1Cos = cDoc.getPage(1).resources.xObjectNames.map { cDoc.getPage(1).resources.getXObject(it).cosObject }
+            assertEquals("Compressed shared image should be deduplicated across pages", p0Cos, p1Cos)
+        }
+    }
 }
 
 
