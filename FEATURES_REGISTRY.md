@@ -2,6 +2,7 @@
 
 > **Single Source of Truth for Implemented Capabilities**
 > **Core Invariant:** 100% Local-First & Private. Zero Cloud. Zero AI/LLMs. Zero Telemetry. Original-Safe.
+> **Performance Architecture:** Linear-Time O(N) Document Traversal. Single-pass custom TextStripper architecture eliminates quadratic O(N^2) page-tree lookups across all text search, redaction, reflow reading, visual diffing, EPUB conversion, and Office export modules.
 > **Last Updated:** September 2026
 
 ---

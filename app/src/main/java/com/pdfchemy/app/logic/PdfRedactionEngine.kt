@@ -93,36 +93,42 @@ object PdfRedactionEngine {
                 Pattern.compile(Pattern.quote(query), Pattern.CASE_INSENSITIVE)
             } ?: return@withContext Result.success(emptyList())
 
+            val pagePositions = mutableMapOf<Int, MutableList<TextPosition>>()
+            val stripper = object : PDFTextStripper() {
+                private var currentPageList: MutableList<TextPosition>? = null
+
+                override fun startPage(page: com.tom_roush.pdfbox.pdmodel.PDPage) {
+                    val list = mutableListOf<TextPosition>()
+                    currentPageList = list
+                    pagePositions[(currentPageNo - 1).coerceAtLeast(0)] = list
+                }
+
+                override fun processTextPosition(text: TextPosition) {
+                    currentPageList?.add(text)
+                    super.processTextPosition(text)
+                }
+            }
+            stripper.startPage = 1
+            stripper.endPage = totalPages
+            val dummyWriter = OutputStreamWriter(ByteArrayOutputStream())
+            stripper.writeText(document, dummyWriter)
+
             for (pageIdx in 0 until totalPages) {
                 val page = document.getPage(pageIdx)
                 val mediaBox = page.mediaBox
                 val pageW = mediaBox.width
                 val pageH = mediaBox.height
 
-                val stripper = object : PDFTextStripper() {
-                    val textPositions = mutableListOf<TextPosition>()
-
-                    override fun processTextPosition(text: TextPosition) {
-                        textPositions.add(text)
-                        super.processTextPosition(text)
-                    }
-                }
-
-                stripper.startPage = pageIdx + 1
-                stripper.endPage = pageIdx + 1
-
-                val dummyWriter = OutputStreamWriter(ByteArrayOutputStream())
-                stripper.writeText(document, dummyWriter)
-
-                val fullText = stripper.textPositions.joinToString("") { it.unicode ?: "" }
+                val textPositions = pagePositions[pageIdx] ?: emptyList()
+                val fullText = textPositions.joinToString("") { it.unicode ?: "" }
                 val matcher = pattern.matcher(fullText)
 
                 while (matcher.find()) {
                     val start = matcher.start()
                     val end = matcher.end()
-                    if (start in stripper.textPositions.indices && end - 1 in stripper.textPositions.indices) {
-                        val firstPos = stripper.textPositions[start]
-                        val lastPos = stripper.textPositions[end - 1]
+                    if (start in textPositions.indices && end - 1 in textPositions.indices) {
+                        val firstPos = textPositions[start]
+                        val lastPos = textPositions[end - 1]
 
                         val minX = firstPos.xDirAdj
                         val maxX = lastPos.xDirAdj + lastPos.widthDirAdj

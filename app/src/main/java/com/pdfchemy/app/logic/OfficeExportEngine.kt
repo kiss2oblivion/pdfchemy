@@ -53,15 +53,7 @@ object OfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val textByPage = mutableListOf<String>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                textByPage.add(pageText)
-            }
+            val textByPage = PdfTextExtractor.extractAllPagesText(doc)
 
             val outputStream = contentResolver.openOutputStream(destUri)
                 ?: return@withContext Result.failure(Exception("Cannot open destination file for writing."))
@@ -110,16 +102,8 @@ object OfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val pagesRows = mutableListOf<List<List<String>>>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                val rows = parsePageToTableRows(pageText)
-                pagesRows.add(rows)
-            }
+            val allPagesText = PdfTextExtractor.extractAllPagesText(doc)
+            val pagesRows = allPagesText.map { parsePageToTableRows(it) }
 
             val outputStream = contentResolver.openOutputStream(destUri)
                 ?: return@withContext Result.failure(Exception("Cannot open destination file for writing."))
@@ -170,15 +154,9 @@ object OfficeExportEngine {
             }
 
             val pageCount = doc.numberOfPages
-            val stripper = PDFTextStripper()
-            val slideTexts = mutableListOf<List<String>>()
-
-            for (i in 1..pageCount) {
-                stripper.startPage = i
-                stripper.endPage = i
-                val pageText = stripper.getText(doc) ?: ""
-                val lines = pageText.lines().map { it.trim() }.filter { it.isNotEmpty() }
-                slideTexts.add(lines)
+            val allPagesText = PdfTextExtractor.extractAllPagesText(doc)
+            val slideTexts = allPagesText.map { pageText ->
+                pageText.lines().map { it.trim() }.filter { it.isNotEmpty() }
             }
 
             // Render slide images for slides backdrop
