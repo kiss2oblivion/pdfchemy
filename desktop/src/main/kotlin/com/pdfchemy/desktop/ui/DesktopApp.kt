@@ -80,16 +80,29 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.io.File
 import java.text.DecimalFormat
 
+// =================================================================================================
+// MASTER DESKTOP NAVIGATION TABS (Mapped to FEATURES_REGISTRY.md Desktop Edition)
+// =================================================================================================
 enum class DesktopNavTab(val icon: ImageVector) {
+    // [FEATURE: Home Dashboard] — Recent documents, quick actions, Manifesto
     HOME(Icons.Rounded.Dashboard),
+    // [FEATURE: PDF Compressor] — Presets, target size, grayscale optimizer
     COMPRESS(Icons.Rounded.Speed),
+    // [FEATURE: Page Studio] — Rotate, reorder, delete, crop, deskew, N-Up, booklet, split
     ORGANIZE(Icons.Rounded.GridView),
+    // [FEATURE: Merge PDFs] — Multi-document combiner
     MERGE(Icons.AutoMirrored.Rounded.CallMerge),
+    // [FEATURE: Sign & Form Studio] — Sign, stamp, AcroForm fill & authoring, PKI, Bates
     SIGN(Icons.Rounded.AddPhotoAlternate),
+    // [FEATURE: Convert & Office Export] — Images, text, OCR, PDF/A, CSV tables, Word, Excel, PPTX
     CONVERT(Icons.AutoMirrored.Rounded.Notes),
+    // [FEATURE: Reader Studio] — Single/dual spread, zoom, dark/light theme
     READER(Icons.AutoMirrored.Rounded.MenuBook),
+    // [FEATURE: Security Studio] — Encrypt, decrypt, sanitize threats, repair, redact, attachments
     SECURITY(Icons.Rounded.Lock),
+    // [FEATURE: Batch Processing] — Parallel multi-file queues
     BATCH(Icons.Rounded.Layers),
+    // [FEATURE: Compare Studio] — Side-by-side synchronized comparison & text diff
     COMPARE(Icons.Rounded.Collections);
 
     fun label(strings: DesktopStrings): String = when (this) {
@@ -448,6 +461,7 @@ fun DesktopApp(
                     .padding(24.dp)
             ) {
                 when (activeTab) {
+                    // [FEATURE: Home Dashboard] — Recents, quick tools, Manifesto, Update check
                     DesktopNavTab.HOME -> HomeView(
                         onSelectTab = { activeTab = it; onTabChange(it) },
                         selectedFile = selectedFile,
@@ -459,14 +473,23 @@ fun DesktopApp(
                         isCheckingUpdate = isCheckingUpdate,
                         onCheckForUpdates = { performManualUpdateCheck() }
                     )
+                    // [FEATURE: PDF Compressor] — Presets, target file size, grayscale, metadata strip
                     DesktopNavTab.COMPRESS -> CompressView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Page Studio] — Rotate, reorder, delete, crop, deskew, N-Up, booklet, split
                     DesktopNavTab.ORGANIZE -> PageStudioView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Merge PDFs] — Multi-document joiner with reorderable list
                     DesktopNavTab.MERGE -> MergeView()
+                    // [FEATURE: Sign & Form Studio] — Draw/seal/stamp, AcroForm fill/authoring, PKI, Bates
                     DesktopNavTab.SIGN -> SignAndStampView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Convert & Office Export] — Images, text, OCR, PDF/A, CSV tables, Word, Excel, PPTX
                     DesktopNavTab.CONVERT -> ConvertView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Reader Studio] — Single/dual spread, zoom, dark/light theme, jump to page
                     DesktopNavTab.READER -> ReaderView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Security Studio] — Encrypt, decrypt, sanitize threats, repair, redact, attachments
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
+                    // [FEATURE: Batch Processing] — Parallel multi-file queues (Compress, Decrypt, PDF/A)
                     DesktopNavTab.BATCH -> BatchQueueView()
+                    // [FEATURE: Compare Studio] — Side-by-side synchronized comparison & text diff
                     DesktopNavTab.COMPARE -> CompareView(selectedFile, onFileChange = { selectedFile = it })
                 }
             }
@@ -474,9 +497,9 @@ fun DesktopApp(
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 1. HOME VIEW
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 1. [FEATURE: Home Dashboard] — Recent Documents, Quick Action Grid, Manifesto, Updates
+// =================================================================================================
 @Composable
 private fun HomeView(
     onSelectTab: (DesktopNavTab) -> Unit,
@@ -869,9 +892,9 @@ private fun HomeView(
 
 private data class ToolItem(val title: String, val desc: String, val icon: ImageVector, val tab: DesktopNavTab)
 
-// -------------------------------------------------------------------------------------------------
-// 2. VISUAL PAGE STUDIO (GAP 1: THE PDF ARRANGER KILLER)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 2. [FEATURE: Page Studio] — Reorder, Rotate, Delete, Deskew, Crop, N-Up, Booklet, Splitters
+// =================================================================================================
 @Composable
 private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -2019,9 +2042,9 @@ private fun PageStudioView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 3. SMART TARGET-SIZE COMPRESSOR (GAP 2: BEAT CLOUD PAYWALLS)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 3. [FEATURE: PDF Compressor & Grayscale Engine] — Presets, Target MB Size, Custom DPI/Quality
+// =================================================================================================
 @Composable
 private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -2251,9 +2274,9 @@ private fun CompressView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// MERGE PDF VIEW (JOIN MULTIPLE DOCUMENTS)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 4. [FEATURE: Merge PDFs] — Multi-Document Combiner & Page-Order Arranger
+// =================================================================================================
 @Composable
 private fun MergeView() {
     val strings = DesktopLocalization.strings
@@ -2624,6 +2647,10 @@ private enum class SignStampScale(val widthRatio: Float) {
 }
 
 private data class PresetStampItem(val title: String, val colorHex: String, val subtext: String? = null)
+
+// =================================================================================================
+// 5. [FEATURE: Sign & Form Studio] — Visual Signer, Stamps, AcroForm Filler & Form Builder, PKI, Bates
+// =================================================================================================
 
 @Composable
 private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
@@ -4388,9 +4415,9 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 4. CONVERT STUDIO (GAP 3: IMAGES ⇄ PDF CONVERSION)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 6. [FEATURE: Convert & Export Studio] — Images, Text, OCR, PDF/A, CSV Tables, Word, Excel, PPTX
+// =================================================================================================
 @Composable
 private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -5089,9 +5116,9 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 5. BATCH QUEUE VIEW (GAP 4: MULTI-CORE BULK PROCESSING)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 7. [FEATURE: Batch Processing Studio] — Parallel Multi-File Queues (Compress, Decrypt, PDF/A)
+// =================================================================================================
 @Composable
 private fun BatchQueueView() {
     val strings = DesktopLocalization.strings
@@ -5352,9 +5379,9 @@ private fun BatchQueueView() {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 6. READER VIEW
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 8. [FEATURE: Reader Studio] — Single/Dual Spread, Continuous Scroll, Dark/Light Themes
+// =================================================================================================
 @Composable
 private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -5585,9 +5612,9 @@ private fun ReaderView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 7. SECURITY VIEW
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 9. [FEATURE: Security Studio] — Encrypt, Decrypt, Threat Sanitizer, Repair, Redaction, Attachments
+// =================================================================================================
 @Composable
 private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -6437,9 +6464,9 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     }
 }
 
-// -------------------------------------------------------------------------------------------------
-// 8B. DOCUMENT COMPARE & REVISION DIFF VIEW (ACROBAT PARITY)
-// -------------------------------------------------------------------------------------------------
+// =================================================================================================
+// 10. [FEATURE: Compare Studio] — Side-by-Side Synchronized Diff & Revision Text Diff
+// =================================================================================================
 @Composable
 private fun CompareView(file: File?, onFileChange: (File) -> Unit) {
     val strings = DesktopLocalization.strings
@@ -7538,6 +7565,9 @@ private fun InstallationSetupDialog(onDismiss: () -> Unit) {
     )
 }
 
+// =================================================================================================
+// 11. [FEATURE: Directory Spotlight Search] — Multi-File Local Keyword Scanner & Reader Jumper
+// =================================================================================================
 @Composable
 fun DirectorySpotlightSearchDialog(
     onDismiss: () -> Unit,

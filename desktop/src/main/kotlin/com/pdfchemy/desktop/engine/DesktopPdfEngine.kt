@@ -203,6 +203,9 @@ data class DesktopPdfMetadata(
 
 object DesktopPdfEngine {
 
+    // =========================================================================
+    // [FEATURE: Metadata Inspector & Stripper] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     /**
      * Inspects document metadata information and XMP streams.
      */
@@ -296,6 +299,9 @@ object DesktopPdfEngine {
         }
     }
 
+    // =========================================================================
+    // [FEATURE: Page Studio — Reorder, Rotate & Delete Pages] (FEATURES_REGISTRY Desktop §Page Studio)
+    // =========================================================================
     /**
      * Saves a reordered, rotated, or pruned document from a list of PageItemSpecs.
      */
@@ -315,6 +321,9 @@ object DesktopPdfEngine {
         }
     }
 
+    // =========================================================================
+    // [FEATURE: Merge PDFs] (FEATURES_REGISTRY Desktop §Merge)
+    // =========================================================================
     /**
      * Merges multiple PDF files into one output file.
      */
@@ -331,8 +340,11 @@ object DesktopPdfEngine {
         return outputFile.exists() && outputFile.length() > 0
     }
 
+    // =========================================================================
+    // [FEATURE: Split PDFs (Pages / Ranges)] (FEATURES_REGISTRY Desktop §Split Studio)
+    // =========================================================================
     /**
-     * Splits a PDF into individual pages or segments.
+     * Splits a PDF into multiple documents every [splitEveryNPages].
      */
     fun splitPdf(inputFile: File, outputDir: File, splitEveryNPages: Int = 1): List<File> {
         val createdFiles = mutableListOf<File>()
@@ -380,6 +392,9 @@ object DesktopPdfEngine {
         }
     }
 
+    // =========================================================================
+    // [FEATURE: Encrypt & Decrypt PDF] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     /**
      * Encrypts a PDF with user and owner passwords.
      */
@@ -403,6 +418,9 @@ object DesktopPdfEngine {
         }
     }
 
+    // =========================================================================
+    // [FEATURE: PDF Compressor & Target Size Engine] (FEATURES_REGISTRY Desktop §Compress)
+    // =========================================================================
     /**
      * Compresses PDF with preset DPI and JPEG quality.
      */
@@ -509,6 +527,9 @@ object DesktopPdfEngine {
     /**
      * Extracts all pages as standalone high-resolution images (PNG or JPG).
      */
+    // =========================================================================
+    // [FEATURE: Images to PDF & PDF to Images Converter] (FEATURES_REGISTRY Desktop §Convert)
+    // =========================================================================
     fun extractPagesToImages(
         inputFile: File,
         outputFolder: File,
@@ -577,6 +598,9 @@ object DesktopPdfEngine {
     /**
      * Repairs and reconstructs damaged PDF files with missing headers, truncated EOF, or broken XRef tables.
      */
+    // =========================================================================
+    // [FEATURE: PDF Recovery & Repair] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     fun repairPdf(inputFile: File, outputFile: File): Boolean {
         var bytes = inputFile.readBytes()
         if (bytes.isEmpty()) return false
@@ -609,6 +633,9 @@ object DesktopPdfEngine {
      * permanently obliterating the underlying text layer so sensitive data cannot be retrieved
      * via text strippers, mouse selection, or raw byte inspection.
      */
+    // =========================================================================
+    // [FEATURE: Permanent Redaction & Smart PII Scrubber] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     fun redactPdf(
         inputFile: File,
         outputFile: File,
@@ -757,6 +784,9 @@ object DesktopPdfEngine {
      * yRatio: 0.0 (top) to 1.0 (bottom) relative to page height
      * widthRatio: percentage of page width for the stamp (0.1 to 0.9)
      */
+    // =========================================================================
+    // [FEATURE: Visual Signer, Stamps & Seals] (FEATURES_REGISTRY Desktop §Sign & Form Studio)
+    // =========================================================================
     fun stampDocument(
         inputFile: File,
         outputFile: File,
@@ -884,6 +914,9 @@ object DesktopPdfEngine {
     /**
      * Applies typed text annotations, form fill values or checkmarks to a specific page.
      */
+    // =========================================================================
+    // [FEATURE: Annotations, Watermark & Page Numbering] (FEATURES_REGISTRY Desktop §Sign & Form Studio)
+    // =========================================================================
     fun addTextAnnotations(
         inputFile: File,
         outputFile: File,
@@ -1040,6 +1073,9 @@ object DesktopPdfEngine {
     /**
      * Checks if a PDF document contains interactive AcroForm fields.
      */
+    // =========================================================================
+    // [FEATURE: AcroForm Inspection, Fill & Flatten] (FEATURES_REGISTRY Desktop §Sign & Form Studio)
+    // =========================================================================
     fun hasAcroForm(inputFile: File): Boolean {
         if (!inputFile.exists() || inputFile.length() == 0L) return false
         return try {
@@ -1191,6 +1227,9 @@ object DesktopPdfEngine {
     /**
      * Compares two PDF documents page-by-page and computes textual differences.
      */
+    // =========================================================================
+    // [FEATURE: Document Visual Comparison] (FEATURES_REGISTRY Desktop §Compare Studio)
+    // =========================================================================
     fun compareDocuments(fileA: File, fileB: File): PdfDiffSummary {
         val stripper = PDFTextStripper().apply { sortByPosition = true }
 
@@ -1263,6 +1302,9 @@ object DesktopPdfEngine {
     // 1. LEGAL BATES STAMPING & INDEXING SUITE
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Bates Numbering] (FEATURES_REGISTRY Desktop §Bates Numbering)
+    // =========================================================================
     fun applyBatesStamping(inputFile: File, outputFile: File, config: DesktopBatesConfig): Boolean {
         return try {
             PDDocument.load(inputFile).use { doc ->
@@ -1320,6 +1362,9 @@ object DesktopPdfEngine {
     // 2. DEEP DOCUMENT SANITIZER & THREAT SCRUBBER
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Deep Threat Sanitizer] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     fun auditDocumentThreats(file: File): DesktopSanitizeResult {
         return try {
             PDDocument.load(file).use { doc ->
@@ -1688,6 +1733,9 @@ object DesktopPdfEngine {
     // 4. PDF/A ARCHIVAL CONVERTER (ISO 19005-1b)
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: PDF/A Archival Converter] (FEATURES_REGISTRY Desktop §Convert)
+    // =========================================================================
     fun convertToPdfA(inputFile: File, outputFile: File): Boolean {
         return try {
             PDDocument.load(inputFile).use { doc ->
@@ -1755,6 +1803,9 @@ object DesktopPdfEngine {
     // 5. VISUAL MARGIN TRIMMER & SMART CROPBOX
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Page Cropper & Margin Trimmer] (FEATURES_REGISTRY Desktop §Page Studio)
+    // =========================================================================
     fun cropMargins(inputFile: File, outputFile: File, config: DesktopCropConfig): Boolean {
         return try {
             PDDocument.load(inputFile).use { doc ->
@@ -1843,6 +1894,9 @@ object DesktopPdfEngine {
     // 6. PDF TABLE & DATA EXTRACTOR TO CSV
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Table Extractor to CSV] (FEATURES_REGISTRY Desktop §Convert)
+    // =========================================================================
     fun extractTablesToCsv(inputFile: File, pageIndex: Int? = null): String {
         return PDDocument.load(inputFile).use { doc ->
             val stripper = object : PDFTextStripper() {
@@ -1882,6 +1936,9 @@ object DesktopPdfEngine {
     // 7. AUTO-DESKEW & SCANNER STRAIGHTENER
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Auto-Deskew & Scan Straightener] (FEATURES_REGISTRY Desktop §Page Studio)
+    // =========================================================================
     fun detectSkewAngle(image: BufferedImage): Float {
         val targetWidth = 400
         val scale = targetWidth.toFloat() / image.width.toFloat()
@@ -1985,6 +2042,9 @@ object DesktopPdfEngine {
     // 8. BOOKLET CREATOR & N-UP IMPOSITION
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Booklet Imposition & N-Up Handouts] (FEATURES_REGISTRY Desktop §Page Studio)
+    // =========================================================================
     fun generateBooklet(inputFile: File, outputFile: File, drawFoldGuide: Boolean = true): Boolean {
         return try {
             PDDocument.load(inputFile).use { srcDoc ->
@@ -2154,6 +2214,9 @@ object DesktopPdfEngine {
     // 9. BATCH SPLIT BY BLANK PAGES & BOOKMARKS
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Split by Blank Pages & Split by Bookmarks] (FEATURES_REGISTRY Desktop §Split Studio)
+    // =========================================================================
     fun splitByBlankPages(inputFile: File, outputDir: File, whiteThreshold: Float = 0.999f): List<File> {
         val outputFiles = mutableListOf<File>()
         outputDir.mkdirs()
@@ -2260,6 +2323,9 @@ object DesktopPdfEngine {
     // 10. EMBEDDED FILE ATTACHMENTS & PORTFOLIO
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Embedded File Attachments] (FEATURES_REGISTRY Desktop §Security)
+    // =========================================================================
     fun listAttachments(inputFile: File): List<DesktopAttachment> {
         val list = mutableListOf<DesktopAttachment>()
         PDDocument.load(inputFile).use { doc ->
@@ -2344,6 +2410,9 @@ object DesktopPdfEngine {
     // 11. PKI DIGITAL SIGNATURES (Sign & Stamp)
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: Cryptographic PKI Digital Signatures] (FEATURES_REGISTRY Desktop §Digital Signatures)
+    // =========================================================================
     fun signDocument(inputFile: File, outputFile: File, signerName: String, reason: String, location: String): Result<Boolean> {
         return try {
             // Generate ephemeral key pair and self-signed certificate for the specified name
@@ -2368,6 +2437,9 @@ object DesktopPdfEngine {
     // 12. OCR (Optical Character Recognition)
     // ==========================================
 
+    // =========================================================================
+    // [FEATURE: On-Device OCR Searchable PDF] (FEATURES_REGISTRY Desktop §Convert)
+    // =========================================================================
     fun makeSearchable(inputFile: File, outputFile: File, onProgress: (current: Int, total: Int) -> Unit = { _, _ -> }): Result<Boolean> {
         return try {
             val success = PdfOcrEngine.createSearchablePdf(inputFile, outputFile, onProgress)
@@ -2378,10 +2450,9 @@ object DesktopPdfEngine {
         }
     }
 
-    // ==========================================
-    // 13. AcroForm Authoring
-    // ==========================================
-
+    // =========================================================================
+    // [FEATURE: Interactive Form Builder / AcroForm Authoring] (FEATURES_REGISTRY Desktop §Sign & Form Studio)
+    // =========================================================================
     fun addAcroFormFields(inputFile: File, outputFile: File, fields: List<DesktopFormFieldSpec>): Result<Boolean> {
         return try {
             PDDocument.load(inputFile).use { doc ->
