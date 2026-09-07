@@ -92,5 +92,25 @@ In the spirit of complete, radical transparency:
 
 ---
 
+## 💖 Open-Source Credits & Attributions
+
+PDFchemy Tools stands on the shoulders of the global open-source community. Every core capability runs locally and deterministically thanks to these outstanding libraries and their maintainers:
+
+* **[Apache PDFBox](https://pdfbox.apache.org/)** (Apache 2.0) — The foundational Java PDF engine powering document compression, geometry rendering, AcroForms authoring, PDF/A conversion, and search indexing on Desktop.
+* **[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android)** (Apache 2.0) by Tom Roush — The Android port powering mobile PDF manipulation and form filling.
+* **[JetBrains Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform) & [Kotlin Coroutines](https://github.com/Kotlin/kotlinx.coroutines)** (Apache 2.0) — Modern declarative desktop rendering and multi-threaded parallel queues.
+* **[Android Jetpack & Jetpack Compose](https://developer.android.com/jetpack)** (Apache 2.0) by Google/AOSP — Modern Material3 UI, adaptive window layouts, and system integration.
+* **[The Legion of the Bouncy Castle](https://www.bouncycastle.org/)** (Bouncy Castle Licence / MIT) — Cryptographic provider for PKI X.509 digital signatures and integrity verification.
+* **[Tess4J & Tesseract OCR](https://tess4j.sourceforge.net/)** (Apache 2.0) — Offline Optical Character Recognition for searchable PDF conversions on Desktop.
+* **[Google ML Kit](https://developers.google.com/ml-kit)** — Hardware-accelerated on-device document camera perspective scanning and mobile OCR.
+* **[jsoup](https://jsoup.org/)** (MIT) by Jonathan Hedley — HTML/EPUB DOM parser and sanitizer for document and eBook conversions.
+* **[flexmark-java](https://github.com/vsch/flexmark-java)** (BSD-2-Clause) — Markdown parser and AST engine for Markdown-to-PDF rendering.
+* **[FasterXML Jackson](https://github.com/FasterXML/jackson)** (Apache 2.0) — High-throughput serialization for CSV, YAML, and XML conversions.
+* **[Coil](https://coil-kt.github.io/coil/)** (Apache 2.0) by Colin White — Coroutine-powered asynchronous image loading on Android.
+
+*For the complete bill of materials, versions, and license details, see [THIRD_PARTY_CREDITS.md](THIRD_PARTY_CREDITS.md).*
+
+---
+
 ## 📄 License
 Built with passion for the people. Free for personal and commercial use.
