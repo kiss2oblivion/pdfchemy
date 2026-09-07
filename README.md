@@ -107,8 +107,10 @@ PDFchemy Tools stands on the shoulders of the global open-source community. Ever
 * **[flexmark-java](https://github.com/vsch/flexmark-java)** (BSD-2-Clause) — Markdown parser and AST engine for Markdown-to-PDF rendering.
 * **[FasterXML Jackson](https://github.com/FasterXML/jackson)** (Apache 2.0) — High-throughput serialization for CSV, YAML, and XML conversions.
 * **[Coil](https://coil-kt.github.io/coil/)** (Apache 2.0) by Colin White — Coroutine-powered asynchronous image loading on Android.
+* **[Tesseract OCR Models](https://github.com/tesseract-ocr/tessdata)** (Apache 2.0) — Bundled neural OCR English trained model (`eng.traineddata`).
+* **[Google Material Design Icons](https://fonts.google.com/icons)** (Apache 2.0) — System UI iconography across desktop and mobile suites.
 
-*For the complete bill of materials, versions, and license details, see [THIRD_PARTY_CREDITS.md](THIRD_PARTY_CREDITS.md).*
+*For the complete bill of materials, versions, test frameworks, and license details, see [THIRD_PARTY_CREDITS.md](THIRD_PARTY_CREDITS.md).*
 
 ---
 
