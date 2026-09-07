@@ -32,6 +32,7 @@ object PdfToEpubEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempEpubFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -57,10 +58,11 @@ object PdfToEpubEngine {
             document = null
 
             // Build EPUB package in temp file
-            val tempEpubFile = File(context.cacheDir, "ebook_${System.currentTimeMillis()}.epub")
+            val tempFile = File(context.cacheDir, "ebook_${System.currentTimeMillis()}.epub")
+            tempEpubFile = tempFile
             val bookId = "urn:uuid:" + UUID.randomUUID().toString()
 
-            ZipOutputStream(FileOutputStream(tempEpubFile)).use { zip ->
+            ZipOutputStream(FileOutputStream(tempFile)).use { zip ->
                 // 1. mimetype (must be uncompressed/stored)
                 val mimeBytes = "application/epub+zip".toByteArray(Charsets.US_ASCII)
                 val mimeEntry = ZipEntry("mimetype").apply {
@@ -220,7 +222,8 @@ $ncxNavPoints
                 }
             } ?: throw IllegalStateException("Cannot open destination EPUB stream")
 
-            tempEpubFile.delete()
+            tempEpubFile?.delete()
+            tempEpubFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -236,6 +239,7 @@ $ncxNavPoints
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempEpubFile?.delete()
         }
     }
 
@@ -250,6 +254,7 @@ $ncxNavPoints
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
         var tempFile: File? = null
+        var zip: java.util.zip.ZipFile? = null
         val document = PDDocument()
         try {
             tempFile = File(context.cacheDir, "epub_in_${System.currentTimeMillis()}.epub")
@@ -257,7 +262,8 @@ $ncxNavPoints
                 FileOutputStream(tempFile).use { output -> input.copyTo(output) }
             } ?: throw IllegalStateException("Cannot open input EPUB file")
 
-            val zip = java.util.zip.ZipFile(tempFile)
+            val openZip = java.util.zip.ZipFile(tempFile)
+            zip = openZip
 
             // 1. Locate OPF from META-INF/container.xml
             var opfPath = "OEBPS/content.opf"
@@ -398,6 +404,7 @@ $ncxNavPoints
             AppLogger.e("PdfToEpubEngine: Error converting EPUB to PDF", e)
             Result.failure(e)
         } finally {
+            try { zip?.close() } catch (_: Throwable) {}
             try { document.close() } catch (_: Exception) {}
             tempFile?.delete()
         }

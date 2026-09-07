@@ -82,7 +82,10 @@ object PdfDiffEngine {
                 if (hasPage1 && renderer1 != null && i < renderer1!!.pageCount) {
                     try {
                         val p1 = renderer1!!.openPage(i)
-                        bmp1 = Bitmap.createBitmap(p1.width, p1.height, Bitmap.Config.ARGB_8888)
+                        val scale = minOf(1.0f, 720f / maxOf(p1.width, p1.height))
+                        val w = (p1.width * scale).toInt().coerceAtLeast(1)
+                        val h = (p1.height * scale).toInt().coerceAtLeast(1)
+                        bmp1 = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         p1.render(bmp1, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         p1.close()
                     } catch (e: Exception) {
@@ -93,7 +96,10 @@ object PdfDiffEngine {
                 if (hasPage2 && renderer2 != null && i < renderer2!!.pageCount) {
                     try {
                         val p2 = renderer2!!.openPage(i)
-                        bmp2 = Bitmap.createBitmap(p2.width, p2.height, Bitmap.Config.ARGB_8888)
+                        val scale = minOf(1.0f, 720f / maxOf(p2.width, p2.height))
+                        val w = (p2.width * scale).toInt().coerceAtLeast(1)
+                        val h = (p2.height * scale).toInt().coerceAtLeast(1)
+                        bmp2 = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         p2.render(bmp2, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         p2.close()
                     } catch (e: Exception) {

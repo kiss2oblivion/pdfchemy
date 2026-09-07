@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: Visual PDF Editor & Freehand Annotation Engine] (FEATURES_REGISTRY Android §4)
+// Highlighting, freehand pen/pencil drawing, shapes, watermarking, and text annotations.
+// =================================================================================================
+
 package com.pdfchemy.app.logic
 
 import android.content.Context
@@ -21,6 +26,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.io.InputStream
 import java.util.UUID
 
 enum class EditorTool {
@@ -177,32 +183,38 @@ object PdfEditor {
 
             if (leftIndex in 0 until total) {
                 val page = renderer.openPage(leftIndex)
-                val origW = page.width.coerceAtLeast(1)
-                val origH = page.height.coerceAtLeast(1)
-                val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
-                val rw = (origW * scale).toInt().coerceAtLeast(1)
-                val rh = (origH * scale).toInt().coerceAtLeast(1)
-                val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bmp)
-                canvas.drawColor(android.graphics.Color.WHITE)
-                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                page.close()
-                leftBmp = bmp
+                try {
+                    val origW = page.width.coerceAtLeast(1)
+                    val origH = page.height.coerceAtLeast(1)
+                    val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
+                    val rw = (origW * scale).toInt().coerceAtLeast(1)
+                    val rh = (origH * scale).toInt().coerceAtLeast(1)
+                    val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bmp)
+                    canvas.drawColor(android.graphics.Color.WHITE)
+                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    leftBmp = bmp
+                } finally {
+                    page.close()
+                }
             }
 
             if (rightIndex in 0 until total) {
                 val page = renderer.openPage(rightIndex)
-                val origW = page.width.coerceAtLeast(1)
-                val origH = page.height.coerceAtLeast(1)
-                val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
-                val rw = (origW * scale).toInt().coerceAtLeast(1)
-                val rh = (origH * scale).toInt().coerceAtLeast(1)
-                val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bmp)
-                canvas.drawColor(android.graphics.Color.WHITE)
-                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                page.close()
-                rightBmp = bmp
+                try {
+                    val origW = page.width.coerceAtLeast(1)
+                    val origH = page.height.coerceAtLeast(1)
+                    val scale = (targetWidth.toFloat() / origW).coerceIn(0.5f, 2.0f)
+                    val rw = (origW * scale).toInt().coerceAtLeast(1)
+                    val rh = (origH * scale).toInt().coerceAtLeast(1)
+                    val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bmp)
+                    canvas.drawColor(android.graphics.Color.WHITE)
+                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    rightBmp = bmp
+                } finally {
+                    page.close()
+                }
             }
             DualPageBitmaps(leftBmp, rightBmp)
         } catch (e: Exception) {
@@ -227,9 +239,10 @@ object PdfEditor {
         modifications: Map<Int, PageModification>
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
+        var inputStream: InputStream? = null
         var document: PDDocument? = null
         try {
-            val inputStream = context.contentResolver.openInputStream(sourceUri)
+            inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(IllegalStateException("Cannot open source PDF"))
 
             document = PDDocument.load(inputStream)
@@ -266,18 +279,21 @@ object PdfEditor {
                     )
 
                     if (overlayBmp != null) {
-                        val pdImage = LosslessFactory.createFromImage(document, overlayBmp)
-                        val contentStream = PDPageContentStream(
-                            document,
-                            page,
-                            PDPageContentStream.AppendMode.APPEND,
-                            true,
-                            true
-                        )
-                        contentStream.use { cs ->
-                            cs.drawImage(pdImage, 0f, 0f, pageWidthPts, pageHeightPts)
+                        try {
+                            val pdImage = LosslessFactory.createFromImage(document, overlayBmp)
+                            val contentStream = PDPageContentStream(
+                                document,
+                                page,
+                                PDPageContentStream.AppendMode.APPEND,
+                                true,
+                                true
+                            )
+                            contentStream.use { cs ->
+                                cs.drawImage(pdImage, 0f, 0f, pageWidthPts, pageHeightPts)
+                            }
+                        } finally {
+                            overlayBmp.recycle()
                         }
-                        overlayBmp.recycle()
                     }
                 }
             }
@@ -295,6 +311,9 @@ object PdfEditor {
             AppLogger.e("PdfEditor: failed to export modified PDF", e)
             Result.failure(e)
         } finally {
+            try {
+                inputStream?.close()
+            } catch (_: Exception) {}
             try {
                 document?.close()
             } catch (_: Exception) {}

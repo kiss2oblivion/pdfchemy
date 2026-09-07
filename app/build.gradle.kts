@@ -147,7 +147,6 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.17.0")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.0")
-    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     testImplementation("junit:junit:4.13.2")

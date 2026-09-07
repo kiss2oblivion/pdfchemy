@@ -215,7 +215,7 @@ fun FillFormScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(formFields) { field ->
+                        items(formFields, key = { it.fullyQualifiedName }, contentType = { "formField" }) { field ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),

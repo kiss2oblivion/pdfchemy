@@ -205,7 +205,7 @@ fun FontInspectorScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(fontList) { font ->
+                            items(fontList, key = { "${it.familyName}_${it.formatType}_${it.encoding}" }, contentType = { "font" }) { font ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(8.dp),

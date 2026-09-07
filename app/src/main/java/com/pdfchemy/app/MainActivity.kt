@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.res.stringResource
 import com.pdfchemy.app.R
+import java.io.File
 import android.util.Log
 import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
@@ -117,6 +118,8 @@ import com.pdfchemy.app.ui.DocumentSanitizerScreen
 import com.pdfchemy.app.ui.QuickFillSignScreen
 import com.pdfchemy.app.ui.FormBuilderScreen
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.text.font.FontWeight
@@ -150,9 +153,6 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.MobileAds
 import com.pdfchemy.app.billing.AdManager
-import com.pdfchemy.app.ui.OfficeExportScreen
-import com.pdfchemy.app.ui.ImageReplacerScreen
-import com.pdfchemy.app.ui.FindAndReplaceScreen
 
 // --- Color Palette ---
 val md_theme_light_primary = Color(0xFF0072B2)
@@ -327,11 +327,37 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
+    private fun cleanupOrphanedCacheFiles(context: Context) {
+        try {
+            val cacheDir = context.cacheDir ?: return
+            val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000L)
+            val files = cacheDir.listFiles() ?: return
+            for (file in files) {
+                if (file.isFile && file.lastModified() < oneHourAgo) {
+                    val name = file.name.lowercase()
+                    if (name.endsWith(".pdf") || name.endsWith(".epub") || name.endsWith(".cbz") ||
+                        name.startsWith("temp_") || name.startsWith("pdf_seekable_")) {
+                        try {
+                            file.delete()
+                        } catch (_: Throwable) {}
+                    }
+                }
+            }
+        } catch (e: Throwable) {
+            AppLogger.w("Failed to clean orphaned cache files: ${e.message}")
+        }
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        PDFBoxResourceLoader.init(applicationContext)
+        lifecycleScope.launch(Dispatchers.Default) {
+            PDFBoxResourceLoader.init(applicationContext)
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            cleanupOrphanedCacheFiles(applicationContext)
+        }
         handleIncomingIntent(intent)
         
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
@@ -993,6 +1019,9 @@ fun BannerAdView(modifier: Modifier = Modifier) {
                     adUnitId = com.pdfchemy.app.BuildConfig.BANNER_AD_UNIT_ID
                     loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
                 }
+            },
+            onRelease = { adView ->
+                adView.destroy()
             }
         )
     }
@@ -1280,7 +1309,7 @@ fun ShimmerTitle(text: String, style: androidx.compose.ui.text.TextStyle, baseCo
 @Composable
 fun AnimatedMeshBackground() {
     val infiniteTransition = rememberInfiniteTransition(label = "mesh")
-    val color1 by infiniteTransition.animateColor(
+    val color1State = infiniteTransition.animateColor(
         initialValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
         targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
         animationSpec = infiniteRepeatable(
@@ -1289,7 +1318,7 @@ fun AnimatedMeshBackground() {
         ),
         label = "color1"
     )
-    val color2 by infiniteTransition.animateColor(
+    val color2State = infiniteTransition.animateColor(
         initialValue = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f),
         targetValue = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
         animationSpec = infiniteRepeatable(
@@ -1303,14 +1332,14 @@ fun AnimatedMeshBackground() {
     Canvas(modifier = Modifier.fillMaxSize().background(bgColor)) {
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(color1, Color.Transparent),
+                colors = listOf(color1State.value, Color.Transparent),
                 center = Offset(size.width * 0.2f, size.height * 0.2f),
                 radius = size.width * 0.85f
             )
         )
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(color2, Color.Transparent),
+                colors = listOf(color2State.value, Color.Transparent),
                 center = Offset(size.width * 0.8f, size.height * 0.8f),
                 radius = size.width * 0.85f
             )
@@ -1496,7 +1525,7 @@ fun CategoryCard(
 
     Card(
         onClick = onClick,
-        modifier = modifier.scale(scale),
+        modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale },
         interactionSource = interactionSource,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -1914,7 +1943,7 @@ fun ToolCard(
         modifier = modifier
             .fillMaxWidth()
             .height(108.dp)
-            .scale(scale),
+            .graphicsLayer { scaleX = scale; scaleY = scale },
         interactionSource = interactionSource,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -3775,9 +3804,12 @@ fun BannerAd(isPremium: Boolean, modifier: Modifier = Modifier) {
             factory = { context ->
                 AdView(context).apply {
                     setAdSize(AdSize.BANNER)
-                    adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test Banner ID
+                    adUnitId = com.pdfchemy.app.BuildConfig.BANNER_AD_UNIT_ID
                     loadAd(AdRequest.Builder().build())
                 }
+            },
+            onRelease = { adView ->
+                adView.destroy()
             }
         )
     }

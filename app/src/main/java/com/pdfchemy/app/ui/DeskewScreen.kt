@@ -111,10 +111,10 @@ fun DeskewScreen(
         }
     }
 
+    val currentPreviewBmp by rememberUpdatedState(previewBitmap)
     DisposableEffect(Unit) {
         onDispose {
-            previewBitmap?.recycle()
-            previewBitmap = null
+            currentPreviewBmp?.let { if (!it.isRecycled) it.recycle() }
         }
     }
 

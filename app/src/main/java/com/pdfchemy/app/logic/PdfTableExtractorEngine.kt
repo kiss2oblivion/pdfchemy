@@ -68,19 +68,68 @@ object PdfTableExtractorEngine {
         val endPage = if (pageIndex != null) (pageIndex + 1).coerceIn(1, totalPages) else totalPages
 
         val allWords = mutableListOf<SpatialWord>()
-        val stripper = object : PDFTextStripper() {
-            override fun processTextPosition(text: TextPosition) {
-                val str = text.unicode
-                if (str.isNotBlank()) {
+        val currentWordChars = StringBuilder()
+        var wordStartX = 0f
+        var wordStartY = 0f
+        var wordEndX = 0f
+        var wordMaxHeight = 0f
+        var inWord = false
+
+        fun flushWord() {
+            if (inWord && currentWordChars.isNotEmpty()) {
+                val str = currentWordChars.toString().trim()
+                if (str.isNotEmpty()) {
                     allWords.add(
                         SpatialWord(
                             text = str,
-                            x = text.xDirAdj,
-                            y = text.yDirAdj,
-                            width = text.widthDirAdj,
-                            height = text.heightDir
+                            x = wordStartX,
+                            y = wordStartY,
+                            width = (wordEndX - wordStartX).coerceAtLeast(1f),
+                            height = wordMaxHeight
                         )
                     )
+                }
+                currentWordChars.setLength(0)
+                inWord = false
+            }
+        }
+
+        val stripper = object : PDFTextStripper() {
+            override fun processTextPosition(text: TextPosition) {
+                val str = text.unicode
+                val isSpace = str.isBlank()
+
+                if (isSpace) {
+                    flushWord()
+                } else {
+                    val x = text.xDirAdj
+                    val y = text.yDirAdj
+                    val w = text.widthDirAdj
+                    val h = text.heightDir
+
+                    if (inWord) {
+                        val gap = x - wordEndX
+                        if (Math.abs(y - wordStartY) < 3.0f && gap >= -1.0f && gap <= (text.widthOfSpace * 1.5f).coerceAtLeast(3f)) {
+                            currentWordChars.append(str)
+                            wordEndX = x + w
+                            wordMaxHeight = maxOf(wordMaxHeight, h)
+                        } else {
+                            flushWord()
+                            currentWordChars.append(str)
+                            wordStartX = x
+                            wordStartY = y
+                            wordEndX = x + w
+                            wordMaxHeight = h
+                            inWord = true
+                        }
+                    } else {
+                        currentWordChars.append(str)
+                        wordStartX = x
+                        wordStartY = y
+                        wordEndX = x + w
+                        wordMaxHeight = h
+                        inWord = true
+                    }
                 }
                 super.processTextPosition(text)
             }
@@ -88,6 +137,7 @@ object PdfTableExtractorEngine {
         stripper.startPage = startPage
         stripper.endPage = endPage
         stripper.getText(doc)
+        flushWord()
 
         if (allWords.isEmpty()) return ""
 

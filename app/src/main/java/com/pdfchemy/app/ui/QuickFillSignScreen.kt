@@ -140,10 +140,10 @@ fun QuickFillSignScreen(
         selectedPdfUri?.let { renderCurrentPage(it, currentPageIndex) }
     }
 
+    val currentBmp by rememberUpdatedState(currentPageBitmap)
     DisposableEffect(Unit) {
         onDispose {
-            currentPageBitmap?.recycle()
-            currentPageBitmap = null
+            currentBmp?.let { if (!it.isRecycled) it.recycle() }
         }
     }
 

@@ -61,6 +61,13 @@ fun GrayscaleOptimizerScreen(
     var progressCurrent by remember { mutableIntStateOf(0) }
     var progressTotal by remember { mutableIntStateOf(0) }
 
+    val currentPreviewBitmap by rememberUpdatedState(previewBitmap)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPreviewBitmap?.recycle()
+        }
+    }
+
     fun refreshPreview() {
         val uri = selectedPdfUri ?: return
         coroutineScope.launch {
@@ -74,6 +81,7 @@ fun GrayscaleOptimizerScreen(
             )
             isRenderingPreview = false
             if (result.isSuccess) {
+                previewBitmap?.recycle()
                 previewBitmap = result.getOrThrow()
             }
         }

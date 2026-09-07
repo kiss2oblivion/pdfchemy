@@ -255,7 +255,7 @@ fun AttachmentManagerScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(attachments) { idx, item ->
+                        itemsIndexed(attachments, key = { _, item -> "${item.name}_${item.sizeBytes}" }) { idx, item ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),

@@ -151,6 +151,7 @@ object PdfFindAndReplaceEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         return@withContext try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -205,7 +206,7 @@ object PdfFindAndReplaceEngine {
                 }
             }
 
-            val tempFile = File(context.cacheDir, "find_replace_tmp_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "find_replace_tmp_${System.currentTimeMillis()}.pdf")
             FileOutputStream(tempFile).use { out ->
                 document.save(out)
             }
@@ -217,6 +218,7 @@ object PdfFindAndReplaceEngine {
             } ?: throw IllegalStateException("Cannot open destination output stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(destPdfUri, com.pdfchemy.app.utils.FileUtils.getFileName(context, destPdfUri) ?: "replaced.pdf", "Find & Replace PDF")
@@ -228,6 +230,7 @@ object PdfFindAndReplaceEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

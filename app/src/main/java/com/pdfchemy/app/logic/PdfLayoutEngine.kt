@@ -113,34 +113,38 @@ object PdfLayoutEngine {
 
                         // Render source page into bitmap
                         val srcPage = renderer.openPage(currentSrcPage)
-                        val renderScale = 2f
-                        val bmpW = (srcPage.width * renderScale).toInt().coerceIn(100, 2400)
-                        val bmpH = (srcPage.height * renderScale).toInt().coerceIn(100, 2400)
-                        val bitmap = Bitmap.createBitmap(bmpW, bmpH, Bitmap.Config.ARGB_8888)
-                        val canvas = android.graphics.Canvas(bitmap)
-                        canvas.drawColor(android.graphics.Color.WHITE)
-                        srcPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                        srcPage.close()
+                        var bitmap: Bitmap? = null
+                        try {
+                            val renderScale = 2f
+                            val bmpW = (srcPage.width * renderScale).toInt().coerceIn(100, 2048)
+                            val bmpH = (srcPage.height * renderScale).toInt().coerceIn(100, 2048)
+                            bitmap = Bitmap.createBitmap(bmpW, bmpH, Bitmap.Config.ARGB_8888)
+                            val canvas = android.graphics.Canvas(bitmap)
+                            canvas.drawColor(android.graphics.Color.WHITE)
+                            srcPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
 
-                        // Calculate fit scaling within cell
-                        val pad = 6f
-                        val availW = cellW - (pad * 2f)
-                        val availH = cellH - (pad * 2f)
-                        val scale = minOf(availW / bmpW, availH / bmpH)
-                        val drawW = bmpW * scale
-                        val drawH = bmpH * scale
-                        val drawX = x + pad + ((availW - drawW) / 2f)
-                        val drawY = y + pad + ((availH - drawH) / 2f)
+                            // Calculate fit scaling within cell
+                            val pad = 6f
+                            val availW = cellW - (pad * 2f)
+                            val availH = cellH - (pad * 2f)
+                            val scale = minOf(availW / bmpW, availH / bmpH)
+                            val drawW = bmpW * scale
+                            val drawH = bmpH * scale
+                            val drawX = x + pad + ((availW - drawW) / 2f)
+                            val drawY = y + pad + ((availH - drawH) / 2f)
 
-                        val pdImage = JPEGFactory.createFromImage(outDoc, bitmap, 0.85f)
-                        cs.drawImage(pdImage, drawX, drawY, drawW, drawH)
-                        bitmap.recycle()
+                            val pdImage = JPEGFactory.createFromImage(outDoc, bitmap, 0.85f)
+                            cs.drawImage(pdImage, drawX, drawY, drawW, drawH)
 
-                        if (drawBorders) {
-                            cs.setStrokingColor(200, 200, 200)
-                            cs.setLineWidth(0.5f)
-                            cs.addRect(drawX, drawY, drawW, drawH)
-                            cs.stroke()
+                            if (drawBorders) {
+                                cs.setStrokingColor(200, 200, 200)
+                                cs.setLineWidth(0.5f)
+                                cs.addRect(drawX, drawY, drawW, drawH)
+                                cs.stroke()
+                            }
+                        } finally {
+                            bitmap?.recycle()
+                            srcPage.close()
                         }
 
                         currentSrcPage++

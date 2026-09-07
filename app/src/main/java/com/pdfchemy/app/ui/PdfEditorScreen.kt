@@ -86,12 +86,13 @@ fun PdfEditorScreen(
     var forceTabletopMode by remember { mutableStateOf(false) }
     val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
 
+    val currentLeftBmp by rememberUpdatedState(currentPageBitmap)
+    val currentRightBmp by rememberUpdatedState(secondaryPageBitmap)
+
     DisposableEffect(Unit) {
         onDispose {
-            currentPageBitmap?.recycle()
-            secondaryPageBitmap?.recycle()
-            currentPageBitmap = null
-            secondaryPageBitmap = null
+            currentLeftBmp?.let { if (!it.isRecycled) it.recycle() }
+            currentRightBmp?.let { if (!it.isRecycled) it.recycle() }
         }
     }
 

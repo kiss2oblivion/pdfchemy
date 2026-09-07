@@ -391,7 +391,7 @@ fun FindAndReplaceScreen(
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(summary.occurrences) { item ->
+                        items(summary.occurrences, key = { "${it.pageIndex}_${it.snippet.hashCode()}" }, contentType = { "occurrence" }) { item ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),

@@ -246,6 +246,7 @@ object ImageCompressor {
         maxDimension: Int = 0,
         stripExif: Boolean = true
     ): ImageCompressionResult = withContext(Dispatchers.IO) {
+        var bitmap: Bitmap? = null
         try {
             val originalSize = getUriFileSize(context, sourceUri)
             val orientation = getExifOrientation(context, sourceUri)
@@ -262,7 +263,7 @@ object ImageCompressor {
                 inPreferredConfig = Bitmap.Config.ARGB_8888
             }
 
-            var bitmap: Bitmap? = context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            bitmap = context.contentResolver.openInputStream(sourceUri)?.use { input ->
                 BitmapFactory.decodeStream(input, null, decodeOptions)
             }
 
@@ -313,8 +314,6 @@ object ImageCompressor {
                 out.flush()
             }
 
-            bitmap.recycle()
-
             val compressedSize = getUriFileSize(context, destUri)
 
             ImageCompressionResult(
@@ -336,6 +335,8 @@ object ImageCompressor {
                 format = "",
                 error = e.message ?: "Unknown compression error"
             )
+        } finally {
+            bitmap?.recycle()
         }
     }
 
@@ -351,6 +352,7 @@ object ImageCompressor {
         targetFormat: ImageOutputFormat = ImageOutputFormat.ORIGINAL,
         stripExif: Boolean = true
     ): ImageCompressionResult = withContext(Dispatchers.IO) {
+        var currentBitmap: Bitmap? = null
         try {
             val originalSize = getUriFileSize(context, sourceUri)
 
@@ -379,10 +381,10 @@ object ImageCompressor {
             var highQ = 92
             var bestQuality = 60
             var bestBytes = ByteArray(0)
-            var currentBitmap: Bitmap? = null
 
             // Adaptive loop with max 3 downscale reductions if quality alone is insufficient
             var downscaleFactor = 1.0f
+            val bos = ByteArrayOutputStream(64 * 1024)
 
             for (attempt in 0..2) {
                 val targetDim = if (downscaleFactor < 1.0f) (maxDim * downscaleFactor).toInt() else 0
@@ -422,22 +424,24 @@ object ImageCompressor {
                 // Perform binary search on quality
                 lowQ = 10
                 highQ = 90
+                var iterationBestBytes: ByteArray? = null
                 while (lowQ <= highQ) {
                     val midQ = (lowQ + highQ) / 2
-                    val bos = ByteArrayOutputStream()
+                    bos.reset()
                     currentBitmap.compress(compressFormat, midQ, bos)
                     val size = bos.size().toLong()
 
                     if (size <= targetSizeBytes) {
                         bestQuality = midQ
-                        bestBytes = bos.toByteArray()
+                        iterationBestBytes = bos.toByteArray()
                         lowQ = midQ + 1 // try higher quality
                     } else {
                         highQ = midQ - 1 // try lower quality
                     }
                 }
 
-                if (bestBytes.isNotEmpty() && bestBytes.size <= targetSizeBytes) {
+                if (iterationBestBytes != null) {
+                    bestBytes = iterationBestBytes
                     break // Met target size!
                 }
 
@@ -447,14 +451,13 @@ object ImageCompressor {
 
             if (bestBytes.isEmpty() && currentBitmap != null) {
                 // Fallback: compress at 10% quality
-                val bos = ByteArrayOutputStream()
+                bos.reset()
                 currentBitmap.compress(compressFormat, 10, bos)
                 bestBytes = bos.toByteArray()
             }
 
             val finalWidth = currentBitmap?.width ?: bounds.outWidth
             val finalHeight = currentBitmap?.height ?: bounds.outHeight
-            currentBitmap?.recycle()
 
             val outputStream: OutputStream = context.contentResolver.openOutputStream(destUri)
                 ?: throw IllegalStateException("Cannot open output stream for destination URI")
@@ -485,6 +488,8 @@ object ImageCompressor {
                 format = "",
                 error = e.message ?: "Target size compression error"
             )
+        } finally {
+            currentBitmap?.recycle()
         }
     }
 

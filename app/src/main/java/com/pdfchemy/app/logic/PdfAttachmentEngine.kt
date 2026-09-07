@@ -142,6 +142,7 @@ object PdfAttachmentEngine {
         var srcPdfStream: InputStream? = null
         var attachStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             srcPdfStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -174,7 +175,7 @@ object PdfAttachmentEngine {
             currentMap[fileName] = fileSpec
             embeddedTree.setNames(currentMap)
 
-            val tempFile = File(context.cacheDir, "attached_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "attached_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -186,6 +187,7 @@ object PdfAttachmentEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -202,6 +204,7 @@ object PdfAttachmentEngine {
             try { document?.close() } catch (_: Exception) {}
             try { srcPdfStream?.close() } catch (_: Exception) {}
             try { attachStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 
@@ -217,6 +220,7 @@ object PdfAttachmentEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -239,7 +243,7 @@ object PdfAttachmentEngine {
                 }
             }
 
-            val tempFile = File(context.cacheDir, "rm_attach_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "rm_attach_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -251,6 +255,7 @@ object PdfAttachmentEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF")
 
             tempFile.delete()
+            tempFile = null
 
             Result.success(true)
         } catch (e: Exception) {
@@ -259,6 +264,7 @@ object PdfAttachmentEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

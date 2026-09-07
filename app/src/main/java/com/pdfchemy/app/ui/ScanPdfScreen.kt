@@ -74,6 +74,15 @@ fun ScanPdfScreen(
     var currentFilter by remember { mutableStateOf(ScanFilterMode.MAGIC_COLOR) }
     var isProcessing by remember { mutableStateOf(false) }
 
+    val currentScannedBitmaps by rememberUpdatedState(scannedBitmaps)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentScannedBitmaps.forEach { bmp ->
+                if (!bmp.isRecycled) bmp.recycle()
+            }
+        }
+    }
+
     // GMS Document Scanner Launcher
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -86,14 +95,14 @@ fun ScanPdfScreen(
             if (pageUris.isNotEmpty()) {
                 coroutineScope.launch(Dispatchers.IO) {
                     val bmps = pageUris.mapNotNull { uri ->
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            BitmapFactory.decodeStream(stream)
-                        }
+                        decodeBoundedBitmap(context, uri)
                     }
                     withContext(Dispatchers.Main) {
                         if (bmps.isNotEmpty()) {
+                            val oldBmps = scannedBitmaps
                             scannedBitmaps = bmps
                             selectedIndex = 0
+                            oldBmps.forEach { if (!it.isRecycled) it.recycle() }
                         }
                     }
                 }
@@ -123,13 +132,15 @@ fun ScanPdfScreen(
         if (uris.isNotEmpty()) {
             coroutineScope.launch(Dispatchers.IO) {
                 val bmps = uris.mapNotNull { uri ->
-                    context.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
-                    }
+                    decodeBoundedBitmap(context, uri)
                 }
                 withContext(Dispatchers.Main) {
-                    scannedBitmaps = bmps
-                    selectedIndex = 0
+                    if (bmps.isNotEmpty()) {
+                        val oldBmps = scannedBitmaps
+                        scannedBitmaps = bmps
+                        selectedIndex = 0
+                        oldBmps.forEach { if (!it.isRecycled) it.recycle() }
+                    }
                 }
             }
         }
@@ -142,27 +153,30 @@ fun ScanPdfScreen(
         if (destUri != null && scannedBitmaps.isNotEmpty()) {
             isProcessing = true
             coroutineScope.launch(Dispatchers.IO) {
+                var doc: PDDocument? = null
                 try {
-                    val doc = PDDocument()
+                    doc = PDDocument()
                     for (rawBmp in scannedBitmaps) {
                         val filteredBmp = applyScanFilter(rawBmp, currentFilter)
-                        val pageRect = PDRectangle(filteredBmp.width.toFloat(), filteredBmp.height.toFloat())
-                        val page = PDPage(pageRect)
-                        doc.addPage(page)
+                        try {
+                            val pageRect = PDRectangle(filteredBmp.width.toFloat(), filteredBmp.height.toFloat())
+                            val page = PDPage(pageRect)
+                            doc.addPage(page)
 
-                        PDPageContentStream(doc, page).use { cs ->
-                            val pdImage = JPEGFactory.createFromImage(doc, filteredBmp, 0.88f)
-                            cs.drawImage(pdImage, 0f, 0f, pageRect.width, pageRect.height)
-                        }
-                        if (filteredBmp != rawBmp) {
-                            filteredBmp.recycle()
+                            PDPageContentStream(doc, page).use { cs ->
+                                val pdImage = JPEGFactory.createFromImage(doc, filteredBmp, 0.88f)
+                                cs.drawImage(pdImage, 0f, 0f, pageRect.width, pageRect.height)
+                            }
+                        } finally {
+                            if (filteredBmp != rawBmp && !filteredBmp.isRecycled) {
+                                filteredBmp.recycle()
+                            }
                         }
                     }
 
                     context.contentResolver.openOutputStream(destUri)?.use { out ->
                         doc.save(out)
                     }
-                    doc.close()
 
                     withContext(Dispatchers.Main) {
                         isProcessing = false
@@ -178,6 +192,8 @@ fun ScanPdfScreen(
                         isProcessing = false
                         viewModel.notifyError(context.getString(R.string.error_scan_failed))
                     }
+                } finally {
+                    try { doc?.close() } catch (_: Exception) {}
                 }
             }
         }
@@ -324,12 +340,36 @@ fun ScanPdfScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     val currentBmp = scannedBitmaps.getOrNull(selectedIndex)
-                    if (currentBmp != null) {
-                        val previewFiltered = remember(currentBmp, currentFilter) {
-                            applyScanFilter(currentBmp, currentFilter)
+                    var previewFiltered by remember { mutableStateOf<Bitmap?>(null) }
+
+                    LaunchedEffect(currentBmp, currentFilter) {
+                        if (currentBmp != null) {
+                            val oldPreview = previewFiltered
+                            val filtered = kotlinx.coroutines.withContext(Dispatchers.Default) {
+                                applyScanFilter(currentBmp, currentFilter)
+                            }
+                            previewFiltered = filtered
+                            if (oldPreview != null && oldPreview != currentBmp && !oldPreview.isRecycled) {
+                                oldPreview.recycle()
+                            }
+                        } else {
+                            previewFiltered = null
                         }
+                    }
+
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            val p = previewFiltered
+                            if (p != null && !p.isRecycled && !scannedBitmaps.contains(p)) {
+                                p.recycle()
+                            }
+                        }
+                    }
+
+                    val displayBmp = previewFiltered ?: currentBmp
+                    if (displayBmp != null) {
                         Image(
-                            bitmap = previewFiltered.asImageBitmap(),
+                            bitmap = displayBmp.asImageBitmap(),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
@@ -342,7 +382,7 @@ fun ScanPdfScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    itemsIndexed(scannedBitmaps) { idx, bmp ->
+                    itemsIndexed(scannedBitmaps, key = { idx, bmp -> bmp.hashCode() }) { idx, bmp ->
                         Box(
                             modifier = Modifier
                                 .size(64.dp, 84.dp)
@@ -460,5 +500,27 @@ fun applyScanFilter(src: Bitmap, filter: ScanFilterMode): Bitmap {
             canvas.drawBitmap(src, 0f, 0f, paint)
             bmp
         }
+    }
+}
+
+private fun decodeBoundedBitmap(context: Context, uri: Uri, maxDim: Int = 2048): Bitmap? {
+    return try {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
+        }
+        var sampleSize = 1
+        while ((options.outWidth / sampleSize) > maxDim || (options.outHeight / sampleSize) > maxDim) {
+            sampleSize *= 2
+        }
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, decodeOptions)
+        }
+    } catch (_: Throwable) {
+        null
     }
 }

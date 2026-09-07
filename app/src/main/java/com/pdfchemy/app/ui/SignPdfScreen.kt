@@ -81,6 +81,15 @@ fun SignPdfScreen(
     var includeDateStamp by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
+    val currentBitmap by rememberUpdatedState(currentPageBitmap)
+    val currentSignatures by rememberUpdatedState(savedSignatures)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentBitmap?.recycle()
+            currentSignatures.forEach { try { it.second.recycle() } catch (_: Throwable) {} }
+        }
+    }
+
     // PKI State
     var showPkiDialog by remember { mutableStateOf(false) }
     var pkiSignerName by remember { mutableStateOf("") }
@@ -124,9 +133,11 @@ fun SignPdfScreen(
     // PDF Page Renderer
     fun renderPage(uri: Uri, index: Int) {
         coroutineScope.launch(Dispatchers.IO) {
+            var pfd: ParcelFileDescriptor? = null
+            var renderer: PdfRenderer? = null
             try {
-                val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
-                val renderer = PdfRenderer(pfd)
+                pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
+                renderer = PdfRenderer(pfd)
                 totalPages = renderer.pageCount
                 if (index in 0 until totalPages) {
                     val page = renderer.openPage(index)
@@ -137,20 +148,24 @@ fun SignPdfScreen(
                     val renderHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
 
                     val bmp = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bmp)
-                    canvas.drawColor(android.graphics.Color.WHITE)
-                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    page.close()
+                    try {
+                        val canvas = android.graphics.Canvas(bmp)
+                        canvas.drawColor(android.graphics.Color.WHITE)
+                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    } finally {
+                        page.close()
+                    }
 
                     withContext(Dispatchers.Main) {
                         currentPageBitmap?.recycle()
                         currentPageBitmap = bmp
                     }
                 }
-                renderer.close()
-                pfd.close()
             } catch (e: Exception) {
                 com.pdfchemy.app.utils.AppLogger.e("Failed to render PDF page: ${e.message}", e)
+            } finally {
+                try { renderer?.close() } catch (_: Throwable) {}
+                try { pfd?.close() } catch (_: Throwable) {}
             }
         }
     }
@@ -592,7 +607,7 @@ fun SignPdfScreen(
                         }
                     }
 
-                    items(savedSignatures) { (name, bmp) ->
+                    items(savedSignatures, key = { it.first }, contentType = { "sigItem" }) { (name, bmp) ->
                         ElevatedCard(
                             modifier = Modifier
                                 .size(100.dp, 56.dp)

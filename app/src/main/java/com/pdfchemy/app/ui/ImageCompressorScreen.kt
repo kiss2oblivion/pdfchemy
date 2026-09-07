@@ -914,7 +914,7 @@ fun BatchImagesSelectCard(
                 }
 
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(selectedUris) { uri ->
+                    items(selectedUris, key = { it.toString() }, contentType = { "imageThumb" }) { uri ->
                         AsyncImage(
                             model = uri,
                             contentDescription = null,
