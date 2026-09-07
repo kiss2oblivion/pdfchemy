@@ -60,7 +60,16 @@ fun PdfCompareScreen(
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var viewMode by remember { mutableStateOf(CompareViewMode.VISUAL_OVERLAY) }
 
+    val currentDiffSummary by rememberUpdatedState(diffSummary)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentDiffSummary?.pageDiffs?.forEach { it.diffBitmap?.let { bmp -> if (!bmp.isRecycled) bmp.recycle() } }
+        }
+    }
+
     fun runComparison(u1: Uri, u2: Uri) {
+        diffSummary?.pageDiffs?.forEach { it.diffBitmap?.let { bmp -> if (!bmp.isRecycled) bmp.recycle() } }
+        diffSummary = null
         isComparing = true
         coroutineScope.launch(Dispatchers.IO) {
             val result = PdfDiffEngine.compareDocuments(context, u1, u2)

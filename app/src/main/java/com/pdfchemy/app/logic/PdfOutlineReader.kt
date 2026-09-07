@@ -21,6 +21,11 @@ data class ReflowSection(
     val paragraphs: List<String>
 )
 
+data class ReflowDocumentData(
+    val sections: List<ReflowSection>,
+    val bookmarks: List<OutlineBookmark>
+)
+
 object PdfOutlineReader {
 
     private fun isEpub(context: Context, uri: Uri): Boolean {
@@ -30,79 +35,46 @@ object PdfOutlineReader {
         return type?.contains("epub", ignoreCase = true) == true
     }
 
-    suspend fun extractOutline(context: Context, sourceUri: Uri): List<OutlineBookmark> = withContext(Dispatchers.IO) {
+    /**
+     * Unified single-pass extractor for both outline bookmarks and reflowable text paragraphs.
+     * Prevents unzipping EPUB archives twice and parsing PDF page trees repeatedly.
+     */
+    suspend fun loadReflowDocument(context: Context, sourceUri: Uri): ReflowDocumentData = withContext(Dispatchers.IO) {
         if (isEpub(context, sourceUri)) {
-            return@withContext extractEpubOutline(context, sourceUri)
-        }
-        val list = mutableListOf<OutlineBookmark>()
-        var doc: PDDocument? = null
-        try {
-            context.contentResolver.openInputStream(sourceUri)?.use { stream ->
-                doc = PDDocument.load(stream)
-                val catalog = doc?.documentCatalog
-                val outline = catalog?.documentOutline
-                if (outline != null) {
-                    list.addAll(parseOutlineNode(doc!!, outline))
-                }
+            val chapters = extractEpubChapters(context, sourceUri)
+            val bookmarks = chapters.mapIndexed { index, pair ->
+                OutlineBookmark(title = pair.first, pageNumber = index + 1)
             }
-        } catch (e: Exception) {
-            com.pdfchemy.app.utils.AppLogger.e("Failed to extract PDF outline: ${e.message}", e)
-        } finally {
-            doc?.close()
-        }
-        list
-    }
-
-    private fun parseOutlineNode(doc: PDDocument, node: PDOutlineNode): List<OutlineBookmark> {
-        val result = mutableListOf<OutlineBookmark>()
-        var currentItem = node.firstChild
-        while (currentItem != null) {
-            val title = currentItem.title ?: "Untitled Section"
-            var pageIndex = 0
-            try {
-                val page = currentItem.findDestinationPage(doc)
-                if (page != null) {
-                    pageIndex = doc.pages.indexOf(page)
-                }
-            } catch (e: Exception) {
-                // Default to first page if destination is not direct
+            val sections = chapters.mapIndexed { index, pair ->
+                ReflowSection(pageNumber = index + 1, title = pair.first, paragraphs = pair.second)
             }
-
-            val children = if (currentItem.hasChildren()) {
-                parseOutlineNode(doc, currentItem)
-            } else {
-                emptyList()
-            }
-
-            result.add(
-                OutlineBookmark(
-                    title = title,
-                    pageNumber = (pageIndex + 1).coerceAtLeast(1),
-                    children = children
-                )
-            )
-            currentItem = currentItem.nextSibling
+            return@withContext ReflowDocumentData(sections, bookmarks)
         }
-        return result
-    }
 
-    suspend fun extractReflowContent(context: Context, sourceUri: Uri): List<ReflowSection> = withContext(Dispatchers.IO) {
-        if (isEpub(context, sourceUri)) {
-            return@withContext extractEpubReflowContent(context, sourceUri)
-        }
         val sections = mutableListOf<ReflowSection>()
+        val bookmarks = mutableListOf<OutlineBookmark>()
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
                 doc = PDDocument.load(stream)
                 if (doc != null) {
-                    val totalPages = doc!!.numberOfPages
+                    // 1. Extract outline
+                    val catalog = doc?.documentCatalog
+                    val outline = catalog?.documentOutline
+                    if (outline != null) {
+                        val pageIndexMap = HashMap<com.tom_roush.pdfbox.cos.COSBase, Int>(doc!!.numberOfPages)
+                        for ((idx, p) in doc!!.pages.withIndex()) {
+                            pageIndexMap[p.cosObject] = idx
+                        }
+                        bookmarks.addAll(parseOutlineNode(doc!!, outline, pageIndexMap))
+                    }
+
+                    // 2. Extract reflow paragraphs in the same pass
                     val allPagesText = PdfTextExtractor.extractAllPagesText(doc!!)
                     for ((idx, rawText) in allPagesText.withIndex()) {
                         val pageNum = idx + 1
                         val trimmed = rawText.trim()
                         if (trimmed.isNotEmpty()) {
-                            // Split by double newlines or indentations to construct paragraphs
                             val paragraphs = trimmed
                                 .split(Regex("\n\n+"))
                                 .map { it.replace(Regex("\n+"), " ").trim() }
@@ -120,23 +92,70 @@ object PdfOutlineReader {
                 }
             }
         } catch (e: Exception) {
-            com.pdfchemy.app.utils.AppLogger.e("Failed to extract reflow content: ${e.message}", e)
+            com.pdfchemy.app.utils.AppLogger.e("Failed to extract reflow document: ${e.message}", e)
         } finally {
             doc?.close()
         }
-        sections
+        ReflowDocumentData(sections, bookmarks)
     }
+
+    private fun parseOutlineNode(
+        doc: PDDocument,
+        node: PDOutlineNode,
+        pageIndexMap: Map<com.tom_roush.pdfbox.cos.COSBase, Int>,
+        visitedNodes: MutableSet<com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem> = mutableSetOf(),
+        depth: Int = 0
+    ): List<OutlineBookmark> {
+        if (depth > 50) return emptyList()
+        val result = mutableListOf<OutlineBookmark>()
+        var currentItem = node.firstChild
+        while (currentItem != null && visitedNodes.add(currentItem)) {
+            val title = currentItem.title ?: "Untitled Section"
+            var pageIndex = 0
+            try {
+                val page = currentItem.findDestinationPage(doc)
+                if (page != null) {
+                    pageIndex = pageIndexMap[page.cosObject] ?: 0
+                }
+            } catch (_: Exception) {
+                // Default to first page if destination is not direct
+            }
+
+            val children = if (currentItem.hasChildren()) {
+                parseOutlineNode(doc, currentItem, pageIndexMap, visitedNodes, depth + 1)
+            } else {
+                emptyList()
+            }
+
+            result.add(
+                OutlineBookmark(
+                    title = title,
+                    pageNumber = (pageIndex + 1).coerceAtLeast(1),
+                    children = children
+                )
+            )
+            currentItem = currentItem.nextSibling
+        }
+        return result
+    }
+
+    suspend fun extractOutline(context: Context, sourceUri: Uri): List<OutlineBookmark> =
+        loadReflowDocument(context, sourceUri).bookmarks
+
+    suspend fun extractReflowContent(context: Context, sourceUri: Uri): List<ReflowSection> =
+        loadReflowDocument(context, sourceUri).sections
 
     private fun extractEpubChapters(context: Context, sourceUri: Uri): List<Pair<String, List<String>>> {
         val chapters = mutableListOf<Pair<String, List<String>>>()
         var tempFile: java.io.File? = null
+        var zip: java.util.zip.ZipFile? = null
         try {
             tempFile = java.io.File(context.cacheDir, "epub_read_${System.currentTimeMillis()}.epub")
             context.contentResolver.openInputStream(sourceUri)?.use { input ->
                 java.io.FileOutputStream(tempFile).use { output -> input.copyTo(output) }
             } ?: return emptyList()
 
-            val zip = java.util.zip.ZipFile(tempFile)
+            zip = java.util.zip.ZipFile(tempFile)
             var opfPath = "OEBPS/content.opf"
             val containerEntry = zip.getEntry("META-INF/container.xml")
             if (containerEntry != null) {
@@ -198,10 +217,10 @@ object PdfOutlineReader {
                     chapters.add(chapTitle to paragraphs)
                 }
             }
-            zip.close()
         } catch (e: Exception) {
             com.pdfchemy.app.utils.AppLogger.e("Failed to parse EPUB: ${e.message}", e)
         } finally {
+            try { zip?.close() } catch (_: Exception) {}
             tempFile?.delete()
         }
         return chapters

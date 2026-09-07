@@ -213,7 +213,7 @@ fun PdfAValidatorScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(r.checks) { item ->
+                            items(r.checks, key = { it.rule }, contentType = { "check" }) { item ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(8.dp),

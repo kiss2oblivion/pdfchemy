@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: PDF Compressor & Image Re-encoding Engine] (FEATURES_REGISTRY Android §1)
+// Core document size reduction, DCT/JPEG & Flate optimization, grayscale, and target MB sizing.
+// =================================================================================================
+
 package com.pdfchemy.app.logic
 
 import android.content.Context
@@ -130,12 +135,13 @@ object PdfCompressor {
             if (!success) throw Exception("Failed to write to destination")
 
             val finalSize = bestTempFile.length()
-            bestTempFile.delete()
 
             Result.success(bestReport.copy(targetMissed = finalSize > targetBytes))
         } catch (e: Exception) {
-            bestTempFile.delete()
             Result.failure(e)
+        } finally {
+            bestTempFile.delete()
+            if (tempFile1.exists()) tempFile1.delete()
         }
     }
 
@@ -355,11 +361,10 @@ object PdfCompressor {
                 val processedNames = mutableSetOf<String>()
 
                 for (name in resources.xObjectNames) {
-                    val xObject = try { resources.getXObject(name) } catch (e: Exception) { null }
+                    val isImage = try { resources.isImageXObject(name) } catch (e: Exception) { false }
 
-                    if (xObject is PDImageXObject && !processedNames.contains(name.name)) {
+                    if (isImage && processedNames.add(name.name)) {
                         imageCount++
-                        processedNames.add(name.name)
                     }
                 }
             }

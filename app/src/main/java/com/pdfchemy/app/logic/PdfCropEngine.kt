@@ -101,6 +101,7 @@ object PdfCropEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -144,7 +145,7 @@ object PdfCropEngine {
             }
 
             // Save to temp file first
-            val tempFile = File(context.cacheDir, "cropped_temp_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "cropped_temp_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -156,6 +157,7 @@ object PdfCropEngine {
             } ?: throw IllegalStateException("Cannot open destination stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -171,6 +173,7 @@ object PdfCropEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

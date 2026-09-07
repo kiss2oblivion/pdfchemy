@@ -65,28 +65,48 @@ fun PageLayoutScreen(
     var drawBorders by remember { mutableStateOf(true) }
     var isProcessing by remember { mutableStateOf(false) }
 
+    val currentPreviewBitmap by rememberUpdatedState(previewBitmap)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPreviewBitmap?.recycle()
+        }
+    }
+
     fun loadPreview(uri: Uri) {
         coroutineScope.launch(Dispatchers.IO) {
+            var pfd: ParcelFileDescriptor? = null
+            var renderer: PdfRenderer? = null
             try {
-                val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
-                val renderer = PdfRenderer(pfd)
+                pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
+                renderer = PdfRenderer(pfd)
                 totalPages = renderer.pageCount
                 if (renderer.pageCount > 0) {
                     val page = renderer.openPage(0)
-                    val bmp = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bmp)
-                    canvas.drawColor(android.graphics.Color.WHITE)
-                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    page.close()
+                    val originalWidth = page.width.coerceAtLeast(1)
+                    val originalHeight = page.height.coerceAtLeast(1)
+                    val scale = (1080f / originalWidth).coerceAtMost(1.5f)
+                    val renderWidth = (originalWidth * scale).toInt().coerceAtLeast(1)
+                    val renderHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
+
+                    val bmp = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
+                    try {
+                        val canvas = android.graphics.Canvas(bmp)
+                        canvas.drawColor(android.graphics.Color.WHITE)
+                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    } finally {
+                        page.close()
+                    }
+
                     withContext(Dispatchers.Main) {
                         previewBitmap?.recycle()
                         previewBitmap = bmp
                     }
                 }
-                renderer.close()
-                pfd.close()
             } catch (e: Exception) {
                 com.pdfchemy.app.utils.AppLogger.e("Failed to load layout preview: ${e.message}", e)
+            } finally {
+                try { renderer?.close() } catch (_: Throwable) {}
+                try { pfd?.close() } catch (_: Throwable) {}
             }
         }
     }

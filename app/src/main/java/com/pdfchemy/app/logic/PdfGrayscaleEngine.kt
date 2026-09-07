@@ -33,14 +33,14 @@ object PdfGrayscaleEngine {
         mode: GrayscaleMode = GrayscaleMode.GRAYSCALE_8BIT,
         threshold: Int = 128
     ): Result<Bitmap> = withContext(Dispatchers.IO) {
+        var pfd: android.os.ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
         try {
-            val pfd = context.contentResolver.openFileDescriptor(pdfUri, "r")
+            pfd = context.contentResolver.openFileDescriptor(pdfUri, "r")
                 ?: throw IllegalStateException("Cannot open PDF file")
 
-            val renderer = PdfRenderer(pfd)
+            renderer = PdfRenderer(pfd)
             if (pageIndex !in 0 until renderer.pageCount) {
-                renderer.close()
-                pfd.close()
                 return@withContext Result.failure(IllegalArgumentException("Invalid page index $pageIndex"))
             }
 
@@ -50,12 +50,13 @@ object PdfGrayscaleEngine {
             val height = (page.height * scale).toInt()
 
             val srcBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(srcBitmap)
-            canvas.drawColor(Color.WHITE)
-            page.render(srcBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-            page.close()
-            renderer.close()
-            pfd.close()
+            try {
+                val canvas = Canvas(srcBitmap)
+                canvas.drawColor(Color.WHITE)
+                page.render(srcBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            } finally {
+                page.close()
+            }
 
             val processedBitmap = applyFilter(srcBitmap, mode, threshold)
             if (processedBitmap != srcBitmap) {
@@ -65,6 +66,9 @@ object PdfGrayscaleEngine {
         } catch (e: Exception) {
             AppLogger.e("PdfGrayscaleEngine: Error generating preview", e)
             Result.failure(e)
+        } finally {
+            try { renderer?.close() } catch (_: Throwable) {}
+            try { pfd?.close() } catch (_: Throwable) {}
         }
     }
 
@@ -81,16 +85,17 @@ object PdfGrayscaleEngine {
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
         var outDoc: PDDocument? = null
+        var pfd: android.os.ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        var tempFile: File? = null
 
         try {
-            val pfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
+            pfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
                 ?: throw IllegalStateException("Cannot open source PDF")
 
-            val renderer = PdfRenderer(pfd)
+            renderer = PdfRenderer(pfd)
             val totalPages = renderer.pageCount
             if (totalPages == 0) {
-                renderer.close()
-                pfd.close()
                 return@withContext Result.failure(IllegalStateException("PDF contains no pages"))
             }
 
@@ -103,10 +108,13 @@ object PdfGrayscaleEngine {
                 val bmpH = (page.height * scale).toInt()
 
                 val rawBitmap = Bitmap.createBitmap(bmpW, bmpH, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(rawBitmap)
-                canvas.drawColor(Color.WHITE)
-                page.render(rawBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                page.close()
+                try {
+                    val canvas = Canvas(rawBitmap)
+                    canvas.drawColor(Color.WHITE)
+                    page.render(rawBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                } finally {
+                    page.close()
+                }
 
                 val processedBitmap = applyFilter(rawBitmap, mode, threshold)
 
@@ -128,9 +136,11 @@ object PdfGrayscaleEngine {
             }
 
             renderer.close()
+            renderer = null
             pfd.close()
+            pfd = null
 
-            val tempFile = File(context.cacheDir, "gray_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "gray_${System.currentTimeMillis()}.pdf")
             outDoc.save(tempFile)
             outDoc.close()
             outDoc = null
@@ -142,6 +152,7 @@ object PdfGrayscaleEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -155,7 +166,10 @@ object PdfGrayscaleEngine {
             AppLogger.e("PdfGrayscaleEngine: Error converting PDF", e)
             Result.failure(e)
         } finally {
-            try { outDoc?.close() } catch (_: Exception) {}
+            try { renderer?.close() } catch (_: Throwable) {}
+            try { pfd?.close() } catch (_: Throwable) {}
+            try { outDoc?.close() } catch (_: Throwable) {}
+            tempFile?.delete()
         }
     }
 

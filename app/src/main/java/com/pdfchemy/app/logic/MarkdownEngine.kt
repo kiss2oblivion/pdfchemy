@@ -32,6 +32,7 @@ object MarkdownEngine {
         PDFBoxResourceLoader.init(context)
         val doc = PDDocument()
         var document: PDDocument? = doc
+        var tempFile: File? = null
 
         try {
             val pageWidth = pageSize.width
@@ -243,7 +244,7 @@ object MarkdownEngine {
             contentStream.close()
 
             // Save to temp file
-            val tempFile = File(context.cacheDir, "md_temp_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "md_temp_${System.currentTimeMillis()}.pdf")
             doc.save(tempFile)
             doc.close()
             document = null
@@ -255,6 +256,7 @@ object MarkdownEngine {
             } ?: throw IllegalStateException("Cannot open output stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -269,6 +271,7 @@ object MarkdownEngine {
             Result.failure(e)
         } finally {
             try { document?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 

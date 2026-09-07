@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: Interactive Form Builder & AcroForm Creation Engine] (FEATURES_REGISTRY Android §4)
+// Creates true AcroForm dictionaries, PDTextField, PDCheckBox, and PDChoice (ComboBox) fields.
+// =================================================================================================
+
 package com.pdfchemy.app.logic
 
 import android.content.Context

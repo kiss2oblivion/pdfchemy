@@ -243,71 +243,84 @@ object PdfRedactionEngine {
             }
 
             val tempFile = File(context.cacheDir, "redacted_${System.currentTimeMillis()}.pdf")
-            document.save(tempFile)
-            document.close()
-            document = null
+            var rasterFile: File? = null
+            var pfd: ParcelFileDescriptor? = null
+            var renderer: PdfRenderer? = null
+            var newDoc: PDDocument? = null
 
-            val finalFile = if (config.forensicSanitize) {
-                val rasterFile = File(context.cacheDir, "rasterized_${System.currentTimeMillis()}.pdf")
-                val pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
-                val renderer = PdfRenderer(pfd)
-                
-                val newDoc = PDDocument()
-                for (i in 0 until renderer.pageCount) {
-                    val renderPage = renderer.openPage(i)
-                    // 2x resolution (144 dpi) for good legibility while killing vectors
-                    val bmp = Bitmap.createBitmap(
-                        (renderPage.width * 2f).toInt(),
-                        (renderPage.height * 2f).toInt(),
-                        Bitmap.Config.ARGB_8888
-                    )
-                    val canvas = android.graphics.Canvas(bmp)
-                    canvas.drawColor(android.graphics.Color.WHITE)
+            try {
+                document.save(tempFile)
+                document.close()
+                document = null
+
+                val finalFile = if (config.forensicSanitize) {
+                    rasterFile = File(context.cacheDir, "rasterized_${System.currentTimeMillis()}.pdf")
+                    pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                    renderer = PdfRenderer(pfd)
                     
-                    renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                    renderPage.close()
+                    newDoc = PDDocument()
+                    for (i in 0 until renderer.pageCount) {
+                        var renderPage: PdfRenderer.Page? = null
+                        var bmp: Bitmap? = null
+                        try {
+                            renderPage = renderer.openPage(i)
+                            val maxDim = 2048
+                            val scale = minOf(2f, maxDim.toFloat() / maxOf(renderPage.width, renderPage.height).coerceAtLeast(1))
+                            val targetW = (renderPage.width * scale).toInt().coerceAtLeast(1)
+                            val targetH = (renderPage.height * scale).toInt().coerceAtLeast(1)
+                            bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.RGB_565)
+                            val canvas = android.graphics.Canvas(bmp)
+                            canvas.drawColor(android.graphics.Color.WHITE)
+                            
+                            renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                            
+                            val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
+                            newDoc.addPage(pdfPage)
+                            
+                            val pdImage = JPEGFactory.createFromImage(newDoc, bmp, 0.85f)
+                            PDPageContentStream(newDoc, pdfPage).use { cs ->
+                                cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
+                            }
+                        } finally {
+                            bmp?.recycle()
+                            renderPage?.close()
+                        }
+                    }
+                    renderer.close()
+                    renderer = null
+                    pfd.close()
+                    pfd = null
                     
-                    val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
-                    newDoc.addPage(pdfPage)
-                    
-                    val outStream = java.io.ByteArrayOutputStream()
-                    bmp.compress(Bitmap.CompressFormat.JPEG, 85, outStream)
-                    val imageBytes = outStream.toByteArray()
-                    
-                    val pdImage = JPEGFactory.createFromByteArray(newDoc, imageBytes)
-                    val cs = PDPageContentStream(newDoc, pdfPage)
-                    cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
-                    cs.close()
-                    
-                    bmp.recycle()
+                    newDoc.save(rasterFile)
+                    newDoc.close()
+                    newDoc = null
+                    tempFile.delete()
+                    rasterFile
+                } else {
+                    tempFile
                 }
-                renderer.close()
-                pfd.close()
-                
-                newDoc.save(rasterFile)
-                newDoc.close()
-                tempFile.delete()
-                rasterFile
-            } else {
-                tempFile
+
+                context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
+                    finalFile.inputStream().use { inp ->
+                        inp.copyTo(out)
+                    }
+                } ?: throw IllegalStateException("Cannot open destination PDF stream")
+
+                val historyRepo = HistoryRepository(context)
+                historyRepo.addHistoryItem(
+                    destPdfUri,
+                    FileUtils.getFileName(context, destPdfUri) ?: "redacted.pdf",
+                    "Sanitized & Redacted PDF (${boxes.size} elements)"
+                )
+
+                Result.success(boxes.size)
+            } finally {
+                try { renderer?.close() } catch (_: Exception) {}
+                try { pfd?.close() } catch (_: Exception) {}
+                try { newDoc?.close() } catch (_: Exception) {}
+                if (tempFile.exists()) tempFile.delete()
+                if (rasterFile != null && rasterFile.exists()) rasterFile.delete()
             }
-
-            context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
-                finalFile.inputStream().use { inp ->
-                    inp.copyTo(out)
-                }
-            } ?: throw IllegalStateException("Cannot open destination PDF stream")
-
-            finalFile.delete()
-
-            val historyRepo = HistoryRepository(context)
-            historyRepo.addHistoryItem(
-                destPdfUri,
-                FileUtils.getFileName(context, destPdfUri) ?: "redacted.pdf",
-                "Sanitized & Redacted PDF (${boxes.size} elements)"
-            )
-
-            Result.success(boxes.size)
         } catch (e: Exception) {
             AppLogger.e("PdfRedactionEngine: Error applying redactions", e)
             Result.failure(e)

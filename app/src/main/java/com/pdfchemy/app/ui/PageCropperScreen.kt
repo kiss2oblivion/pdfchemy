@@ -3,6 +3,7 @@ package com.pdfchemy.app.ui
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,12 +78,21 @@ fun PageCropperScreen(
     var cropRect by remember { mutableStateOf(NormalizedCropRect(0.05f, 0.05f, 0.95f, 0.95f)) }
     var applyToAllPages by remember { mutableStateOf(true) }
 
+    val currentPreviewBitmap by rememberUpdatedState(previewBitmap)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPreviewBitmap?.recycle()
+        }
+    }
+
     fun loadPagePreview(uri: Uri, pageIndex: Int) {
         coroutineScope.launch(Dispatchers.IO) {
             isRendering = true
+            var pfd: ParcelFileDescriptor? = null
+            var renderer: PdfRenderer? = null
             try {
-                val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
-                val renderer = PdfRenderer(pfd)
+                pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
+                renderer = PdfRenderer(pfd)
                 pageCount = renderer.pageCount
                 if (renderer.pageCount > 0) {
                     val safeIdx = pageIndex.coerceIn(0, renderer.pageCount - 1)
@@ -90,20 +100,23 @@ fun PageCropperScreen(
                     val page = renderer.openPage(safeIdx)
                     val scale = 2
                     val bmp = Bitmap.createBitmap(page.width * scale, page.height * scale, Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bmp)
-                    canvas.drawColor(android.graphics.Color.WHITE)
-                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    page.close()
+                    try {
+                        val canvas = android.graphics.Canvas(bmp)
+                        canvas.drawColor(android.graphics.Color.WHITE)
+                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    } finally {
+                        page.close()
+                    }
                     withContext(Dispatchers.Main) {
                         previewBitmap?.recycle()
                         previewBitmap = bmp
                     }
                 }
-                renderer.close()
-                pfd.close()
             } catch (e: Exception) {
                 AppLogger.e("PageCropperScreen: Failed to render preview", e)
             } finally {
+                try { renderer?.close() } catch (_: Throwable) {}
+                try { pfd?.close() } catch (_: Throwable) {}
                 withContext(Dispatchers.Main) {
                     isRendering = false
                 }

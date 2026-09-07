@@ -399,7 +399,7 @@ fun RedactionScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        itemsIndexed(foundBoxes) { idx, box ->
+                        itemsIndexed(foundBoxes, key = { idx, box -> "${box.pageIndex}_${box.normalizedRect.left}_${box.normalizedRect.top}_$idx" }) { idx, box ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),

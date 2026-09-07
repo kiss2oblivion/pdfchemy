@@ -296,8 +296,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     var selectedFiles by remember { mutableStateOf(listOf<PdfItem>()) }
     var showHistorySheet by remember { mutableStateOf(false) }
-    val historyRepo = remember { com.pdfchemy.app.logic.HistoryRepository(context) }
-    var historyItems by remember { mutableStateOf(historyRepo.getHistory()) }
+    val historyItems by viewModel.historyList.collectAsState()
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -330,9 +329,10 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 if (historyItems.isEmpty()) {
                     Text(stringResource(R.string.no_recent_files_found), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
+                    val selectedUriStrings = remember(selectedFiles) { selectedFiles.map { it.uri.toString() }.toSet() }
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                        items(items = historyItems) { item ->
-                            val isSelected = selectedFiles.any { it.uri.toString() == item.uriString }
+                        items(items = historyItems, key = { it.uriString }, contentType = { "historyItem" }) { item ->
+                            val isSelected = selectedUriStrings.contains(item.uriString)
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -412,7 +412,7 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 }
                 FilledTonalButton(
                     onClick = { 
-                        historyItems = historyRepo.getHistory()
+                        viewModel.refreshHistory()
                         showHistorySheet = true 
                     },
                     modifier = Modifier.weight(1f)

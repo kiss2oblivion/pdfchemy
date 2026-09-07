@@ -35,6 +35,13 @@ import com.pdfchemy.app.logic.ImageOutputFormat
 import com.pdfchemy.app.logic.ImageCompressionResult
 import com.pdfchemy.app.logic.BatchImageCompressionResult
 import com.pdfchemy.app.R
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -48,7 +55,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val historyList: StateFlow<List<com.pdfchemy.app.logic.HistoryItem>> = _historyList.asStateFlow()
 
     fun refreshHistory() {
-        _historyList.value = historyRepository.getHistory()
+        viewModelScope.launch(Dispatchers.IO) {
+            val items = historyRepository.getHistory()
+            _historyList.value = items
+        }
     }
     private val _isHapticEnabled = MutableStateFlow(prefs.getBoolean("haptic", true))
     val isHapticEnabled: StateFlow<Boolean> = _isHapticEnabled.asStateFlow()
@@ -257,6 +267,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _targetMb.value = mb
     }
 
+    // =============================================================================================
+    // [FEATURE: PDF Compressor] (FEATURES_REGISTRY Android §1: Compression & Optimization)
+    // =============================================================================================
     fun compressPdf(context: Context, sourceUri: Uri, destUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -356,6 +369,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Text to PDF Converter] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun convertTextToPdf(context: Context, destUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -374,6 +390,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Images to PDF] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun convertImagesToPdf(context: Context, imageUris: List<Uri>, destUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -382,45 +401,74 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.IO) {
                     val document = com.tom_roush.pdfbox.pdmodel.PDDocument()
-                    val total = imageUris.size
-                    
-                    for ((index, uri) in imageUris.withIndex()) {
-                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                            val bitmap = BitmapFactory.decodeStream(inputStream)
+                    try {
+                        for (uri in imageUris) {
+                            // Decode bounds first to compute sample size and prevent OOM
+                            val boundsOptions = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                            }
+                            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                                BitmapFactory.decodeStream(inputStream, null, boundsOptions)
+                            }
+                            if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) continue
+
+                            // Cap maximum dimension to 2048px for standard high-res document output
+                            val maxDim = 2048
+                            var sampleSize = 1
+                            val maxOriginalDim = maxOf(boundsOptions.outWidth, boundsOptions.outHeight)
+                            while ((maxOriginalDim / (sampleSize * 2)) >= maxDim) {
+                                sampleSize *= 2
+                            }
+
+                            val decodeOptions = BitmapFactory.Options().apply {
+                                inSampleSize = sampleSize
+                                inPreferredConfig = Bitmap.Config.RGB_565 // Low RAM footprint
+                            }
+
+                            val bitmap = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                                BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+                            }
+
                             if (bitmap != null) {
-                                val page = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4)
-                                document.addPage(page)
-                                
-                                val pdImage = com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(document, bitmap)
-                                val contentStream = com.tom_roush.pdfbox.pdmodel.PDPageContentStream(document, page)
-                                
-                                val pageWidth = page.mediaBox.width
-                                val pageHeight = page.mediaBox.height
-                                val margin = 20f
-                                val maxWidth = pageWidth - margin * 2
-                                val maxHeight = pageHeight - margin * 2
-                                
-                                val imgWidth = bitmap.width.toFloat()
-                                val imgHeight = bitmap.height.toFloat()
-                                
-                                val scale = minOf(maxWidth / imgWidth, maxHeight / imgHeight)
-                                val drawWidth = imgWidth * scale
-                                val drawHeight = imgHeight * scale
-                                
-                                val startX = (pageWidth - drawWidth) / 2
-                                val startY = (pageHeight - drawHeight) / 2
-                                
-                                contentStream.drawImage(pdImage, startX, startY, drawWidth, drawHeight)
-                                contentStream.close()
-                                bitmap.recycle()
+                                try {
+                                    val page = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4)
+                                    document.addPage(page)
+
+                                    val pdImage = com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory.createFromImage(document, bitmap, 0.85f)
+                                    val contentStream = com.tom_roush.pdfbox.pdmodel.PDPageContentStream(document, page)
+                                    try {
+                                        val pageWidth = page.mediaBox.width
+                                        val pageHeight = page.mediaBox.height
+                                        val margin = 20f
+                                        val maxWidth = pageWidth - margin * 2
+                                        val maxHeight = pageHeight - margin * 2
+
+                                        val imgWidth = bitmap.width.toFloat()
+                                        val imgHeight = bitmap.height.toFloat()
+
+                                        val scale = minOf(maxWidth / imgWidth, maxHeight / imgHeight)
+                                        val drawWidth = imgWidth * scale
+                                        val drawHeight = imgHeight * scale
+
+                                        val startX = (pageWidth - drawWidth) / 2
+                                        val startY = (pageHeight - drawHeight) / 2
+
+                                        contentStream.drawImage(pdImage, startX, startY, drawWidth, drawHeight)
+                                    } finally {
+                                        contentStream.close()
+                                    }
+                                } finally {
+                                    bitmap.recycle()
+                                }
                             }
                         }
+
+                        context.contentResolver.openOutputStream(destUri)?.use { out ->
+                            document.save(out)
+                        }
+                    } finally {
+                        document.close()
                     }
-                    
-                    context.contentResolver.openOutputStream(destUri)?.use { out ->
-                        document.save(out)
-                    }
-                    document.close()
                 }
                 _uiState.value = UiState.Success(context.getString(R.string.success_pdf_created), context.getString(R.string.success_images_converted))
             } catch (e: Exception) {
@@ -479,6 +527,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Batch PDF Compressor] (FEATURES_REGISTRY Android §1: Compression & Optimization)
+    // =============================================================================================
     fun compressBatch(context: Context, destTreeUri: Uri) {
         if (_uiState.value is UiState.Processing || _uiState.value is UiState.BatchProcessing) return
 
@@ -621,6 +672,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return String.format("%.1f %s", bytes / Math.pow(1024.0, digitGroups.toDouble()), units[digitGroups])
     }
 
+    // =============================================================================================
+    // [FEATURE: Merge PDFs] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun mergePdfs(context: Context, sourceUris: List<Uri>, destUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -642,6 +696,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _pdfAnalysis.value = null
     }
 
+    // =============================================================================================
+    // [FEATURE: Metadata Sanitizer & Inspector] (FEATURES_REGISTRY Android §5: Security, Privacy & Compliance)
+    // =============================================================================================
     fun loadMetadata(context: Context, uri: Uri) {
         viewModelScope.launch {
             _isAnalyzing.value = true
@@ -700,6 +757,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Split PDFs (Range / All)] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun splitPdf(context: Context, sourceUri: Uri, destTreeUri: Uri, pageRange: String? = null) {
         if (_uiState.value is UiState.Processing) return
 
@@ -724,6 +784,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Split by Blank Pages] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun splitByBlankPages(context: Context, sourceUri: Uri, destTreeUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -750,6 +813,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Split by Bookmarks / Chapters] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun splitByBookmarks(context: Context, sourceUri: Uri, destTreeUri: Uri) {
         if (_uiState.value is UiState.Processing) return
 
@@ -777,6 +843,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     
+    // =============================================================================================
+    // [FEATURE: Delete Pages] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun deletePages(context: Context, sourceUri: Uri, destUri: Uri, pageRange: String) {
         if (_uiState.value is UiState.Processing) return
 
@@ -793,6 +862,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Extract Images from PDF] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun extractImagesFromPdf(pdfUri: Uri, outputDirectory: androidx.documentfile.provider.DocumentFile, context: Context, onComplete: (Int, Int) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = UiState.Processing
@@ -847,6 +919,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Rotate Pages] (FEATURES_REGISTRY Android §2: Page Studio & Organization)
+    // =============================================================================================
     fun rotatePdf(context: Context, sourceUri: Uri, destUri: Uri, degrees: Int, pageRange: String = "") {
         _uiState.value = UiState.Processing
         viewModelScope.launch {
@@ -866,6 +941,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Extract Plain Text from PDF] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun extractTextFromPdf(context: Context, sourceUri: Uri, destUri: Uri) {
         _uiState.value = UiState.Processing
         viewModelScope.launch {
@@ -889,6 +967,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Image Compressor & Batch Image Studio] (FEATURES_REGISTRY Android §1: Compression)
+    // =============================================================================================
     fun compressImage(
         context: Context,
         sourceUri: Uri,
@@ -1010,70 +1091,79 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onComplete: (BatchImageCompressionResult) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val outputUris = mutableListOf<Uri>()
-            val errors = mutableListOf<String>()
-            var totalOriginalBytes = 0L
-            var totalCompressedBytes = 0L
-            var successCount = 0
-            var failureCount = 0
+            val outputUris = Collections.synchronizedList(mutableListOf<Uri>())
+            val errors = Collections.synchronizedList(mutableListOf<String>())
+            val totalOriginalBytes = AtomicLong(0L)
+            val totalCompressedBytes = AtomicLong(0L)
+            val successCount = AtomicInteger(0)
+            val failureCount = AtomicInteger(0)
+            val completedCount = AtomicInteger(0)
+            val semaphore = Semaphore(1)
 
-            sourceUris.forEachIndexed { index, uri ->
-                val fileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "image_${index + 1}.jpg"
-                val baseName = fileName.substringBeforeLast(".")
-                val ext = if (format == ImageOutputFormat.ORIGINAL) {
-                    val origExt = fileName.substringAfterLast(".", "jpg").lowercase()
-                    if (origExt in listOf("jpg", "jpeg", "png", "webp")) origExt else "jpg"
-                } else {
-                    format.extension
-                }
-                val mime = when (ext) {
-                    "png" -> "image/png"
-                    "webp" -> "image/webp"
-                    else -> "image/jpeg"
-                }
+            coroutineScope {
+                sourceUris.mapIndexed { index, uri ->
+                    launch(Dispatchers.IO) {
+                        semaphore.withPermit {
+                            val fileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "image_${index + 1}.jpg"
+                            val baseName = fileName.substringBeforeLast(".")
+                            val ext = if (format == ImageOutputFormat.ORIGINAL) {
+                                val origExt = fileName.substringAfterLast(".", "jpg").lowercase()
+                                if (origExt in listOf("jpg", "jpeg", "png", "webp")) origExt else "jpg"
+                            } else {
+                                format.extension
+                            }
+                            val mime = when (ext) {
+                                "png" -> "image/png"
+                                "webp" -> "image/webp"
+                                else -> "image/jpeg"
+                            }
 
-                withContext(Dispatchers.Main) {
-                    _uiState.value = UiState.BatchProcessing(index + 1, sourceUris.size, fileName)
-                }
+                            val originalSize = ImageCompressor.getUriFileSize(context, uri)
+                            totalOriginalBytes.addAndGet(originalSize)
 
-                val originalSize = ImageCompressor.getUriFileSize(context, uri)
-                totalOriginalBytes += originalSize
+                            val targetFile = outputDirectory.createFile(mime, "${baseName}_compressed.$ext")
+                            if (targetFile != null) {
+                                val result = ImageCompressor.compressImage(
+                                    context = context,
+                                    sourceUri = uri,
+                                    destUri = targetFile.uri,
+                                    quality = quality,
+                                    targetFormat = format,
+                                    maxDimension = maxDimension,
+                                    stripExif = stripExif
+                                )
 
-                val targetFile = outputDirectory.createFile(mime, "${baseName}_compressed.$ext")
-                if (targetFile != null) {
-                    val result = ImageCompressor.compressImage(
-                        context = context,
-                        sourceUri = uri,
-                        destUri = targetFile.uri,
-                        quality = quality,
-                        targetFormat = format,
-                        maxDimension = maxDimension,
-                        stripExif = stripExif
-                    )
+                                if (result.success) {
+                                    successCount.incrementAndGet()
+                                    totalCompressedBytes.addAndGet(result.compressedSize)
+                                    outputUris.add(targetFile.uri)
+                                } else {
+                                    failureCount.incrementAndGet()
+                                    errors.add("$fileName: ${result.error ?: "Compression failed"}")
+                                    targetFile.delete()
+                                }
+                            } else {
+                                failureCount.incrementAndGet()
+                                errors.add("$fileName: Failed to create output file")
+                            }
 
-                    if (result.success) {
-                        successCount++
-                        totalCompressedBytes += result.compressedSize
-                        outputUris.add(targetFile.uri)
-                    } else {
-                        failureCount++
-                        errors.add("$fileName: ${result.error ?: "Compression failed"}")
-                        targetFile.delete()
+                            val done = completedCount.incrementAndGet()
+                            withContext(Dispatchers.Main) {
+                                _uiState.value = UiState.BatchProcessing(done, sourceUris.size, fileName)
+                            }
+                        }
                     }
-                } else {
-                    failureCount++
-                    errors.add("$fileName: Failed to create output file")
-                }
+                }.joinAll()
             }
 
             val batchResult = BatchImageCompressionResult(
                 totalCount = sourceUris.size,
-                successCount = successCount,
-                failureCount = failureCount,
-                totalOriginalBytes = totalOriginalBytes,
-                totalCompressedBytes = totalCompressedBytes,
-                outputUris = outputUris,
-                errors = errors
+                successCount = successCount.get(),
+                failureCount = failureCount.get(),
+                totalOriginalBytes = totalOriginalBytes.get(),
+                totalCompressedBytes = totalCompressedBytes.get(),
+                outputUris = ArrayList(outputUris),
+                errors = ArrayList(errors)
             )
 
             withContext(Dispatchers.Main) {
@@ -1091,6 +1181,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Visual PDF Editor] (FEATURES_REGISTRY Android §4: Form Filling & Document Editing)
+    // =============================================================================================
     fun exportEditedPdf(
         context: Context,
         sourceUri: Uri,
@@ -1125,6 +1218,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Encrypt / Password Protect] (FEATURES_REGISTRY Android §5: Security, Privacy & Compliance)
+    // =============================================================================================
     fun protectPdf(
         context: Context,
         sourceUri: Uri,
@@ -1166,6 +1262,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Decrypt / Unlock PDF] (FEATURES_REGISTRY Android §5: Security, Privacy & Compliance)
+    // =============================================================================================
     fun unlockPdf(
         context: Context,
         sourceUri: Uri,
@@ -1205,6 +1304,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: PDF to High-Res Images] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun convertPdfToImages(
         context: Context,
         sourceUri: Uri,
@@ -1252,6 +1354,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: AcroForm Interactive Filler] (FEATURES_REGISTRY Android §4: Form Filling & Editing)
+    // =============================================================================================
     fun fillAndSaveForm(
         context: Context,
         sourceUri: Uri,
@@ -1297,6 +1402,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: On-Device OCR] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun createSearchablePdf(
         context: Context,
         sourceUri: Uri,
@@ -1344,6 +1452,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Permanent Smart Redaction] (FEATURES_REGISTRY Android §5: Security, Privacy & Compliance)
+    // =============================================================================================
     fun applyRedactions(
         context: Context,
         sourceUri: Uri,
@@ -1387,6 +1498,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Visual Signer] (FEATURES_REGISTRY Android §4: Form Filling & Document Editing)
+    // =============================================================================================
     fun applySignatures(
         context: Context,
         sourceUri: Uri,
@@ -1430,6 +1544,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Office Export (Word / Excel / PPTX)] (FEATURES_REGISTRY Android §3: Creation & Conversion)
+    // =============================================================================================
     fun exportPdfToOffice(
         context: Context,
         sourceUri: Uri,
@@ -1466,6 +1583,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Image Replacer] (FEATURES_REGISTRY Android §4: Form Filling & Document Editing)
+    // =============================================================================================
     fun replaceEmbeddedImage(
         context: Context,
         sourcePdfUri: Uri,
@@ -1504,6 +1624,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // =============================================================================================
+    // [FEATURE: Find & Replace Text] (FEATURES_REGISTRY Android §4: Form Filling & Document Editing)
+    // =============================================================================================
     fun replaceTextOccurrences(
         context: Context,
         sourcePdfUri: Uri,

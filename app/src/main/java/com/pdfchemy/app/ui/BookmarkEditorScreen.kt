@@ -61,10 +61,13 @@ fun BookmarkEditorScreen(
                 try {
                     context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
                         val renderer = PdfRenderer(pfd)
-                        val count = renderer.pageCount
-                        renderer.close()
-                        withContext(Dispatchers.Main) {
-                            totalPages = count.coerceAtLeast(1)
+                        try {
+                            val count = renderer.pageCount
+                            withContext(Dispatchers.Main) {
+                                totalPages = count.coerceAtLeast(1)
+                            }
+                        } finally {
+                            try { renderer.close() } catch (_: Throwable) {}
                         }
                     }
                 } catch (_: Exception) {}
@@ -286,7 +289,7 @@ fun BookmarkEditorScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(bookmarks) { idx, item ->
+                        itemsIndexed(bookmarks, key = { idx, item -> "${item.title}_${item.pageIndex}_$idx" }) { idx, item ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),

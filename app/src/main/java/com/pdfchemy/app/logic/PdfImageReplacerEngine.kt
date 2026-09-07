@@ -119,6 +119,7 @@ object PdfImageReplacerEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         return@withContext try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -150,7 +151,7 @@ object PdfImageReplacerEngine {
             resources.put(cosName, newImageXObject)
 
             // Write updated document to temporary file then copy to destination URI
-            val tempFile = File(context.cacheDir, "replaced_image_tmp_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "replaced_image_tmp_${System.currentTimeMillis()}.pdf")
             FileOutputStream(tempFile).use { outStream ->
                 document.save(outStream)
             }
@@ -162,6 +163,7 @@ object PdfImageReplacerEngine {
             } ?: throw IllegalStateException("Cannot open destination output stream")
 
             tempFile.delete()
+            tempFile = null
 
             // Record to history
             val historyRepo = HistoryRepository(context)
@@ -174,6 +176,7 @@ object PdfImageReplacerEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 

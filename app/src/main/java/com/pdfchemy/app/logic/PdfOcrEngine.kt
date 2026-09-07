@@ -60,16 +60,19 @@ object PdfOcrEngine {
                 onProgress(i + 1, pageCount)
                 val page = renderer.openPage(i)
                 
+                var bitmap: Bitmap? = null
+                var contentStream: PDPageContentStream? = null
                 try {
                     val pageWidth = page.width.toFloat()
                     val pageHeight = page.height.toFloat()
 
-                    // Render page bitmap at 2x resolution for optimal OCR fidelity
-                    val renderScale = 2f
-                    val bmpWidth = (pageWidth * renderScale).toInt().coerceAtLeast(1)
-                    val bmpHeight = (pageHeight * renderScale).toInt().coerceAtLeast(1)
+                    // Render page bitmap scaled for optimal OCR fidelity, capped to 2048px to prevent OOM
+                    val maxDim = maxOf(pageWidth, pageHeight)
+                    val renderScale = if (maxDim > 0f) minOf(2f, 2048f / maxDim) else 1f
+                    val bmpWidth = (pageWidth * renderScale).toInt().coerceIn(1, 2048)
+                    val bmpHeight = (pageHeight * renderScale).toInt().coerceIn(1, 2048)
 
-                    val bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888)
+                    bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888)
                     val canvas = android.graphics.Canvas(bitmap)
                     canvas.drawColor(Color.WHITE)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
@@ -88,7 +91,7 @@ object PdfOcrEngine {
 
                     // 1. Draw original page image
                     val pdImage = JPEGFactory.createFromImage(outputDoc, bitmap, 0.85f)
-                    val contentStream = PDPageContentStream(outputDoc, pdPage)
+                    contentStream = PDPageContentStream(outputDoc, pdPage)
                     contentStream.drawImage(pdImage, 0f, 0f, pageWidth, pageHeight)
 
                     // 2. Inject transparent searchable text layer
@@ -106,7 +109,7 @@ object PdfOcrEngine {
                                     val text = element.text.trim()
                                     if (text.isEmpty()) continue
 
-                                    // Scale coordinates from bitmap (2x) back to PDF points
+                                    // Scale coordinates from bitmap back to PDF points
                                     val scaleX = pageWidth / bmpWidth.toFloat()
                                     val scaleY = pageHeight / bmpHeight.toFloat()
 
@@ -131,10 +134,9 @@ object PdfOcrEngine {
                             }
                         }
                     }
-
-                    contentStream.close()
-                    bitmap.recycle()
                 } finally {
+                    try { contentStream?.close() } catch (_: Exception) {}
+                    bitmap?.recycle()
                     page.close()
                 }
             }

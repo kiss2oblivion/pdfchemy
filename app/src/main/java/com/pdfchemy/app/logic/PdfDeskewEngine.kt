@@ -14,6 +14,7 @@ import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.util.Matrix as PdfMatrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.InputStream
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -53,48 +54,63 @@ object PdfDeskewEngine {
             lum[i] = if ((0.299f * r + 0.587f * g + 0.114f * b) < 180f) 1.0f else 0.0f
         }
 
-        var maxVariance = -1.0
-        var bestAngle = 0.0f
+        val centerX = w / 2.0
+        val centerY = h / 2.0
+        val rowSums = DoubleArray(h)
 
-        // Search angles in range [-15.0, +15.0] in 0.5 degree steps
-        var angle = -15.0f
-        while (angle <= 15.0f) {
-            val rad = Math.toRadians(angle.toDouble())
+        fun computeVarianceForAngle(testAngle: Float): Double {
+            val rad = Math.toRadians(testAngle.toDouble())
             val cosA = cos(rad)
             val sinA = sin(rad)
-
-            val rowSums = DoubleArray(h)
-            val centerX = w / 2.0
-            val centerY = h / 2.0
+            java.util.Arrays.fill(rowSums, 0.0)
 
             for (y in 0 until h) {
                 val dy = y - centerY
+                val yBase = dy * cosA + centerY
+                val yOffset = y * w
                 for (x in 0 until w step 2) {
                     val dx = x - centerX
-                    val rotY = ((-dx * sinA + dy * cosA) + centerY).toInt()
+                    val rotY = (-dx * sinA + yBase).toInt()
                     if (rotY in 0 until h) {
-                        rowSums[rotY] += lum[y * w + x].toDouble()
+                        rowSums[rotY] += lum[yOffset + x].toDouble()
                     }
                 }
             }
 
-            // Calculate variance of projection profile
-            var mean = 0.0
-            for (s in rowSums) mean += s
-            mean /= h.toDouble()
-
-            var variance = 0.0
+            var sum = 0.0
+            var sumSq = 0.0
             for (s in rowSums) {
-                val diff = s - mean
-                variance += diff * diff
+                sum += s
+                sumSq += s * s
             }
+            val mean = sum / h.toDouble()
+            return (sumSq / h.toDouble()) - (mean * mean)
+        }
 
+        // Pass 1: Coarse search from -15.0 to +15.0 deg in 2.0 deg increments
+        var bestAngle = 0.0f
+        var maxVariance = -1.0
+        var coarseAngle = -15.0f
+        while (coarseAngle <= 15.0f) {
+            val variance = computeVarianceForAngle(coarseAngle)
             if (variance > maxVariance) {
                 maxVariance = variance
-                bestAngle = angle
+                bestAngle = coarseAngle
             }
+            coarseAngle += 2.0f
+        }
 
-            angle += 0.5f
+        // Pass 2: Fine search around best coarse angle in 0.25 deg increments
+        val fineStart = (bestAngle - 2.0f).coerceAtLeast(-15.0f)
+        val fineEnd = (bestAngle + 2.0f).coerceAtMost(15.0f)
+        var fineAngle = fineStart
+        while (fineAngle <= fineEnd) {
+            val variance = computeVarianceForAngle(fineAngle)
+            if (variance > maxVariance) {
+                maxVariance = variance
+                bestAngle = fineAngle
+            }
+            fineAngle += 0.25f
         }
 
         return bestAngle
@@ -108,12 +124,13 @@ object PdfDeskewEngine {
     ): Int = withContext(Dispatchers.IO) {
         var straightenedCount = 0
         var pfd: ParcelFileDescriptor? = null
+        var docStream: InputStream? = null
         var renderer: PdfRenderer? = null
         var document: PDDocument? = null
 
         try {
             pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
-            val docStream = context.contentResolver.openInputStream(sourceUri)
+            docStream = context.contentResolver.openInputStream(sourceUri)
             if (pfd != null && docStream != null) {
                 renderer = PdfRenderer(pfd)
                 document = PDDocument.load(docStream)
@@ -123,18 +140,18 @@ object PdfDeskewEngine {
                     if (targetPages != null && i !in targetPages) continue
 
                     var page: PdfRenderer.Page? = null
+                    var bmp: Bitmap? = null
                     val angle = try {
                         page = renderer.openPage(i)
-                        val bmp = Bitmap.createBitmap(250, (250f * page.height / page.width).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+                        bmp = Bitmap.createBitmap(250, (250f * page.height / page.width).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
                         bmp.eraseColor(Color.WHITE)
                         page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        val detected = detectSkewAngle(bmp)
-                        bmp.recycle()
-                        detected
+                        detectSkewAngle(bmp)
                     } catch (e: Exception) {
                         AppLogger.e("Deskew angle detection failed on page $i", e)
                         0.0f
                     } finally {
+                        bmp?.recycle()
                         page?.close()
                     }
 
@@ -152,9 +169,10 @@ object PdfDeskewEngine {
         } catch (e: Exception) {
             AppLogger.e("Error deskewing document", e)
         } finally {
-            document?.close()
-            renderer?.close()
-            pfd?.close()
+            try { docStream?.close() } catch (_: Exception) {}
+            try { document?.close() } catch (_: Exception) {}
+            try { renderer?.close() } catch (_: Exception) {}
+            try { pfd?.close() } catch (_: Exception) {}
         }
 
         straightenedCount

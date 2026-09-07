@@ -73,9 +73,10 @@ fun PageOrganizerScreen(
     var selectedItemIndex by remember { mutableIntStateOf(-1) }
     var isOrganizing by remember { mutableStateOf(false) }
 
+    val currentItems by rememberUpdatedState(pageItems)
     DisposableEffect(Unit) {
         onDispose {
-            pageItems.forEach { it.thumbnail?.recycle() }
+            currentItems.forEach { it.thumbnail?.let { bmp -> if (!bmp.isRecycled) bmp.recycle() } }
         }
     }
 
@@ -85,12 +86,18 @@ fun PageOrganizerScreen(
         if (uri != null) {
             selectedPdfUri = uri
             coroutineScope.launch(Dispatchers.IO) {
+                var pfd: ParcelFileDescriptor? = null
+                var renderer: PdfRenderer? = null
                 try {
                     // Clean up existing thumbnails
-                    pageItems.forEach { it.thumbnail?.recycle() }
+                    withContext(Dispatchers.Main) {
+                        pageItems.forEach { it.thumbnail?.let { bmp -> if (!bmp.isRecycled) bmp.recycle() } }
+                        pageItems = emptyList()
+                        originalPageItems = emptyList()
+                    }
 
-                    val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
-                    val renderer = PdfRenderer(pfd)
+                    pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
+                    renderer = PdfRenderer(pfd)
                     val count = renderer.pageCount
                     val items = mutableListOf<OrganizerPageItem>()
 
@@ -114,8 +121,6 @@ fun PageOrganizerScreen(
                             page.close()
                         }
                     }
-                    renderer.close()
-                    pfd.close()
 
                     withContext(Dispatchers.Main) {
                         pageItems = items
@@ -124,6 +129,9 @@ fun PageOrganizerScreen(
                     }
                 } catch (e: Exception) {
                     com.pdfchemy.app.utils.AppLogger.e("Failed to load thumbnails for organizer: ${e.message}", e)
+                } finally {
+                    try { renderer?.close() } catch (_: Throwable) {}
+                    try { pfd?.close() } catch (_: Throwable) {}
                 }
             }
         }

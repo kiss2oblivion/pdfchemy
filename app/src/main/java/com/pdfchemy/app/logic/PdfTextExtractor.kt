@@ -105,40 +105,45 @@ object PdfTextExtractor {
                 val pageCount = pdfRenderer.pageCount
 
                 for (i in 0 until pageCount) {
-                    val page = pdfRenderer.openPage(i)
-                    // Render the page to a bitmap (using a higher resolution for better OCR)
-                    val width = context.resources.displayMetrics.densityDpi / 72 * page.width
-                    val height = context.resources.displayMetrics.densityDpi / 72 * page.height
-                    
-                    val bitmap = Bitmap.createBitmap(
-                        if (width > 0) width else page.width * 2,
-                        if (height > 0) height else page.height * 2,
-                        Bitmap.Config.ARGB_8888
-                    )
-                    
-                    // White background
-                    bitmap.eraseColor(android.graphics.Color.WHITE)
-                    
-                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    
-                    val image = InputImage.fromBitmap(bitmap, 0)
-                    
+                    var page: PdfRenderer.Page? = null
+                    var bitmap: Bitmap? = null
                     try {
-                        val result = recognizer.process(image).await()
-                        stringBuilder.append(result.text).append("\n\n")
-                    } catch (e: Exception) {
-                        AppLogger.e("Error during PDF text extraction", e)
+                        page = pdfRenderer.openPage(i)
+                        // Render the page to a bitmap (using a higher resolution for better OCR)
+                        val width = context.resources.displayMetrics.densityDpi / 72 * page.width
+                        val height = context.resources.displayMetrics.densityDpi / 72 * page.height
+                        
+                        bitmap = Bitmap.createBitmap(
+                            if (width > 0) width else page.width * 2,
+                            if (height > 0) height else page.height * 2,
+                            Bitmap.Config.ARGB_8888
+                        )
+                        
+                        // White background
+                        bitmap.eraseColor(android.graphics.Color.WHITE)
+                        
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        
+                        val image = InputImage.fromBitmap(bitmap, 0)
+                        
+                        try {
+                            val result = recognizer.process(image).await()
+                            stringBuilder.append(result.text).append("\n\n")
+                        } catch (e: Exception) {
+                            AppLogger.e("Error during PDF text extraction", e)
+                        }
+                    } finally {
+                        bitmap?.recycle()
+                        page?.close()
                     }
-
-                    page.close()
-                    bitmap.recycle()
                 }
             }
         } catch (e: Exception) {
             AppLogger.e("Error during PDF text extraction", e)
         } finally {
-            pdfRenderer?.close()
-            fileDescriptor?.close()
+            try { pdfRenderer?.close() } catch (_: Exception) {}
+            try { fileDescriptor?.close() } catch (_: Exception) {}
+            try { recognizer.close() } catch (_: Exception) {}
         }
 
         return stringBuilder.toString()

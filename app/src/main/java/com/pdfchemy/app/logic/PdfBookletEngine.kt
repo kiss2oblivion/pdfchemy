@@ -82,6 +82,7 @@ object PdfBookletEngine {
         var srcDoc: PDDocument? = null
         var outDoc: PDDocument? = null
         var inputStream: InputStream? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -153,7 +154,7 @@ object PdfBookletEngine {
                 onProgress(sideIdx + 1, plan.size)
             }
 
-            val tempFile = File(context.cacheDir, "booklet_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "booklet_${System.currentTimeMillis()}.pdf")
             outDoc.save(tempFile)
             outDoc.close()
             outDoc = null
@@ -167,6 +168,7 @@ object PdfBookletEngine {
             } ?: throw IllegalStateException("Cannot open destination booklet stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -183,6 +185,7 @@ object PdfBookletEngine {
             try { outDoc?.close() } catch (_: Exception) {}
             try { srcDoc?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 

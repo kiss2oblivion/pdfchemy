@@ -75,6 +75,7 @@ object PdfFlattenEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -101,7 +102,7 @@ object PdfFlattenEngine {
                 }
             }
 
-            val tempFile = File(context.cacheDir, "flattened_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "flattened_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -113,6 +114,7 @@ object PdfFlattenEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -128,6 +130,7 @@ object PdfFlattenEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

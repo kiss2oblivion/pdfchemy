@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: Interactive Form Builder / AcroForm Authoring] (FEATURES_REGISTRY Android §4: Form Filling)
+// Converts flat PDFs into interactive forms with draggable text fields, checkboxes, and dropdowns.
+// =================================================================================================
+
 package com.pdfchemy.app.ui
 
 import android.content.Context
@@ -130,10 +135,10 @@ fun FormBuilderScreen(
         selectedPdfUri?.let { renderCurrentPage(it, currentPageIndex) }
     }
 
+    val currentBmp by rememberUpdatedState(currentPageBitmap)
     DisposableEffect(Unit) {
         onDispose {
-            currentPageBitmap?.recycle()
-            currentPageBitmap = null
+            currentBmp?.let { if (!it.isRecycled) it.recycle() }
         }
     }
 

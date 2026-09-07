@@ -73,6 +73,7 @@ object PdfLinearizeEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -83,7 +84,7 @@ object PdfLinearizeEngine {
                 return@withContext Result.failure(IllegalStateException("PDF has no pages"))
             }
 
-            val tempFile = File(context.cacheDir, "linear_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "linear_${System.currentTimeMillis()}.pdf")
             // PDFBox save automatically compresses streams and reorganizes object structures
             document.save(tempFile)
             document.close()
@@ -98,6 +99,7 @@ object PdfLinearizeEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -113,6 +115,7 @@ object PdfLinearizeEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

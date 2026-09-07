@@ -229,9 +229,11 @@ object SignatureEngine {
         reason: String,
         location: String
     ): Boolean = withContext(Dispatchers.IO) {
+        var sourceFile: File? = null
+        var destFile: File? = null
         try {
-            val sourceFile = File(context.cacheDir, "temp_sign_in.pdf")
-            val destFile = File(context.cacheDir, "temp_sign_out.pdf")
+            sourceFile = File(context.cacheDir, "temp_sign_in_${System.currentTimeMillis()}.pdf")
+            destFile = File(context.cacheDir, "temp_sign_out_${System.currentTimeMillis()}.pdf")
             
             context.contentResolver.openInputStream(sourceUri)?.use { ins ->
                 sourceFile.writeBytes(ins.readBytes())
@@ -250,15 +252,15 @@ object SignatureEngine {
 
             context.contentResolver.openOutputStream(destUri)?.use { outs ->
                 outs.write(destFile.readBytes())
-            }
-            
-            sourceFile.delete()
-            destFile.delete()
+            } ?: return@withContext false
             
             true
         } catch (e: Exception) {
             AppLogger.e("Failed to apply digital signature: ${e.message}", e)
             false
+        } finally {
+            sourceFile?.delete()
+            destFile?.delete()
         }
     }
 }

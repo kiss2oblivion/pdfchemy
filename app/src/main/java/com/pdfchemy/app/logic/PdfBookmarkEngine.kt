@@ -85,6 +85,7 @@ object PdfBookmarkEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -119,7 +120,7 @@ object PdfBookmarkEngine {
                 outline.openNode()
             }
 
-            val tempFile = File(context.cacheDir, "bmark_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "bmark_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -131,6 +132,7 @@ object PdfBookmarkEngine {
             } ?: throw IllegalStateException("Cannot open destination stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -146,6 +148,7 @@ object PdfBookmarkEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

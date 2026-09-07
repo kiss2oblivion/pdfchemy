@@ -84,8 +84,9 @@ fun ReflowReaderScreen(
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
             isLoading = true
-            reflowSections = PdfOutlineReader.extractReflowContent(context, initialUri)
-            bookmarks = PdfOutlineReader.extractOutline(context, initialUri)
+            val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
+            reflowSections = docData.sections
+            bookmarks = docData.bookmarks
             isLoading = false
         }
     }
@@ -197,8 +198,9 @@ fun ReflowReaderScreen(
             selectedPdfUri = uri
             isLoading = true
             scope.launch {
-                reflowSections = PdfOutlineReader.extractReflowContent(context, uri)
-                bookmarks = PdfOutlineReader.extractOutline(context, uri)
+                val docData = PdfOutlineReader.loadReflowDocument(context, uri)
+                reflowSections = docData.sections
+                bookmarks = docData.bookmarks
                 isLoading = false
             }
         }
@@ -225,7 +227,7 @@ fun ReflowReaderScreen(
                     )
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(bookmarks) { bookmark ->
+                        items(bookmarks, key = { "${it.title}_${it.pageNumber}" }) { bookmark ->
                             NavigationDrawerItem(
                                 label = { Text(bookmark.title, maxLines = 1) },
                                 badge = { Text("P.${bookmark.pageNumber}") },
@@ -632,7 +634,7 @@ fun ReflowReaderScreen(
                                     .fillMaxSize(),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                items(reflowSections) { section ->
+                                items(reflowSections, key = { it.pageNumber }, contentType = { "section" }) { section ->
                                     Column(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -789,7 +791,7 @@ fun ReflowReaderScreen(
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(reflowSections) { section ->
+                        items(reflowSections, key = { it.pageNumber }, contentType = { "section" }) { section ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -831,7 +833,7 @@ fun ReflowReaderScreen(
                             .padding(horizontal = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(reflowSections) { section ->
+                        items(reflowSections, key = { it.pageNumber }, contentType = { "section" }) { section ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -889,30 +891,32 @@ private fun HighlightedParagraph(
             textAlign = TextAlign.Start
         )
     } else {
-        val annotated = buildAnnotatedString {
-            var startIndex = 0
-            val lowerText = text.lowercase()
-            val lowerQuery = trimmed.lowercase()
-            while (startIndex < text.length) {
-                val matchIdx = lowerText.indexOf(lowerQuery, startIndex)
-                if (matchIdx == -1) {
-                    append(text.substring(startIndex))
-                    break
-                }
-                if (matchIdx > startIndex) {
-                    append(text.substring(startIndex, matchIdx))
-                }
-                val matchEnd = matchIdx + trimmed.length
-                pushStyle(
-                    SpanStyle(
-                        background = Color(0xFFFFD54F),
-                        color = Color(0xFF1E293B),
-                        fontWeight = FontWeight.Bold
+        val annotated = remember(text, trimmed) {
+            buildAnnotatedString {
+                var startIndex = 0
+                val lowerText = text.lowercase()
+                val lowerQuery = trimmed.lowercase()
+                while (startIndex < text.length) {
+                    val matchIdx = lowerText.indexOf(lowerQuery, startIndex)
+                    if (matchIdx == -1) {
+                        append(text.substring(startIndex))
+                        break
+                    }
+                    if (matchIdx > startIndex) {
+                        append(text.substring(startIndex, matchIdx))
+                    }
+                    val matchEnd = matchIdx + trimmed.length
+                    pushStyle(
+                        SpanStyle(
+                            background = Color(0xFFFFD54F),
+                            color = Color(0xFF1E293B),
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
-                append(text.substring(matchIdx, matchEnd))
-                pop()
-                startIndex = matchEnd
+                    append(text.substring(matchIdx, matchEnd))
+                    pop()
+                    startIndex = matchEnd
+                }
             }
         }
         Text(

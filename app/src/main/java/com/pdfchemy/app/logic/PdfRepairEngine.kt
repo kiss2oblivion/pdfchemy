@@ -137,26 +137,30 @@ object PdfRepairEngine {
             val recoveredPageCount = document.numberOfPages
 
             val tempFile = File(context.cacheDir, "repaired_${System.currentTimeMillis()}.pdf")
-            document.save(tempFile)
-            document.close()
-            document = null
+            try {
+                document.save(tempFile)
+                document.close()
+                document = null
 
-            context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
-                tempFile.inputStream().use { inp ->
-                    inp.copyTo(out)
+                context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
+                    tempFile.inputStream().use { inp ->
+                        inp.copyTo(out)
+                    }
+                } ?: throw IllegalStateException("Cannot open destination output stream")
+
+                val historyRepo = HistoryRepository(context)
+                historyRepo.addHistoryItem(
+                    destPdfUri,
+                    FileUtils.getFileName(context, destPdfUri) ?: "repaired.pdf",
+                    "Repaired Corrupted PDF"
+                )
+
+                Result.success(recoveredPageCount)
+            } finally {
+                if (tempFile.exists()) {
+                    tempFile.delete()
                 }
-            } ?: throw IllegalStateException("Cannot open destination output stream")
-
-            tempFile.delete()
-
-            val historyRepo = HistoryRepository(context)
-            historyRepo.addHistoryItem(
-                destPdfUri,
-                FileUtils.getFileName(context, destPdfUri) ?: "repaired.pdf",
-                "Repaired Corrupted PDF"
-            )
-
-            Result.success(recoveredPageCount)
+            }
         } catch (e: Exception) {
             AppLogger.e("PdfRepairEngine: Error repairing PDF", e)
             Result.failure(e)

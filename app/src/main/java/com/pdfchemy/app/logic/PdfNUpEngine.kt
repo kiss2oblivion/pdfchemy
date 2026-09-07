@@ -56,6 +56,7 @@ object PdfNUpEngine {
         var srcDoc: PDDocument? = null
         var outDoc: PDDocument? = null
         var inputStream: InputStream? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -127,7 +128,7 @@ object PdfNUpEngine {
                 onProgress(sheetIdx + 1, totalSheets)
             }
 
-            val tempFile = File(context.cacheDir, "nup_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "nup_${System.currentTimeMillis()}.pdf")
             outDoc.save(tempFile)
             outDoc.close()
             outDoc = null
@@ -141,6 +142,7 @@ object PdfNUpEngine {
             } ?: throw IllegalStateException("Cannot open destination PDF stream")
 
             tempFile.delete()
+            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -157,6 +159,7 @@ object PdfNUpEngine {
             try { outDoc?.close() } catch (_: Exception) {}
             try { srcDoc?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 

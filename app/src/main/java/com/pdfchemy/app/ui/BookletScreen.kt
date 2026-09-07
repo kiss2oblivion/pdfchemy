@@ -63,11 +63,14 @@ fun BookletScreen(
                 try {
                     context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
                         val renderer = PdfRenderer(pfd)
-                        val count = renderer.pageCount
-                        renderer.close()
-                        withContext(Dispatchers.Main) {
-                            pageCount = count
-                            bookletPlan = PdfBookletEngine.computeBookletPlan(count)
+                        try {
+                            val count = renderer.pageCount
+                            withContext(Dispatchers.Main) {
+                                pageCount = count
+                                bookletPlan = PdfBookletEngine.computeBookletPlan(count)
+                            }
+                        } finally {
+                            try { renderer.close() } catch (_: Throwable) {}
                         }
                     }
                 } catch (_: Exception) {}

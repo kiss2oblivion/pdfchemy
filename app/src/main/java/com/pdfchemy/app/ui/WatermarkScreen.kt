@@ -61,11 +61,20 @@ fun WatermarkScreen(
     var isTiled by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
+    val currentPreviewBitmap by rememberUpdatedState(previewBitmap)
+    DisposableEffect(Unit) {
+        onDispose {
+            currentPreviewBitmap?.recycle()
+        }
+    }
+
     fun loadPreview(uri: Uri) {
         coroutineScope.launch(Dispatchers.IO) {
+            var pfd: ParcelFileDescriptor? = null
+            var renderer: PdfRenderer? = null
             try {
-                val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
-                val renderer = PdfRenderer(pfd)
+                pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return@launch
+                renderer = PdfRenderer(pfd)
                 if (renderer.pageCount > 0) {
                     val page = renderer.openPage(0)
                     val originalWidth = page.width.coerceAtLeast(1)
@@ -75,19 +84,24 @@ fun WatermarkScreen(
                     val renderHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
 
                     val bmp = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bmp)
-                    canvas.drawColor(android.graphics.Color.WHITE)
-                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    page.close()
+                    try {
+                        val canvas = android.graphics.Canvas(bmp)
+                        canvas.drawColor(android.graphics.Color.WHITE)
+                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    } finally {
+                        page.close()
+                    }
+
                     withContext(Dispatchers.Main) {
                         previewBitmap?.recycle()
                         previewBitmap = bmp
                     }
                 }
-                renderer.close()
-                pfd.close()
             } catch (e: Exception) {
                 com.pdfchemy.app.utils.AppLogger.e("Failed to render preview: ${e.message}", e)
+            } finally {
+                try { renderer?.close() } catch (_: Throwable) {}
+                try { pfd?.close() } catch (_: Throwable) {}
             }
         }
     }

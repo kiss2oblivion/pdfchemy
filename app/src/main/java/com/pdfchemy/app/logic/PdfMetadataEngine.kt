@@ -100,6 +100,7 @@ object PdfMetadataEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        var tempFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -140,7 +141,7 @@ object PdfMetadataEngine {
             }
 
             // Save to temp file first
-            val tempFile = File(context.cacheDir, "metadata_temp_${System.currentTimeMillis()}.pdf")
+            tempFile = File(context.cacheDir, "metadata_temp_${System.currentTimeMillis()}.pdf")
             document.save(tempFile)
             document.close()
             document = null
@@ -152,6 +153,7 @@ object PdfMetadataEngine {
             } ?: throw IllegalStateException("Cannot open destination output stream")
 
             tempFile.delete()
+            tempFile = null
 
             val actionName = if (wipeAllMetadata) "Sanitized PDF (No Metadata)" else "Updated Metadata PDF"
             val historyRepo = HistoryRepository(context)
@@ -168,6 +170,7 @@ object PdfMetadataEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
+            tempFile?.delete()
         }
     }
 }

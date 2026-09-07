@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: Page Studio & PDF Manipulation Engine] (FEATURES_REGISTRY Android §2 & §5)
+// Merge, split, delete, rotate, reorder, blank-page split, bookmark split, protect, and unlock.
+// =================================================================================================
+
 package com.pdfchemy.app.logic
 
 import android.content.Context
@@ -54,25 +59,23 @@ object PdfManipulator {
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                     document = PDDocument.load(inputStream)
-                    val splitter = Splitter()
-                    val pages = splitter.split(document)
-                    
-                    val pagesToKeep = parsePageRange(pageRange, pages.size)
+                    val totalPages = document?.numberOfPages ?: 0
+                    if (totalPages == 0) return@use
+                    val pagesToKeep = parsePageRange(pageRange, totalPages)
 
-                    pages.forEachIndexed { index, pageDoc ->
-                        try {
-                            if (pagesToKeep.contains(index + 1)) {
-                                val fileName = "${baseName}_page_${index + 1}.pdf"
+                    for (pageNumber in pagesToKeep) {
+                        if (pageNumber in 1..totalPages) {
+                            PDDocument().use { singleDoc ->
+                                val page = document!!.getPage(pageNumber - 1)
+                                singleDoc.importPage(page)
+                                val fileName = "${baseName}_page_${pageNumber}.pdf"
                                 val newFile = outputDirectory.createFile("application/pdf", fileName)
-                            
                                 if (newFile != null) {
                                     context.contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                        pageDoc.save(outputStream)
+                                        singleDoc.save(outputStream)
                                     }
                                 }
                             }
-                        } finally {
-                            pageDoc.close()
                         }
                     }
                 }
@@ -91,12 +94,13 @@ object PdfManipulator {
     ): List<Uri> = withContext(Dispatchers.IO) {
         val outputUris = mutableListOf<Uri>()
         var pfd: ParcelFileDescriptor? = null
+        var docStream: java.io.InputStream? = null
         var renderer: PdfRenderer? = null
         var document: PDDocument? = null
 
         try {
             pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
-            val docStream = context.contentResolver.openInputStream(sourceUri)
+            docStream = context.contentResolver.openInputStream(sourceUri)
             if (pfd != null && docStream != null) {
                 renderer = PdfRenderer(pfd)
                 document = PDDocument.load(docStream)
@@ -105,35 +109,34 @@ object PdfManipulator {
 
                 val splitGroups = mutableListOf<MutableList<Int>>()
                 var currentGroup = mutableListOf<Int>()
+                val sampleW = 72
+                val sampleH = 96
+                val sampleBmp = Bitmap.createBitmap(sampleW, sampleH, Bitmap.Config.ARGB_8888)
+                val pixels = IntArray(sampleW * sampleH)
 
-                for (i in 0 until totalPages) {
-                    var page: PdfRenderer.Page? = null
-                    val isBlank = try {
-                        page = renderer.openPage(i)
-                        val w = 72
-                        val h = (72f * page.height / page.width).toInt().coerceAtLeast(1)
-                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                        bmp.eraseColor(Color.WHITE)
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                try {
+                    for (i in 0 until totalPages) {
+                        var page: PdfRenderer.Page? = null
+                        val isBlank = try {
+                            page = renderer.openPage(i)
+                            sampleBmp.eraseColor(Color.WHITE)
+                            page.render(sampleBmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            sampleBmp.getPixels(pixels, 0, sampleW, 0, 0, sampleW, sampleH)
 
-                        val pixels = IntArray(w * h)
-                        bmp.getPixels(pixels, 0, w, 0, 0, w, h)
-                        bmp.recycle()
-
-                        var nonWhite = 0
-                        for (p in pixels) {
-                            val r = (p shr 16) and 0xFF
-                            val g = (p shr 8) and 0xFF
-                            val b = p and 0xFF
-                            if (r < 240 || g < 240 || b < 240) nonWhite++
+                            var nonWhite = 0
+                            for (p in pixels) {
+                                val r = (p shr 16) and 0xFF
+                                val g = (p shr 8) and 0xFF
+                                val b = p and 0xFF
+                                if (r < 240 || g < 240 || b < 240) nonWhite++
+                            }
+                            val whiteRatio = (pixels.size - nonWhite).toFloat() / pixels.size.toFloat()
+                            whiteRatio >= whiteThreshold
+                        } catch (e: Exception) {
+                            false
+                        } finally {
+                            page?.close()
                         }
-                        val whiteRatio = (pixels.size - nonWhite).toFloat() / pixels.size.toFloat()
-                        whiteRatio >= whiteThreshold
-                    } catch (e: Exception) {
-                        false
-                    } finally {
-                        page?.close()
-                    }
 
                     if (isBlank) {
                         if (currentGroup.isNotEmpty()) {
@@ -163,10 +166,14 @@ object PdfManipulator {
                         outputUris.add(newFile.uri)
                     }
                 }
+                } finally {
+                    try { sampleBmp.recycle() } catch (_: Throwable) {}
+                }
             }
         } catch (e: Exception) {
             com.pdfchemy.app.utils.AppLogger.e("Error splitting by blank pages", e)
         } finally {
+            try { docStream?.close() } catch (_: Exception) {}
             document?.close()
             renderer?.close()
             pfd?.close()
@@ -190,12 +197,17 @@ object PdfManipulator {
                 val outline = doc.documentCatalog.documentOutline
                 if (outline == null || outline.firstChild == null) return@use
 
+                val pageIndexMap = HashMap<com.tom_roush.pdfbox.cos.COSBase, Int>(doc.numberOfPages)
+                for ((idx, p) in doc.pages.withIndex()) {
+                    pageIndexMap[p.cosObject] = idx
+                }
+
                 val bookmarks = mutableListOf<Pair<String, Int>>()
                 var item = outline.firstChild
                 while (item != null) {
                     val page = item.findDestinationPage(doc)
                     if (page != null) {
-                        val pIdx = doc.pages.indexOf(page)
+                        val pIdx = pageIndexMap[page.cosObject] ?: -1
                         if (pIdx >= 0) {
                             val cleanTitle = item.title.replace(Regex("[^a-zA-Z0-9_-]"), "_").take(30)
                             bookmarks.add(cleanTitle to pIdx)
@@ -400,6 +412,7 @@ object PdfManipulator {
                     
                     for (i in 0 until pageCount) {
                         val page = renderer.openPage(i)
+                        var bitmap: Bitmap? = null
                         try {
                             val originalWidth = page.width.coerceAtLeast(1)
                             val originalHeight = page.height.coerceAtLeast(1)
@@ -407,7 +420,7 @@ object PdfManipulator {
                             val renderWidth = targetWidth
                             val renderHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
                             
-                            val bitmap = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
+                            bitmap = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888)
                             val canvas = android.graphics.Canvas(bitmap)
                             canvas.drawColor(Color.WHITE)
                             
@@ -426,8 +439,8 @@ object PdfManipulator {
                                 }
                                 outputUris.add(newFile.uri)
                             }
-                            bitmap.recycle()
                         } finally {
+                            bitmap?.recycle()
                             page.close()
                         }
                     }
