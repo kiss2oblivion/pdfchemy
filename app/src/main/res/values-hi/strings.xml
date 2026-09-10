@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">पासवर्ड से सुरक्षित दस्तावेज़</string>
     <string name="vanguard_encrypted_message">यह दस्तावेज़ एन्क्रिप्टेड और पासवर्ड से सुरक्षित है। जब तक दस्तावेज़ लॉक रहता है, वैनगार्ड ज़ीरो-ट्रस्ट शील्ड एम्बेडेड स्क्रिप्ट या सुरक्षा खतरों की पुष्टि नहीं कर सकता। कृपया पहले इसे अनलॉक करें।</string>
     <string name="vanguard_action_unlock">PDF अनलॉक करें</string>
+    <string name="vanguard_verifying_title">वैनगार्ड सुरक्षा सत्यापन</string>
+    <string name="vanguard_verifying_desc">स्क्रिप्ट और सुरक्षा खतरों के लिए दस्तावेज़ की जाँच की जा रही है...</string>
+    <string name="vanguard_zero_trust_badge">100%% ऑफ़लाइन • शून्य-विश्वास</string>
 </resources>

@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">Документ защищен паролем</string>
     <string name="vanguard_encrypted_message">Этот документ зашифрован и защищен паролем. Щит Vanguard Zero-Trust не может проверить встроенные скрипты или угрозы безопасности, пока документ заблокирован. Пожалуйста, сначала разблокируйте его.</string>
     <string name="vanguard_action_unlock">Разблокировать PDF</string>
+    <string name="vanguard_verifying_title">Проверка безопасности Vanguard</string>
+    <string name="vanguard_verifying_desc">Проверка документа на наличие скриптов и угроз безопасности...</string>
+    <string name="vanguard_zero_trust_badge">100%% Офлайн • Zero-Trust</string>
 </resources>

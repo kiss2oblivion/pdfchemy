@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">เอกสารมีรหัสผ่านป้องกัน</string>
     <string name="vanguard_encrypted_message">เอกสารนี้ได้รับการเข้ารหัสและป้องกันด้วยรหัสผ่าน เกราะความปลอดภัย Vanguard Zero-Trust ไม่สามารถตรวจสอบสคริปต์หรือภัยคุกคามในขณะที่เอกสารถูกล็อกได้ โปรดปลดล็อกเอกสารก่อน</string>
     <string name="vanguard_action_unlock">ปลดล็อก PDF</string>
+    <string name="vanguard_verifying_title">การตรวจสอบความปลอดภัย Vanguard</string>
+    <string name="vanguard_verifying_desc">กำลังตรวจสอบเอกสารสำหรับสคริปต์และภัยคุกคามความปลอดภัย...</string>
+    <string name="vanguard_zero_trust_badge">ออฟไลน์ 100%% • Zero-Trust</string>
 </resources>

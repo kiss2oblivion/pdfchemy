@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">مستند محمي بكلمة مرور</string>
     <string name="vanguard_encrypted_message">هذا المستند مشفر ومحمي بكلمة مرور. لا يمكن لدرع فانغارد لانعدام الثقة التحقق من البرامج النصية المضمنة أو التهديدات الأمنية أثناء قفل المستند. يرجى إلغاء قفله أولاً.</string>
     <string name="vanguard_action_unlock">فك قفل PDF</string>
+    <string name="vanguard_verifying_title">التحقق الأمني من Vanguard</string>
+    <string name="vanguard_verifying_desc">جارٍ فحص المستند بحثاً عن نصوص برمجية وتهديدات أمنية...</string>
+    <string name="vanguard_zero_trust_badge">100%% بدون إنترنت • بدون ثقة</string>
 </resources>

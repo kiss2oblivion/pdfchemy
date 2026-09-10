@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">パスワードで保護された文書</string>
     <string name="vanguard_encrypted_message">この文書は暗号化されパスワードで保護されています。文書がロックされている間、Vanguardゼロトラストシールドは埋め込みスクリプトや脅威を検証できません。先にロックを解除してください。</string>
     <string name="vanguard_action_unlock">PDFのパスワード解除</string>
+    <string name="vanguard_verifying_title">Vanguardセキュリティ検証</string>
+    <string name="vanguard_verifying_desc">埋め込みスクリプトや脅威を検証中...</string>
+    <string name="vanguard_zero_trust_badge">100%% オフライン • ゼロトラスト</string>
 </resources>

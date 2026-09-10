@@ -1069,4 +1069,7 @@
     <string name="vanguard_encrypted_title">Documento protegido con contraseña</string>
     <string name="vanguard_encrypted_message">Este documento está cifrado y protegido con contraseña. El escudo Vanguard Zero-Trust no puede verificar scripts incrustados ni amenazas de seguridad mientras el documento permanezca bloqueado. Desbloquéelo primero.</string>
     <string name="vanguard_action_unlock">Desbloquear PDF</string>
+    <string name="vanguard_verifying_title">Verificación de Seguridad Vanguard</string>
+    <string name="vanguard_verifying_desc">Comprobando si hay scripts y amenazas de seguridad...</string>
+    <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
 </resources>

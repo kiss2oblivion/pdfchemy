@@ -1067,4 +1067,7 @@
     <string name="vanguard_encrypted_title">Dokumen Dilindungi Kata Sandi</string>
     <string name="vanguard_encrypted_message">Dokumen ini dienkripsi dan dilindungi kata sandi. Perisai Zero-Trust Vanguard tidak dapat memverifikasi skrip tertanam atau ancaman keamanan saat dokumen masih terkunci. Silakan buka kuncinya terlebih dahulu.</string>
     <string name="vanguard_action_unlock">Buka Kunci PDF</string>
+    <string name="vanguard_verifying_title">Verifikasi Keamanan Vanguard</string>
+    <string name="vanguard_verifying_desc">Memeriksa dokumen untuk skrip dan ancaman keamanan...</string>
+    <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
 </resources>

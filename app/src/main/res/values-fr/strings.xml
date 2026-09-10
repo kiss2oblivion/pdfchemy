@@ -1068,4 +1068,7 @@
     <string name="vanguard_encrypted_title">Document protégé par mot de passe</string>
     <string name="vanguard_encrypted_message">Ce document est chiffré et protégé par mot de passe. Le bouclier Vanguard Zero-Trust ne peut pas vérifier les scripts intégrés ou les menaces de sécurité tant que le document reste verrouillé. Veuillez d\'abord le déverrouiller.</string>
     <string name="vanguard_action_unlock">Déverrouiller PDF</string>
+    <string name="vanguard_verifying_title">Vérification de Sécurité Vanguard</string>
+    <string name="vanguard_verifying_desc">Analyse du document pour scripts et menaces de sécurité...</string>
+    <string name="vanguard_zero_trust_badge">100%% Hors-ligne • Zero-Trust</string>
 </resources>

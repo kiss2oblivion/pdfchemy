@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">Parola Korumalı Belge</string>
     <string name="vanguard_encrypted_message">Bu belge şifrelenmiş ve parola korumalıdır. Belge kilitli olduğu sürece Vanguard Sıfır Güven Kalkanı gömülü komut dosyalarını veya güvenlik tehditlerini doğrulayamaz. Lütfen önce kilidini açın.</string>
     <string name="vanguard_action_unlock">PDF Kilidini Aç</string>
+    <string name="vanguard_verifying_title">Vanguard Güvenlik Doğrulaması</string>
+    <string name="vanguard_verifying_desc">Belge komut dosyaları ve tehditler için denetleniyor...</string>
+    <string name="vanguard_zero_trust_badge">100%% Çevrimdışı • Sıfır Güven</string>
 </resources>

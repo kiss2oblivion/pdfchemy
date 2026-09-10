@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">Tài liệu được bảo vệ bằng mật khẩu</string>
     <string name="vanguard_encrypted_message">Tài liệu này được mã hóa và bảo vệ bằng mật khẩu. Lá chắn Vanguard Zero-Trust không thể xác minh các tập lệnh nhúng hoặc mối đe dọa bảo mật khi tài liệu đang bị khóa. Vui lòng mở khóa trước.</string>
     <string name="vanguard_action_unlock">Mở khóa PDF</string>
+    <string name="vanguard_verifying_title">Xác minh bảo mật Vanguard</string>
+    <string name="vanguard_verifying_desc">Đang kiểm tra tài liệu tìm tập lệnh và mối đe dọa...</string>
+    <string name="vanguard_zero_trust_badge">100%% Ngoại tuyến • Zero-Trust</string>
 </resources>
