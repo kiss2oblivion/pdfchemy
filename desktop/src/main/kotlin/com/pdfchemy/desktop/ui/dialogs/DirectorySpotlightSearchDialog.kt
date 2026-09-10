@@ -1,3 +1,8 @@
+// =================================================================================================
+// [FEATURE: Directory Spotlight Search] (FEATURES_REGISTRY Desktop Edition: Spotlight Search)
+// Multi-file directory keyword search modal dialog with folder picker, live progress, and matches.
+// =================================================================================================
+
 package com.pdfchemy.desktop.ui.dialogs
 
 import androidx.compose.foundation.BorderStroke

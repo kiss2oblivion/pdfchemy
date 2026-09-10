@@ -236,7 +236,9 @@ object SignatureEngine {
             destFile = File(context.cacheDir, "temp_sign_out_${System.currentTimeMillis()}.pdf")
             
             context.contentResolver.openInputStream(sourceUri)?.use { ins ->
-                sourceFile.writeBytes(ins.readBytes())
+                sourceFile.outputStream().use { fos ->
+                    ins.copyTo(fos)
+                }
             } ?: return@withContext false
 
             val subjectStr = "CN=$signerName, O=PDFchemy, C=US"
@@ -251,7 +253,9 @@ object SignatureEngine {
             )
 
             context.contentResolver.openOutputStream(destUri)?.use { outs ->
-                outs.write(destFile.readBytes())
+                destFile.inputStream().use { fis ->
+                    fis.copyTo(outs)
+                }
             } ?: return@withContext false
             
             true

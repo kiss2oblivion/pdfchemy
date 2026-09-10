@@ -133,13 +133,16 @@ object PdfRepairEngine {
             }
 
             // 3. Load with PDFBox parser and resave to generate fresh, valid XRef table
-            document = PDDocument.load(bytes)
-            val recoveredPageCount = document.numberOfPages
+            val memorySetting = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()
+            val doc = PDDocument.load(java.io.ByteArrayInputStream(bytes), memorySetting)
+                ?: throw IllegalStateException("Failed to parse repaired PDF structure")
+            document = doc
+            val recoveredPageCount = doc.numberOfPages
 
             val tempFile = File(context.cacheDir, "repaired_${System.currentTimeMillis()}.pdf")
             try {
-                document.save(tempFile)
-                document.close()
+                doc.save(tempFile)
+                doc.close()
                 document = null
 
                 context.contentResolver.openOutputStream(destPdfUri)?.use { out ->

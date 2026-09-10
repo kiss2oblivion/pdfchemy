@@ -78,6 +78,11 @@ import com.pdfchemy.desktop.engine.DirectorySearchProgress
 import com.pdfchemy.desktop.engine.FileSearchResult
 import com.pdfchemy.desktop.engine.SearchMatchSnippet
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
 import java.io.File
 import java.text.DecimalFormat
 
@@ -5242,13 +5247,22 @@ private fun BatchQueueView() {
                                 isProcessing = true
                                 scope.launch(Dispatchers.IO) {
                                     try {
-                                        var count = 0
+                                        val parallelism = Runtime.getRuntime().availableProcessors().coerceIn(2, 8)
+                                        val semaphore = Semaphore(parallelism)
+                                        val completed = AtomicInteger(0)
                                         val targetBytes = 2 * 1024 * 1024L
-                                        queueFiles.forEachIndexed { _, f ->
-                                            val outFile = File(outDir, "${f.nameWithoutExtension}_under2MB.pdf")
-                                            DesktopPdfEngine.compressToTargetSize(f, outFile, targetBytes)
-                                            count++
-                                            currentProgress = count.toFloat() / queueFiles.size.toFloat()
+
+                                        coroutineScope {
+                                            queueFiles.map { f ->
+                                                launch(Dispatchers.IO) {
+                                                    semaphore.withPermit {
+                                                        val outFile = File(outDir, "${f.nameWithoutExtension}_under2MB.pdf")
+                                                        DesktopPdfEngine.compressToTargetSize(f, outFile, targetBytes)
+                                                        val count = completed.incrementAndGet()
+                                                        currentProgress = count.toFloat() / queueFiles.size.toFloat()
+                                                    }
+                                                }
+                                            }.joinAll()
                                         }
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false
@@ -5278,12 +5292,21 @@ private fun BatchQueueView() {
                                 isProcessing = true
                                 scope.launch(Dispatchers.IO) {
                                     try {
-                                        var count = 0
-                                        queueFiles.forEachIndexed { _, f ->
-                                            val outFile = File(outDir, "${f.nameWithoutExtension}_compressed.pdf")
-                                            DesktopPdfEngine.compressPdf(f, outFile)
-                                            count++
-                                            currentProgress = count.toFloat() / queueFiles.size.toFloat()
+                                        val parallelism = Runtime.getRuntime().availableProcessors().coerceIn(2, 8)
+                                        val semaphore = Semaphore(parallelism)
+                                        val completed = AtomicInteger(0)
+
+                                        coroutineScope {
+                                            queueFiles.map { f ->
+                                                launch(Dispatchers.IO) {
+                                                    semaphore.withPermit {
+                                                        val outFile = File(outDir, "${f.nameWithoutExtension}_compressed.pdf")
+                                                        DesktopPdfEngine.compressPdf(f, outFile)
+                                                        val count = completed.incrementAndGet()
+                                                        currentProgress = count.toFloat() / queueFiles.size.toFloat()
+                                                    }
+                                                }
+                                            }.joinAll()
                                         }
                                         withContext(Dispatchers.Main) {
                                             isProcessing = false

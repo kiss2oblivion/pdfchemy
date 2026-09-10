@@ -462,16 +462,31 @@ object PdfEditor {
                 val file = File(uri.path ?: return null)
                 ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             } else {
-                // PdfRenderer strictly requires a seekable ParcelFileDescriptor.
-                // Content providers frequently provide pipe-based or non-seekable descriptors.
-                // Copying the stream to a temporary cache file guarantees full seekability and reliable rendering.
-                val tempFile = File(context.cacheDir, "pdf_seekable_${System.currentTimeMillis()}.pdf")
-                val copied = context.contentResolver.openInputStream(uri)?.use { input ->
-                    java.io.FileOutputStream(tempFile).use { output ->
-                        input.copyTo(output)
+                // 1. Try direct descriptor from ContentResolver first
+                try {
+                    val directPfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    if (directPfd != null) {
+                        try {
+                            val testRenderer = PdfRenderer(directPfd)
+                            testRenderer.close()
+                            return context.contentResolver.openFileDescriptor(uri, "r")
+                        } catch (_: Exception) {
+                            try { directPfd.close() } catch (_: Exception) {}
+                        }
+                    }
+                } catch (_: Exception) {}
+
+                // 2. Fallback: Copy to a deterministic session cache file to avoid re-copying on every page render
+                val hash = uri.toString().hashCode().toUInt().toString(16)
+                val tempFile = File(context.cacheDir, "pdf_seekable_$hash.pdf")
+                if (!tempFile.exists() || tempFile.length() == 0L || (System.currentTimeMillis() - tempFile.lastModified() > 10 * 60 * 1000L)) {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        java.io.FileOutputStream(tempFile).use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
-                if (copied != null && copied > 0 && tempFile.exists()) {
+                if (tempFile.exists() && tempFile.length() > 0) {
                     ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
                 } else {
                     context.contentResolver.openFileDescriptor(uri, "r")

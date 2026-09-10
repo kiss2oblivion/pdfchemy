@@ -176,7 +176,7 @@ object OfficeExportEngine {
                         try {
                             val w = 1280
                             val h = (w * (page.height.toFloat() / page.width.toFloat())).toInt().coerceIn(720, 1920)
-                            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565)
                             val canvas = android.graphics.Canvas(bmp)
                             canvas.drawColor(Color.WHITE)
                             page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)

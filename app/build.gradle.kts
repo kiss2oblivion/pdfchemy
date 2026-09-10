@@ -30,9 +30,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("release.jks")
-            storePassword = "shrinkpdf123"
-            keyAlias = "shrinkpdf-alias"
-            keyPassword = "shrinkpdf123"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "shrinkpdf123"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "shrinkpdf-alias"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "shrinkpdf123"
         }
     }
 
@@ -122,10 +122,6 @@ dependencies {
 
     // 4. AdMob
     implementation("com.google.android.gms:play-services-ads:23.2.0")
-
-    // Firebase Setup
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-analytics")
 
     // Google User Messaging Platform (UMP) for GDPR
     implementation("com.google.android.ump:user-messaging-platform:2.2.0")
