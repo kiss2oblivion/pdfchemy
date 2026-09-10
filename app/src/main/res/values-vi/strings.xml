@@ -1055,4 +1055,7 @@
     <string name="settings_vanguard_desc">Chặn các tệp PDF chứa tập lệnh nhúng hoặc hành động tự động chạy</string>
     <string name="vanguard_blocked_title">Tài liệu bị Vanguard chặn</string>
     <string name="vanguard_blocked_message">Tệp PDF này chứa các tập lệnh nhúng hoặc trình kích hoạt tự động. Theo chính sách zero-trust, PDFchemy sẽ không mở tài liệu này.</string>
+    <string name="vanguard_encrypted_title">Tài liệu được bảo vệ bằng mật khẩu</string>
+    <string name="vanguard_encrypted_message">Tài liệu này được mã hóa và bảo vệ bằng mật khẩu. Lá chắn Vanguard Zero-Trust không thể xác minh các tập lệnh nhúng hoặc mối đe dọa bảo mật khi tài liệu đang bị khóa. Vui lòng mở khóa trước.</string>
+    <string name="vanguard_action_unlock">Mở khóa PDF</string>
 </resources>

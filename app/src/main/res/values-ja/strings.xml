@@ -1055,4 +1055,7 @@
     <string name="settings_vanguard_desc">埋め込みスクリプトや自動起動アクションを含むPDFをブロック</string>
     <string name="vanguard_blocked_title">Vanguardによってブロックされた文書</string>
     <string name="vanguard_blocked_message">このPDFには埋め込みスクリプトまたは自動実行アクションが含まれています。ゼロトラストセキュリティに基づき、PDFchemyはこの文書を開きません。</string>
+    <string name="vanguard_encrypted_title">パスワードで保護された文書</string>
+    <string name="vanguard_encrypted_message">この文書は暗号化されパスワードで保護されています。文書がロックされている間、Vanguardゼロトラストシールドは埋め込みスクリプトや脅威を検証できません。先にロックを解除してください。</string>
+    <string name="vanguard_action_unlock">PDFのパスワード解除</string>
 </resources>

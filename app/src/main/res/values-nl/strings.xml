@@ -1055,4 +1055,7 @@
     <string name="settings_vanguard_desc">Blokkeer PDF\'s met ingesloten scripts, opstartopdrachten of automatische acties</string>
     <string name="vanguard_blocked_title">Document geblokkeerd door Vanguard</string>
     <string name="vanguard_blocked_message">Deze PDF bevat ingesloten scripts of automatische uitvoeringsacties. Volgens zero-trust beveiliging opent PDFchemy dit document niet.</string>
+    <string name="vanguard_encrypted_title">Met wachtwoord beveiligd document</string>
+    <string name="vanguard_encrypted_message">Dit document is versleuteld en beveiligd met een wachtwoord. Het Vanguard Zero-Trust-schild kan ingesloten scripts of beveiligingsrisico\'s niet verifiëren zolang het document vergrendeld blijft. Ontgrendel het eerst.</string>
+    <string name="vanguard_action_unlock">PDF ontgrendelen</string>
 </resources>

@@ -1055,4 +1055,7 @@
     <string name="settings_vanguard_desc">Блокировать PDF со встроенными скриптами, командами запуска или автодействиями</string>
     <string name="vanguard_blocked_title">Документ заблокирован Vanguard</string>
     <string name="vanguard_blocked_message">Этот PDF содержит встроенные скрипты или автоматические команды запуска. В соответствии с политикой zero-trust, PDFchemy не откроет этот документ.</string>
+    <string name="vanguard_encrypted_title">Документ защищен паролем</string>
+    <string name="vanguard_encrypted_message">Этот документ зашифрован и защищен паролем. Щит Vanguard Zero-Trust не может проверить встроенные скрипты или угрозы безопасности, пока документ заблокирован. Пожалуйста, сначала разблокируйте его.</string>
+    <string name="vanguard_action_unlock">Разблокировать PDF</string>
 </resources>

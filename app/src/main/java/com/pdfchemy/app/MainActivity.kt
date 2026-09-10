@@ -548,6 +548,8 @@ fun MainApp(
     val incomingPdfUri by (incomingPdfUriState?.collectAsState() ?: remember { mutableStateOf<Uri?>(null) })
     val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+    var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
+    var vanguardPendingEncryptedUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(incomingPdfUri) {
         incomingPdfUri?.let { uri ->
@@ -557,8 +559,21 @@ fun MainApp(
             } else if (name.endsWith(".cbz") || name.endsWith(".cbr")) {
                 currentScreen = Screen.EbookConverter
             } else {
-                if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
-                    showVanguardBlockedDialog = true
+                if (isVanguardEnabled) {
+                    val threatResult = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                    when (threatResult) {
+                        is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                            currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                            vanguardPendingEncryptedUri = uri
+                            showVanguardEncryptedDialog = true
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                            showVanguardBlockedDialog = true
+                        }
+                    }
                 } else {
                     currentScreen = Screen.PdfEditor(initialPdfUri = uri)
                 }
@@ -600,6 +615,58 @@ fun MainApp(
                     )
                 ) {
                     Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showVanguardEncryptedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardEncryptedDialog = false
+                vanguardPendingEncryptedUri = null
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        vanguardPendingEncryptedUri?.let { uri ->
+                            currentScreen = Screen.UnlockPdf(initialUri = uri)
+                        }
+                        vanguardPendingEncryptedUri = null
+                    }
+                ) {
+                    Text(stringResource(R.string.vanguard_action_unlock))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        vanguardPendingEncryptedUri = null
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -811,8 +878,7 @@ fun MainApp(
                 // =========================================================================================
                 // [FEATURE: Encrypt / Password Protect] — AES-128 / AES-256 standard PDF encryption
                 Screen.ProtectPdf -> ProtectPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
-                // [FEATURE: Decrypt / Unlock PDF] — Strips passwords and permission restrictions
-                Screen.UnlockPdf -> UnlockPdfScreen(viewModel) { currentScreen = Screen.CheckCategory }
+                is Screen.UnlockPdf -> UnlockPdfScreen(viewModel, targetScreen.initialUri) { currentScreen = Screen.CheckCategory }
                 // [FEATURE: Permanent Smart Redaction] — PII auto-detection (emails, phones, SSNs) + stream scrubbing
                 Screen.Redaction -> RedactionScreen(viewModel) { currentScreen = Screen.CheckCategory }
                 // [FEATURE: Deep Threat Sanitizer] — Strips embedded JavaScript, launch actions, URI tracking beacons
@@ -1187,7 +1253,7 @@ sealed class Screen {
     // [FEATURE: Encrypt / Password Protect] — AES-128 / AES-256 password protection
     object ProtectPdf : Screen()
     // [FEATURE: Decrypt / Unlock PDF] — Restriction & password stripper
-    object UnlockPdf : Screen()
+    data class UnlockPdf(val initialUri: Uri? = null) : Screen()
     // [FEATURE: Permanent Smart Redaction] — PII scrub & stream redaction
     object Redaction : Screen()
     // [FEATURE: Deep Threat Sanitizer] — JS, Actions, Beacons removal
@@ -1218,6 +1284,7 @@ val ScreenSaver: Saver<Screen, String> = Saver(
         when (screen) {
             is Screen.PdfEditor -> "PdfEditor:${screen.initialPdfUri?.toString() ?: ""}"
             is Screen.ReflowReader -> "ReflowReader:${screen.initialUri?.toString() ?: ""}"
+            is Screen.UnlockPdf -> "UnlockPdf:${screen.initialUri?.toString() ?: ""}"
             is Screen.OfficeExport -> "OfficeExport:${screen.initialFormat.name}"
             else -> screen::class.simpleName ?: "Home"
         }
@@ -1231,6 +1298,10 @@ val ScreenSaver: Saver<Screen, String> = Saver(
             str.startsWith("ReflowReader:") -> {
                 val uriStr = str.removePrefix("ReflowReader:")
                 Screen.ReflowReader(if (uriStr.isNotEmpty()) Uri.parse(uriStr) else null)
+            }
+            str.startsWith("UnlockPdf:") -> {
+                val uriStr = str.removePrefix("UnlockPdf:")
+                Screen.UnlockPdf(if (uriStr.isNotEmpty()) Uri.parse(uriStr) else null)
             }
             str.startsWith("OfficeExport:") -> {
                 val formatName = str.removePrefix("OfficeExport:")
@@ -1262,7 +1333,7 @@ val ScreenSaver: Saver<Screen, String> = Saver(
             str == "RotatePdf" -> Screen.RotatePdf
             str == "ExtractText" -> Screen.ExtractText
             str == "ProtectPdf" -> Screen.ProtectPdf
-            str == "UnlockPdf" -> Screen.UnlockPdf
+            str == "UnlockPdf" -> Screen.UnlockPdf()
             str == "PdfToImages" -> Screen.PdfToImages
             str == "FillForm" -> Screen.FillForm
             str == "OcrPdf" -> Screen.OcrPdf
@@ -3794,6 +3865,8 @@ fun RecentFilesSection(
     val history by viewModel.historyList.collectAsState()
     val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+    var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
+    var vanguardPendingEncryptedUri by remember { mutableStateOf<Uri?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -3835,6 +3908,58 @@ fun RecentFilesSection(
         )
     }
 
+    if (showVanguardEncryptedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardEncryptedDialog = false
+                vanguardPendingEncryptedUri = null
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        vanguardPendingEncryptedUri?.let { encUri ->
+                            onNavigate?.invoke(Screen.UnlockPdf(initialUri = encUri))
+                        }
+                        vanguardPendingEncryptedUri = null
+                    }
+                ) {
+                    Text(stringResource(R.string.vanguard_action_unlock))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        vanguardPendingEncryptedUri = null
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     if (history.isNotEmpty()) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -3859,8 +3984,21 @@ fun RecentFilesSection(
                                         onNavigate(Screen.ReflowReader(uri))
                                     } else if (ext == "pdf" && onNavigate != null) {
                                         scope.launch {
-                                            if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
-                                                showVanguardBlockedDialog = true
+                                            if (isVanguardEnabled) {
+                                                val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                                                when (threat) {
+                                                    is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                                                        onNavigate(Screen.PdfEditor(initialPdfUri = uri))
+                                                    }
+                                                    is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                                                        vanguardPendingEncryptedUri = uri
+                                                        showVanguardEncryptedDialog = true
+                                                    }
+                                                    is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                                                    is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                                                        showVanguardBlockedDialog = true
+                                                    }
+                                                }
                                             } else {
                                                 onNavigate(Screen.PdfEditor(initialPdfUri = uri))
                                             }

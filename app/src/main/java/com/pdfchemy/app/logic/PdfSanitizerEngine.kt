@@ -7,6 +7,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.cos.COSDictionary
 import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -17,8 +18,17 @@ data class SanitizerAuditReport(
     val launchActionsCount: Int = 0,
     val attachmentCount: Int = 0,
     val hasMetadata: Boolean = false,
-    val isClean: Boolean = true
+    val isClean: Boolean = true,
+    val isEncrypted: Boolean = false,
+    val parseFailed: Boolean = false
 )
+
+sealed class VanguardThreatResult {
+    object Clean : VanguardThreatResult()
+    data class ExecutableThreat(val report: SanitizerAuditReport) : VanguardThreatResult()
+    data class EncryptedCannotVerify(val uri: Uri) : VanguardThreatResult()
+    data class ParseFailed(val uri: Uri) : VanguardThreatResult()
+}
 
 data class SanitizerResult(
     val isSuccess: Boolean,
@@ -44,8 +54,27 @@ object PdfSanitizerEngine {
 
         try {
             inputStream = context.contentResolver.openInputStream(pdfUri)
-                ?: return@withContext SanitizerAuditReport()
-            doc = PDDocument.load(inputStream)
+                ?: return@withContext SanitizerAuditReport(threatsFound = 1, isClean = false, parseFailed = true)
+
+            try {
+                doc = PDDocument.load(inputStream, "")
+            } catch (_: InvalidPasswordException) {
+                AppLogger.w("PdfSanitizerEngine: Document is encrypted / password protected")
+                return@withContext SanitizerAuditReport(
+                    threatsFound = 1,
+                    isClean = false,
+                    isEncrypted = true
+                )
+            }
+
+            if (doc.isEncrypted) {
+                AppLogger.w("PdfSanitizerEngine: Document has encryption dictionary (cannot pre-flight verify)")
+                return@withContext SanitizerAuditReport(
+                    threatsFound = 1,
+                    isClean = false,
+                    isEncrypted = true
+                )
+            }
 
             var jsCount = 0
             var actionCount = 0
@@ -91,8 +120,15 @@ object PdfSanitizerEngine {
                 isClean = totalThreats == 0
             )
         } catch (e: Exception) {
-            AppLogger.e("PdfSanitizerEngine: audit failed", e)
-            SanitizerAuditReport()
+            val msg = e.message?.lowercase() ?: ""
+            val isEnc = msg.contains("password") || msg.contains("encrypted") || (e is InvalidPasswordException) || (e.cause is InvalidPasswordException)
+            AppLogger.e("PdfSanitizerEngine: audit failed (isEncrypted=$isEnc)", e)
+            SanitizerAuditReport(
+                threatsFound = 1,
+                isClean = false,
+                isEncrypted = isEnc,
+                parseFailed = !isEnc
+            )
         } finally {
             try { doc?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
@@ -102,15 +138,35 @@ object PdfSanitizerEngine {
     /**
      * Vanguard Zero-Trust Pre-Flight Inspection:
      * Fast check to determine if the PDF contains executable scripts, launch actions,
-     * auto-run hooks (/OpenAction, /AA), or embedded files.
-     * Used by Vanguard Shield to block infected or active documents from opening.
+     * auto-run hooks (/OpenAction, /AA), embedded files, or unverified encryption.
+     * Used by Vanguard Shield to block infected or unverified documents from opening.
      */
     suspend fun hasExecutableThreats(
         context: Context,
         pdfUri: Uri
     ): Boolean = withContext(Dispatchers.IO) {
         val report = auditDocumentThreats(context, pdfUri)
-        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0
+        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.isEncrypted || !report.isClean
+    }
+
+    /**
+     * Categorizes document threat status for fine-grained Vanguard dialog handling.
+     */
+    suspend fun checkVanguardThreat(
+        context: Context,
+        pdfUri: Uri
+    ): VanguardThreatResult = withContext(Dispatchers.IO) {
+        val report = auditDocumentThreats(context, pdfUri)
+        if (report.isEncrypted) {
+            return@withContext VanguardThreatResult.EncryptedCannotVerify(pdfUri)
+        }
+        if (report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0) {
+            return@withContext VanguardThreatResult.ExecutableThreat(report)
+        }
+        if (!report.isClean || report.parseFailed) {
+            return@withContext VanguardThreatResult.ParseFailed(pdfUri)
+        }
+        VanguardThreatResult.Clean
     }
 
     /**

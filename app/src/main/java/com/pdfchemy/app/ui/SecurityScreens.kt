@@ -274,11 +274,15 @@ fun ProtectPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnlockPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+fun UnlockPdfScreen(
+    viewModel: MainViewModel,
+    initialUri: Uri? = null,
+    onBack: () -> Unit
+) {
     BackHandler { onBack() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedPdfUri by remember { mutableStateOf<Uri?>(initialUri) }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
 

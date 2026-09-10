@@ -1055,4 +1055,7 @@
     <string name="settings_vanguard_desc">บล็อก PDF ที่มีสคริปต์ฝังตัวหรือการทำงานอัตโนมัติ</string>
     <string name="vanguard_blocked_title">เอกสารถูกบล็อกโดย Vanguard</string>
     <string name="vanguard_blocked_message">PDF นี้มีสคริปต์ฝังตัวหรือการทำงานอัตโนมัติ ตามหลักความปลอดภัย Zero-Trust แล้ว PDFchemy จะไม่เปิดเอกสารนี้</string>
+    <string name="vanguard_encrypted_title">เอกสารมีรหัสผ่านป้องกัน</string>
+    <string name="vanguard_encrypted_message">เอกสารนี้ได้รับการเข้ารหัสและป้องกันด้วยรหัสผ่าน เกราะความปลอดภัย Vanguard Zero-Trust ไม่สามารถตรวจสอบสคริปต์หรือภัยคุกคามในขณะที่เอกสารถูกล็อกได้ โปรดปลดล็อกเอกสารก่อน</string>
+    <string name="vanguard_action_unlock">ปลดล็อก PDF</string>
 </resources>
