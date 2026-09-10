@@ -2443,7 +2443,11 @@ object DesktopPdfEngine {
                     val name = spec.filename ?: key
                     if (name.equals(attachmentName, ignoreCase = true)) {
                         val ef = spec.embeddedFile ?: return null
-                        val outFile = File(outputDir, name)
+                        val safeName = File(name).name
+                        val outFile = File(outputDir, safeName)
+                        if (!outFile.canonicalFile.toPath().startsWith(outputDir.canonicalFile.toPath())) {
+                            return null
+                        }
                         ef.createInputStream().use { ins ->
                             outFile.writeBytes(ins.readBytes())
                         }

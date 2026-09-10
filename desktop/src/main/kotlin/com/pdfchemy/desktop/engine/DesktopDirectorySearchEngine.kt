@@ -1,3 +1,9 @@
+// =================================================================================================
+// [FEATURE: Directory Spotlight Search] (FEATURES_REGISTRY Desktop Edition: Spotlight Search)
+// Multi-file directory keyword search across hundreds of PDFs with line snippet extraction and
+// instant 1-click page jump to Reader. 100% offline, local-first.
+// =================================================================================================
+
 package com.pdfchemy.desktop.engine
 
 import org.apache.pdfbox.pdmodel.PDDocument

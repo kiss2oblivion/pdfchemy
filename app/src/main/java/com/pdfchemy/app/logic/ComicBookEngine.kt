@@ -144,8 +144,31 @@ object ComicBookEngine {
             document = PDDocument()
             val total = entries.size
             for ((idx, entry) in entries.withIndex()) {
+                // 1. Decode bounds first to prevent decompression bomb / OOM attacks
+                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 zipFile.getInputStream(entry).use { entryStream ->
-                    val bitmap = BitmapFactory.decodeStream(entryStream)
+                    BitmapFactory.decodeStream(entryStream, null, boundsOptions)
+                }
+                val rawW = boundsOptions.outWidth
+                val rawH = boundsOptions.outHeight
+                if (rawW <= 0 || rawH <= 0 || rawW > 8192 || rawH > 8192) {
+                    AppLogger.w("ComicBookEngine: Skipping invalid or excessively large comic image in entry '${entry.name}' (${rawW}x${rawH})")
+                    continue
+                }
+
+                // Downsample if dimension exceeds max safe page dimension (2560px)
+                val maxDim = maxOf(rawW, rawH)
+                var sampleSize = 1
+                while (maxDim / sampleSize > 2560) {
+                    sampleSize *= 2
+                }
+                val decodeOptions = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                }
+
+                zipFile.getInputStream(entry).use { entryStream ->
+                    val bitmap = BitmapFactory.decodeStream(entryStream, null, decodeOptions)
                     if (bitmap != null) {
                         try {
                             val pageWidth = bitmap.width.toFloat()

@@ -73,6 +73,7 @@ object PdfSanitizerEngine {
                         if (s == "JavaScript") jsCount++
                         if (s in listOf("Launch", "SubmitForm", "ImportData", "URI", "Sound", "Movie")) actionCount++
                     }
+                    if (annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
                 }
             }
 
@@ -173,6 +174,10 @@ object PdfSanitizerEngine {
 
                 if (purgeActions || purgeJs) {
                     for (annot in page.annotations) {
+                        if (purgeActions && annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                            annot.cosObject.removeItem(COSName.getPDFName("AA"))
+                            actionsPurged++
+                        }
                         val action = annot.cosObject.getDictionaryObject(COSName.A)
                         if (action is COSDictionary) {
                             val s = action.getNameAsString(COSName.S)

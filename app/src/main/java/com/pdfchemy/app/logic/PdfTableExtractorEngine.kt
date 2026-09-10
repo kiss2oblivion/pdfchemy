@@ -136,7 +136,7 @@ object PdfTableExtractorEngine {
         }
         stripper.startPage = startPage
         stripper.endPage = endPage
-        stripper.getText(doc)
+        stripper.writeText(doc, java.io.StringWriter())
         flushWord()
 
         if (allWords.isEmpty()) return ""

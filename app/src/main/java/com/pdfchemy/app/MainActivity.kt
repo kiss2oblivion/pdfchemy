@@ -323,26 +323,39 @@ class MainActivity : AppCompatActivity() {
                 intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
             }
             return streamUri ?: intent.data
+        } else if (Intent.ACTION_SEND_MULTIPLE == action) {
+            val list = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+            }
+            return list?.firstOrNull() ?: intent.data
         }
         return null
     }
 
     private fun cleanupOrphanedCacheFiles(context: Context) {
         try {
-            val cacheDir = context.cacheDir ?: return
             val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000L)
-            val files = cacheDir.listFiles() ?: return
-            for (file in files) {
-                if (file.isFile && file.lastModified() < oneHourAgo) {
-                    val name = file.name.lowercase()
-                    if (name.endsWith(".pdf") || name.endsWith(".epub") || name.endsWith(".cbz") ||
-                        name.startsWith("temp_") || name.startsWith("pdf_seekable_")) {
-                        try {
-                            file.delete()
-                        } catch (_: Throwable) {}
+            fun cleanDir(dir: File?) {
+                if (dir == null || !dir.exists()) return
+                val files = dir.listFiles() ?: return
+                for (file in files) {
+                    if (file.isDirectory) {
+                        cleanDir(file)
+                    } else if (file.isFile && file.lastModified() < oneHourAgo) {
+                        val name = file.name.lowercase()
+                        if (name.endsWith(".pdf") || name.endsWith(".epub") || name.endsWith(".cbz") ||
+                            name.endsWith(".csv") || name.endsWith(".docx") || name.endsWith(".xlsx") || name.endsWith(".pptx") ||
+                            name.startsWith("temp_") || name.startsWith("pdf_seekable_") || name.startsWith("scan_")) {
+                            try { file.delete() } catch (_: Throwable) {}
+                        }
                     }
                 }
             }
+            cleanDir(context.cacheDir)
+            cleanDir(File(context.filesDir, "scans"))
         } catch (e: Throwable) {
             AppLogger.w("Failed to clean orphaned cache files: ${e.message}")
         }
@@ -2149,7 +2162,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                                                 }
                                             }
                                         }
-                                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                                         sourceUri = uri
                                         sourceName = file.name
                                         viewModel.onFileSelected(context, uri)
@@ -2214,7 +2227,7 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                                             }
                                         }
                                     }
-                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                                     sourceUri = uri
                                     sourceName = file.name
                                     viewModel.onFileSelected(context, uri)
