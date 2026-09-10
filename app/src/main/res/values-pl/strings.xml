@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">Dokument chroniony hasłem</string>
     <string name="vanguard_encrypted_message">Ten dokument jest zaszyfrowany i chroniony hasłem. Tarcza Vanguard Zero-Trust nie może zweryfikować osadzonych skryptów ani zagrożeń, dopóki dokument pozostaje zablokowany. Odblokuj go najpierw.</string>
     <string name="vanguard_action_unlock">Odblokuj PDF</string>
+    <string name="vanguard_verifying_title">Weryfikacja Bezpieczeństwa Vanguard</string>
+    <string name="vanguard_verifying_desc">Sprawdzanie dokumentu pod kątem skryptów i zagrożeń...</string>
+    <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
 </resources>

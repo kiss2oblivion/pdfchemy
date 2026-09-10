@@ -1056,4 +1056,7 @@
     <string name="vanguard_encrypted_title">受密碼保護的文件</string>
     <string name="vanguard_encrypted_message">此文件已加密並受密碼保護。在文件處於鎖定狀態時，Vanguard 零信任防護盾無法驗證嵌入式腳本或安全威脅。請先解除密碼鎖定。</string>
     <string name="vanguard_action_unlock">解除 PDF 密碼</string>
+    <string name="vanguard_verifying_title">Vanguard 安全驗證</string>
+    <string name="vanguard_verifying_desc">正在檢查文件中的腳本與安全威脅...</string>
+    <string name="vanguard_zero_trust_badge">100%% 離線 • 零信任</string>
 </resources>

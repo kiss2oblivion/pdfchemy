@@ -86,6 +86,8 @@ fun ReflowReaderScreen(
     }
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
     var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
+    var isVanguardScanning by remember { mutableStateOf(false) }
+    var vanguardScanningFileName by remember { mutableStateOf<String?>(null) }
 
     if (showVanguardBlockedDialog) {
         AlertDialog(
@@ -170,27 +172,39 @@ fun ReflowReaderScreen(
         )
     }
 
+    VanguardScanningOverlay(
+        visible = isVanguardScanning,
+        fileName = vanguardScanningFileName
+    )
+
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
             val isPdf = initialUri.toString().lowercase().endsWith(".pdf") || 
                 (com.pdfchemy.app.utils.FileUtils.getFileName(context, initialUri)?.lowercase()?.endsWith(".pdf") == true)
             if (isPdf && isVanguardEnabled) {
-                val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, initialUri)
-                when (threat) {
-                    is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
-                        isLoading = true
-                        val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
-                        reflowSections = docData.sections
-                        bookmarks = docData.bookmarks
-                        isLoading = false
+                isVanguardScanning = true
+                vanguardScanningFileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, initialUri)
+                try {
+                    val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, initialUri)
+                    when (threat) {
+                        is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                            isLoading = true
+                            val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
+                            reflowSections = docData.sections
+                            bookmarks = docData.bookmarks
+                            isLoading = false
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                            showVanguardEncryptedDialog = true
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                            showVanguardBlockedDialog = true
+                        }
                     }
-                    is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
-                        showVanguardEncryptedDialog = true
-                    }
-                    is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
-                    is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
-                        showVanguardBlockedDialog = true
-                    }
+                } finally {
+                    isVanguardScanning = false
+                    vanguardScanningFileName = null
                 }
             } else {
                 isLoading = true
@@ -312,24 +326,31 @@ fun ReflowReaderScreen(
                 (com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase()?.endsWith(".pdf") == true)
             scope.launch {
                 if (isPdf && isVanguardEnabled) {
-                    val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
-                    when (threat) {
-                        is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            selectedPdfUri = uri
-                            isLoading = true
-                            val docData = PdfOutlineReader.loadReflowDocument(context, uri)
-                            reflowSections = docData.sections
-                            bookmarks = docData.bookmarks
-                            isLoading = false
+                    isVanguardScanning = true
+                    vanguardScanningFileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)
+                    try {
+                        val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                        when (threat) {
+                            is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                selectedPdfUri = uri
+                                isLoading = true
+                                val docData = PdfOutlineReader.loadReflowDocument(context, uri)
+                                reflowSections = docData.sections
+                                bookmarks = docData.bookmarks
+                                isLoading = false
+                            }
+                            is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                                showVanguardEncryptedDialog = true
+                            }
+                            is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                            is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                                showVanguardBlockedDialog = true
+                            }
                         }
-                        is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
-                            showVanguardEncryptedDialog = true
-                        }
-                        is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
-                        is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
-                            showVanguardBlockedDialog = true
-                        }
+                    } finally {
+                        isVanguardScanning = false
+                        vanguardScanningFileName = null
                     }
                 } else {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)

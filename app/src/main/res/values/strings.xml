@@ -1105,4 +1105,7 @@
     <string name="vanguard_encrypted_title">Password-Protected Document</string>
     <string name="vanguard_encrypted_message">This document is encrypted and password-protected. Vanguard Zero-Trust Shield cannot verify embedded scripts or security threats while the document remains locked. Please unlock it first.</string>
     <string name="vanguard_action_unlock">Unlock PDF</string>
+    <string name="vanguard_verifying_title">Vanguard Security Verification</string>
+    <string name="vanguard_verifying_desc">Auditing document for scripts and security threats...</string>
+    <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
 </resources>

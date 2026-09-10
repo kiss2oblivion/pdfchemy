@@ -1068,4 +1068,7 @@
     <string name="vanguard_encrypted_title">Document protejat cu parolă</string>
     <string name="vanguard_encrypted_message">Acest document este criptat și protejat cu parolă. Scutul Vanguard Zero-Trust nu poate verifica scripturile sau amenințările de securitate cât timp documentul este blocat. Vă rugăm să îl deblocați mai întâi.</string>
     <string name="vanguard_action_unlock">Deblochează PDF</string>
+    <string name="vanguard_verifying_title">Verificare de Securitate Vanguard</string>
+    <string name="vanguard_verifying_desc">Se verifică documentul pentru scripturi și amenințări...</string>
+    <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
 </resources>

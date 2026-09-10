@@ -1058,4 +1058,7 @@
     <string name="vanguard_encrypted_title">受密码保护的文档</string>
     <string name="vanguard_encrypted_message">此文档已加密并受密码保护。在文档处于锁定状态时，Vanguard 零信任防护盾无法验证嵌入式脚本或安全威胁。请先解除密码锁定。</string>
     <string name="vanguard_action_unlock">解除 PDF 密码</string>
+    <string name="vanguard_verifying_title">Vanguard 安全验证</string>
+    <string name="vanguard_verifying_desc">正在检查文档中的脚本与安全威胁...</string>
+    <string name="vanguard_zero_trust_badge">100%% 离线 • 零信任</string>
 </resources>
