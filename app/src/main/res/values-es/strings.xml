@@ -1062,4 +1062,8 @@
     <string name="form_builder_success_desc">Los campos interactivos se han incrustado en el documento.</string>
     <string name="form_builder_no_fields_warn">Por favor, coloca al menos un campo interactivo antes de guardar.</string>
     <string name="form_builder_delete_field">Eliminar Campo</string>
+    <string name="settings_vanguard">Escudo Vanguard Zero-Trust</string>
+    <string name="settings_vanguard_desc">Bloquear PDFs con scripts incrustados, ganchos de inicio o acciones automáticas</string>
+    <string name="vanguard_blocked_title">Documento bloqueado por Vanguard</string>
+    <string name="vanguard_blocked_message">Este PDF contiene scripts incrustados o acciones de ejecución automática. De acuerdo con la seguridad zero-trust, PDFchemy no abrirá este documento.</string>
 </resources>

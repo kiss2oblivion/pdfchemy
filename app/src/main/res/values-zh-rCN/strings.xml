@@ -1051,4 +1051,8 @@
     <string name="form_builder_success_desc">交互式表单字段已成功嵌入文档中。</string>
     <string name="form_builder_no_fields_warn">保存前请至少放置一个表单字段。</string>
     <string name="form_builder_delete_field">删除字段</string>
+    <string name="settings_vanguard">Vanguard 零信任防护盾</string>
+    <string name="settings_vanguard_desc">拦截包含嵌入式脚本、启动挂钩或自动运行操作的 PDF</string>
+    <string name="vanguard_blocked_title">文档已被 Vanguard 拦截</string>
+    <string name="vanguard_blocked_message">此 PDF 包含嵌入式脚本或自动执行指令。根据零信任安全策略，PDFchemy 将拒绝打开此文档。</string>
 </resources>

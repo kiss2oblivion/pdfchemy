@@ -92,6 +92,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshHistory()
     }
 
+    private val _isVanguardEnabled = MutableStateFlow(prefs.getBoolean("vanguard_enabled", true))
+    val isVanguardEnabled: StateFlow<Boolean> = _isVanguardEnabled.asStateFlow()
+
+    fun setVanguardEnabled(enabled: Boolean) {
+        _isVanguardEnabled.value = enabled
+        prefs.edit().putBoolean("vanguard_enabled", enabled).apply()
+    }
+
     private val _warning = MutableStateFlow<String?>(null)
     val warning: StateFlow<String?> = _warning.asStateFlow()
 

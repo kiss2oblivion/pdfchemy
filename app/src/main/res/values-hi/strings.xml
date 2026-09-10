@@ -1051,4 +1051,8 @@
     <string name="form_builder_success_desc">दस्तावेज़ में इंटरैक्टिव फ़ील्ड जोड़ दिए गए हैं।</string>
     <string name="form_builder_no_fields_warn">कृपया सहेजने से पहले कम से कम एक फ़ील्ड जोड़ें।</string>
     <string name="form_builder_delete_field">फ़ील्ड हटाएं</string>
+    <string name="settings_vanguard">वैनगार्ड ज़ीरो-ट्रस्ट शील्ड</string>
+    <string name="settings_vanguard_desc">एम्बेडेड स्क्रिप्ट या स्वचालित निष्पादन वाली पीडीएफ को ब्लॉक करें</string>
+    <string name="vanguard_blocked_title">दस्तावेज़ वैनगार्ड द्वारा ब्लॉक किया गया</string>
+    <string name="vanguard_blocked_message">इस PDF में एम्बेडेड स्क्रिप्ट या स्वचालित निष्पादन क्रियाएं हैं। शून्य-विश्वास सुरक्षा के अनुसार, PDFchemy इस दस्तावेज़ को नहीं खोलेगा।</string>
 </resources>
