@@ -116,4 +116,47 @@ class PdfSanitizerAndBatesTest {
             assertTrue(pdfaDoc.documentCatalog.markInfo.isMarked)
         }
     }
+
+    @Test
+    fun testVanguardZeroTrustBlockOnExecutablePdf() = runBlocking {
+        // 1. Construct synthetic test PDF with executable OpenAction and JavaScript triggers
+        val infectedFile = File(context.cacheDir, "vanguard_infected_test.pdf")
+        val cleanFile = File(context.cacheDir, "vanguard_clean_test.pdf")
+        val sanitizedFile = File(context.cacheDir, "vanguard_sanitized_test.pdf")
+
+        val docInfected = PDDocument()
+        val page = PDPage(PDRectangle.A4)
+        docInfected.addPage(page)
+        // Add auto-executing OpenAction JavaScript hook
+        val jsDict = com.tom_roush.pdfbox.cos.COSDictionary().apply {
+            setName(COSName.S, "JavaScript")
+            setString(COSName.getPDFName("JS"), "app.alert('Vanguard Test');")
+        }
+        docInfected.documentCatalog.cosObject.setItem(COSName.getPDFName("OpenAction"), jsDict)
+        docInfected.save(infectedFile)
+        docInfected.close()
+
+        // 2. Construct clean standard PDF
+        val docClean = PDDocument()
+        docClean.addPage(PDPage(PDRectangle.A4))
+        docClean.save(cleanFile)
+        docClean.close()
+
+        val infectedUri = Uri.fromFile(infectedFile)
+        val cleanUri = Uri.fromFile(cleanFile)
+        val sanitizedUri = Uri.fromFile(sanitizedFile)
+
+        // 3. Verify Vanguard Zero-Trust detection
+        val infectedHasThreats = PdfSanitizerEngine.hasExecutableThreats(context, infectedUri)
+        assertTrue("Vanguard must detect executable triggers in infected PDF", infectedHasThreats)
+
+        val cleanHasThreats = PdfSanitizerEngine.hasExecutableThreats(context, cleanUri)
+        assertFalse("Clean document must not be flagged as a threat", cleanHasThreats)
+
+        // 4. Verify sanitization neutralizes the threat completely
+        val result = PdfSanitizerEngine.sanitizeDocument(context, infectedUri, sanitizedUri)
+        assertTrue(result.isSuccess)
+        val sanitizedHasThreats = PdfSanitizerEngine.hasExecutableThreats(context, sanitizedUri)
+        assertFalse("Sanitized document must have all executable triggers purged", sanitizedHasThreats)
+    }
 }

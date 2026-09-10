@@ -57,8 +57,8 @@ object PdfSanitizerEngine {
 
             // 2. OpenAction and launch triggers
             if (doc.documentCatalog.openAction != null) actionCount++
-            if (doc.documentCatalog.actions != null) actionCount++
-            if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
+            val catalogAa = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
+            if (catalogAa is COSDictionary && catalogAa.size() > 0) actionCount++
 
             // 3. Embedded files
             if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("EmbeddedFiles")) != null) attachmentCount++
@@ -97,6 +97,20 @@ object PdfSanitizerEngine {
             try { doc?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
         }
+    }
+
+    /**
+     * Vanguard Zero-Trust Pre-Flight Inspection:
+     * Fast check to determine if the PDF contains executable scripts, launch actions,
+     * auto-run hooks (/OpenAction, /AA), or embedded files.
+     * Used by Vanguard Shield to block infected or active documents from opening.
+     */
+    suspend fun hasExecutableThreats(
+        context: Context,
+        pdfUri: Uri
+    ): Boolean = withContext(Dispatchers.IO) {
+        val report = auditDocumentThreats(context, pdfUri)
+        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0
     }
 
     /**

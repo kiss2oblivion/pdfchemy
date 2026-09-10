@@ -119,12 +119,65 @@ fun PdfEditorScreen(
     var showStampPicker by remember { mutableStateOf(false) }
     var showColorPicker by remember { mutableStateOf(false) }
 
+    val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
+    var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+
+    if (showVanguardBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardBlockedDialog = false
+                if (initialPdfUri != null) onBack()
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardBlockedDialog = false
+                        if (initialPdfUri != null) onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
     // Load initial PDF bounds / page count
     LaunchedEffect(selectedPdfUri) {
         selectedPdfUri?.let { uri ->
-            totalPages = PdfEditor.getPageCount(context, uri)
-            currentPageIndex = 0
-            pageModifications.clear()
+            if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
+                showVanguardBlockedDialog = true
+                selectedPdfUri = null
+                totalPages = 0
+            } else {
+                totalPages = PdfEditor.getPageCount(context, uri)
+                currentPageIndex = 0
+                pageModifications.clear()
+            }
         }
     }
 
@@ -162,7 +215,13 @@ fun PdfEditorScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            selectedPdfUri = uri
+            scope.launch {
+                if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
+                    showVanguardBlockedDialog = true
+                } else {
+                    selectedPdfUri = uri
+                }
+            }
         }
     }
 

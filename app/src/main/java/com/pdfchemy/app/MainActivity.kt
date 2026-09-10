@@ -546,6 +546,9 @@ fun MainApp(
     val context = LocalContext.current
 
     val incomingPdfUri by (incomingPdfUriState?.collectAsState() ?: remember { mutableStateOf<Uri?>(null) })
+    val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
+    var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(incomingPdfUri) {
         incomingPdfUri?.let { uri ->
             val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase() ?: ""
@@ -554,10 +557,52 @@ fun MainApp(
             } else if (name.endsWith(".cbz") || name.endsWith(".cbr")) {
                 currentScreen = Screen.EbookConverter
             } else {
-                currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+                if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
+                    showVanguardBlockedDialog = true
+                } else {
+                    currentScreen = Screen.PdfEditor(initialPdfUri = uri)
+                }
             }
             incomingPdfUriState?.value = null
         }
+    }
+
+    if (showVanguardBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showVanguardBlockedDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showVanguardBlockedDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
     }
     
     LaunchedEffect(isScreenshotRun) {
@@ -3301,6 +3346,26 @@ fun SettingsScreen(
                             
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+                            // Vanguard Zero-Trust Shield
+                            val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text(stringResource(R.string.settings_vanguard), style = MaterialTheme.typography.bodyLarge)
+                                    Text(stringResource(R.string.settings_vanguard_desc), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = isVanguardEnabled,
+                                    onCheckedChange = { viewModel.setVanguardEnabled(it) },
+                                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                                )
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                             // Default PDF Viewer Setting
                             Row(
                                 modifier = Modifier
@@ -3727,7 +3792,48 @@ fun RecentFilesSection(
     onNavigate: ((Screen) -> Unit)? = null
 ) {
     val history by viewModel.historyList.collectAsState()
+    val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
+    var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    if (showVanguardBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showVanguardBlockedDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showVanguardBlockedDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
 
     if (history.isNotEmpty()) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -3752,7 +3858,13 @@ fun RecentFilesSection(
                                     if (ext == "epub" && onNavigate != null) {
                                         onNavigate(Screen.ReflowReader(uri))
                                     } else if (ext == "pdf" && onNavigate != null) {
-                                        onNavigate(Screen.PdfEditor(initialPdfUri = uri))
+                                        scope.launch {
+                                            if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
+                                                showVanguardBlockedDialog = true
+                                            } else {
+                                                onNavigate(Screen.PdfEditor(initialPdfUri = uri))
+                                            }
+                                        }
                                     } else {
                                         try {
                                             val mimeType = com.pdfchemy.app.utils.FileUtils.getMimeType(context, uri, item.name)

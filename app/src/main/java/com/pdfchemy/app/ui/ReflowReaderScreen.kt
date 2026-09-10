@@ -81,13 +81,68 @@ fun ReflowReaderScreen(
     var forceTabletopMode by remember { mutableStateOf(false) }
     val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
 
+    val isVanguardEnabled = remember {
+        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getBoolean("vanguard_enabled", true)
+    }
+    var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+
+    if (showVanguardBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardBlockedDialog = false
+                if (initialUri != null) onBack()
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_blocked_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardBlockedDialog = false
+                        if (initialUri != null) onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
-            isLoading = true
-            val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
-            reflowSections = docData.sections
-            bookmarks = docData.bookmarks
-            isLoading = false
+            val isPdf = initialUri.toString().lowercase().endsWith(".pdf") || 
+                (com.pdfchemy.app.utils.FileUtils.getFileName(context, initialUri)?.lowercase()?.endsWith(".pdf") == true)
+            if (isPdf && isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, initialUri)) {
+                showVanguardBlockedDialog = true
+            } else {
+                isLoading = true
+                val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
+                reflowSections = docData.sections
+                bookmarks = docData.bookmarks
+                isLoading = false
+            }
         }
     }
 
@@ -108,7 +163,7 @@ fun ReflowReaderScreen(
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
 
     val allParagraphs = remember(reflowSections) {
-        reflowSections.flatMap { it.paragraphs }.filter { it.isNotBlank() }
+        reflowSections.flatMap { it.paragraphs }
     }
 
     fun speakParagraph(index: Int) {
@@ -125,32 +180,35 @@ fun ReflowReaderScreen(
         }
     }
 
+    // Initialize TTS
     DisposableEffect(context) {
-        var localTts: TextToSpeech? = null
-        localTts = TextToSpeech(context) { status ->
+        val tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                localTts?.language = Locale.getDefault()
-                localTts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {
-                        isTtsPlaying = true
-                    }
-                    override fun onDone(utteranceId: String?) {
-                        if (currentSpeakingIndex + 1 < allParagraphs.size) {
-                            speakParagraph(currentSpeakingIndex + 1)
-                        } else {
-                            isTtsPlaying = false
-                        }
-                    }
-                    override fun onError(utteranceId: String?) {
-                        isTtsPlaying = false
-                    }
-                })
-                ttsEngine = localTts
+                ttsEngine?.language = Locale.getDefault()
             }
         }
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                isTtsPlaying = true
+            }
+            override fun onDone(utteranceId: String?) {
+                if (currentSpeakingIndex + 1 < allParagraphs.size) {
+                    currentSpeakingIndex++
+                    val nextText = allParagraphs[currentSpeakingIndex]
+                    tts.speak(nextText, TextToSpeech.QUEUE_FLUSH, null, "P_$currentSpeakingIndex")
+                } else {
+                    isTtsPlaying = false
+                }
+            }
+            override fun onError(utteranceId: String?) {
+                isTtsPlaying = false
+            }
+        })
+        ttsEngine = tts
+
         onDispose {
-            localTts?.stop()
-            localTts?.shutdown()
+            tts.stop()
+            tts.shutdown()
             ttsEngine = null
         }
     }
@@ -194,14 +252,20 @@ fun ReflowReaderScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            selectedPdfUri = uri
-            isLoading = true
+            val isPdf = uri.toString().lowercase().endsWith(".pdf") || 
+                (com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase()?.endsWith(".pdf") == true)
             scope.launch {
-                val docData = PdfOutlineReader.loadReflowDocument(context, uri)
-                reflowSections = docData.sections
-                bookmarks = docData.bookmarks
-                isLoading = false
+                if (isPdf && isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
+                    showVanguardBlockedDialog = true
+                } else {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    selectedPdfUri = uri
+                    isLoading = true
+                    val docData = PdfOutlineReader.loadReflowDocument(context, uri)
+                    reflowSections = docData.sections
+                    bookmarks = docData.bookmarks
+                    isLoading = false
+                }
             }
         }
     }
