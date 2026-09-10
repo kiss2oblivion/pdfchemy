@@ -78,7 +78,7 @@ fun CheckCategoryScreen(onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
                     title = stringResource(R.string.menu_unlock_pdf),
                     subtitle = stringResource(R.string.menu_unlock_pdf_desc),
                     icon = Icons.Default.LockOpen,
-                    onClick = { onNavigate(Screen.UnlockPdf) }
+                    onClick = { onNavigate(Screen.UnlockPdf()) }
                 )
             }
             item {

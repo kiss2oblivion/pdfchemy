@@ -1065,4 +1065,7 @@
     <string name="settings_vanguard_desc">PDFs mit eingebetteten Skripten, Startbefehlen oder automatischen Aktionen blockieren</string>
     <string name="vanguard_blocked_title">Dokument von Vanguard blockiert</string>
     <string name="vanguard_blocked_message">Dieses PDF enthält eingebettete Skripte oder automatische Ausführungsbefehle. Gemäß der Zero-Trust-Sicherheit wird PDFchemy dieses Dokument nicht öffnen.</string>
+    <string name="vanguard_encrypted_title">Passwortgeschütztes Dokument</string>
+    <string name="vanguard_encrypted_message">Dieses Dokument ist verschlüsselt und passwortgeschützt. Der Vanguard Zero-Trust-Schutz kann eingebettete Skripte oder Sicherheitsbedrohungen nicht überprüfen, solange das Dokument gesperrt ist. Bitte entsperren Sie es zuerst.</string>
+    <string name="vanguard_action_unlock">PDF entsperren</string>
 </resources>

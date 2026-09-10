@@ -9,6 +9,8 @@ import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.encryption.AccessPermission
+import com.tom_roush.pdfbox.pdmodel.encryption.StandardProtectionPolicy
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
@@ -158,5 +160,43 @@ class PdfSanitizerAndBatesTest {
         assertTrue(result.isSuccess)
         val sanitizedHasThreats = PdfSanitizerEngine.hasExecutableThreats(context, sanitizedUri)
         assertFalse("Sanitized document must have all executable triggers purged", sanitizedHasThreats)
+    }
+
+    @Test
+    fun testVanguardZeroTrustFailClosedOnEncryptedPdf() = runBlocking {
+        val encryptedFile = File(context.cacheDir, "vanguard_encrypted_test.pdf")
+        val doc = PDDocument()
+        doc.addPage(PDPage(PDRectangle.A4))
+
+        val accessPermission = AccessPermission()
+        val protectionPolicy = StandardProtectionPolicy("ownerSecret", "userSecret", accessPermission).apply {
+            encryptionKeyLength = 128
+            permissions = accessPermission
+        }
+        doc.protect(protectionPolicy)
+        doc.save(encryptedFile)
+        doc.close()
+
+        val encryptedUri = Uri.fromFile(encryptedFile)
+
+        // 1. Audit report must report isClean = false, isEncrypted = true, threatsFound >= 1
+        val auditReport = PdfSanitizerEngine.auditDocumentThreats(context, encryptedUri)
+        assertTrue("Encrypted document must have isEncrypted=true", auditReport.isEncrypted)
+        assertFalse("Encrypted document must not be flagged clean (fail-closed zero-trust)", auditReport.isClean)
+        assertTrue("Encrypted document must have threatsFound >= 1", auditReport.threatsFound >= 1)
+
+        // 2. Vanguard hasExecutableThreats must return true (fail-closed)
+        val hasThreats = PdfSanitizerEngine.hasExecutableThreats(context, encryptedUri)
+        assertTrue("Vanguard must fail-closed on password-protected PDF", hasThreats)
+
+        // 3. checkVanguardThreat must classify as EncryptedCannotVerify
+        val threatResult = PdfSanitizerEngine.checkVanguardThreat(context, encryptedUri)
+        assertTrue(
+            "Vanguard threat result must be EncryptedCannotVerify",
+            threatResult is VanguardThreatResult.EncryptedCannotVerify
+        )
+        if (threatResult is VanguardThreatResult.EncryptedCannotVerify) {
+            assertEquals(encryptedUri, threatResult.uri)
+        }
     }
 }

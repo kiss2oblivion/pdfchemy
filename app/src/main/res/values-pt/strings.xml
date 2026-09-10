@@ -1061,4 +1061,7 @@
     <string name="settings_vanguard_desc">Bloquear PDFs contendo scripts incorporados, comandos de inicialização ou ações automáticas</string>
     <string name="vanguard_blocked_title">Documento bloqueado pelo Vanguard</string>
     <string name="vanguard_blocked_message">Este PDF contém scripts incorporados ou ganchos de execução automática. De acordo com a segurança zero-trust, o PDFchemy não abrirá este documento.</string>
+    <string name="vanguard_encrypted_title">Documento protegido por palavra-passe</string>
+    <string name="vanguard_encrypted_message">Este documento está encriptado e protegido por palavra-passe. O escudo Vanguard Zero-Trust não pode verificar scripts incorporados ou ameaças de segurança enquanto o documento estiver bloqueado. Por favor, desbloqueie-o primeiro.</string>
+    <string name="vanguard_action_unlock">Desbloquear PDF</string>
 </resources>

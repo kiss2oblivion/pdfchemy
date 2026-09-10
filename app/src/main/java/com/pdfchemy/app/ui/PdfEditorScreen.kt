@@ -121,6 +121,7 @@ fun PdfEditorScreen(
 
     val isVanguardEnabled by viewModel.isVanguardEnabled.collectAsState()
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+    var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
 
     if (showVanguardBlockedDialog) {
         AlertDialog(
@@ -166,13 +167,68 @@ fun PdfEditorScreen(
         )
     }
 
+    if (showVanguardEncryptedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardEncryptedDialog = false
+                if (initialPdfUri != null) onBack()
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        if (initialPdfUri != null) onBack()
+                    }
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
     // Load initial PDF bounds / page count
     LaunchedEffect(selectedPdfUri) {
         selectedPdfUri?.let { uri ->
-            if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
-                showVanguardBlockedDialog = true
-                selectedPdfUri = null
-                totalPages = 0
+            if (isVanguardEnabled) {
+                val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                when (threat) {
+                    is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                        totalPages = PdfEditor.getPageCount(context, uri)
+                        currentPageIndex = 0
+                        pageModifications.clear()
+                    }
+                    is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                        showVanguardEncryptedDialog = true
+                        selectedPdfUri = null
+                        totalPages = 0
+                    }
+                    is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                    is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                        showVanguardBlockedDialog = true
+                        selectedPdfUri = null
+                        totalPages = 0
+                    }
+                }
             } else {
                 totalPages = PdfEditor.getPageCount(context, uri)
                 currentPageIndex = 0
@@ -216,8 +272,20 @@ fun PdfEditorScreen(
     ) { uri ->
         if (uri != null) {
             scope.launch {
-                if (isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
-                    showVanguardBlockedDialog = true
+                if (isVanguardEnabled) {
+                    val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                    when (threat) {
+                        is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                            selectedPdfUri = uri
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                            showVanguardEncryptedDialog = true
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                            showVanguardBlockedDialog = true
+                        }
+                    }
                 } else {
                     selectedPdfUri = uri
                 }

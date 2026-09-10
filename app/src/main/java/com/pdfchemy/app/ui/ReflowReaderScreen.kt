@@ -85,6 +85,7 @@ fun ReflowReaderScreen(
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getBoolean("vanguard_enabled", true)
     }
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
+    var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
 
     if (showVanguardBlockedDialog) {
         AlertDialog(
@@ -130,12 +131,67 @@ fun ReflowReaderScreen(
         )
     }
 
+    if (showVanguardEncryptedDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVanguardEncryptedDialog = false
+                if (initialUri != null) onBack()
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.vanguard_encrypted_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showVanguardEncryptedDialog = false
+                        if (initialUri != null) onBack()
+                    }
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+
     LaunchedEffect(initialUri) {
         if (initialUri != null) {
             val isPdf = initialUri.toString().lowercase().endsWith(".pdf") || 
                 (com.pdfchemy.app.utils.FileUtils.getFileName(context, initialUri)?.lowercase()?.endsWith(".pdf") == true)
-            if (isPdf && isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, initialUri)) {
-                showVanguardBlockedDialog = true
+            if (isPdf && isVanguardEnabled) {
+                val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, initialUri)
+                when (threat) {
+                    is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                        isLoading = true
+                        val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
+                        reflowSections = docData.sections
+                        bookmarks = docData.bookmarks
+                        isLoading = false
+                    }
+                    is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                        showVanguardEncryptedDialog = true
+                    }
+                    is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                    is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                        showVanguardBlockedDialog = true
+                    }
+                }
             } else {
                 isLoading = true
                 val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
@@ -255,8 +311,26 @@ fun ReflowReaderScreen(
             val isPdf = uri.toString().lowercase().endsWith(".pdf") || 
                 (com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)?.lowercase()?.endsWith(".pdf") == true)
             scope.launch {
-                if (isPdf && isVanguardEnabled && com.pdfchemy.app.logic.PdfSanitizerEngine.hasExecutableThreats(context, uri)) {
-                    showVanguardBlockedDialog = true
+                if (isPdf && isVanguardEnabled) {
+                    val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                    when (threat) {
+                        is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            selectedPdfUri = uri
+                            isLoading = true
+                            val docData = PdfOutlineReader.loadReflowDocument(context, uri)
+                            reflowSections = docData.sections
+                            bookmarks = docData.bookmarks
+                            isLoading = false
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
+                            showVanguardEncryptedDialog = true
+                        }
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ExecutableThreat,
+                        is com.pdfchemy.app.logic.VanguardThreatResult.ParseFailed -> {
+                            showVanguardBlockedDialog = true
+                        }
+                    }
                 } else {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     selectedPdfUri = uri

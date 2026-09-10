@@ -1053,4 +1053,7 @@
     <string name="settings_vanguard_desc">攔截包含嵌入式腳本、啟動掛鉤或自動執行操作的 PDF</string>
     <string name="vanguard_blocked_title">文件已被 Vanguard 攔截</string>
     <string name="vanguard_blocked_message">此 PDF 包含嵌入式腳本或自動執行指令。根據零信任安全策略，PDFchemy 將拒絕開啟此文件。</string>
+    <string name="vanguard_encrypted_title">受密碼保護的文件</string>
+    <string name="vanguard_encrypted_message">此文件已加密並受密碼保護。在文件處於鎖定狀態時，Vanguard 零信任防護盾無法驗證嵌入式腳本或安全威脅。請先解除密碼鎖定。</string>
+    <string name="vanguard_action_unlock">解除 PDF 密碼</string>
 </resources>
