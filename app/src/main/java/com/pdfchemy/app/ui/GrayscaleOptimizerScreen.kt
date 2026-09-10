@@ -93,24 +93,20 @@ fun GrayscaleOptimizerScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            previewPageIndex = 0
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                        val renderer = PdfRenderer(pfd)
-                        val count = renderer.pageCount
-                        renderer.close()
-                        withContext(Dispatchers.Main) {
-                            totalPages = count.coerceAtLeast(1)
-                        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        previewPageIndex = 0
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                    val renderer = PdfRenderer(pfd)
+                    val count = renderer.pageCount
+                    renderer.close()
+                    withContext(Dispatchers.Main) {
+                        totalPages = count.coerceAtLeast(1)
                     }
-                } catch (_: Exception) {}
-            }
+                }
+            } catch (_: Exception) {}
         }
     }
 

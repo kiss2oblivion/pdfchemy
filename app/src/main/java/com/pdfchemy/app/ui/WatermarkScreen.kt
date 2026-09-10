@@ -106,13 +106,9 @@ fun WatermarkScreen(
         }
     }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            loadPreview(uri)
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        loadPreview(uri)
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

@@ -108,12 +108,8 @@ fun TableExtractorScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            extractTables(uri)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        extractTables(uri)
     }
 
     val saveCsvLauncher = rememberLauncherForActivityResult(

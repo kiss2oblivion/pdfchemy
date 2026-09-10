@@ -63,12 +63,8 @@ fun ImageReplacerScreen(
     var showReplaceDialog by remember { mutableStateOf(false) }
 
     // Launcher for PDF selection
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
     }
 
     // Launcher for replacement image selection

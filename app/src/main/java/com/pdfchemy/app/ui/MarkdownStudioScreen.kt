@@ -99,27 +99,23 @@ fun MarkdownStudioScreen(
     }
 
     // Import from PDF
-    val importPdfLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            coroutineScope.launch {
-                isProcessing = true
-                val result = MarkdownEngine.pdfToMarkdown(context, uri)
-                isProcessing = false
-                if (result.isSuccess) {
-                    markdownText = result.getOrThrow()
-                    documentTitle = FileUtils.getFileName(context, uri)?.removeSuffix(".pdf") ?: "Extracted Doc"
-                    viewModel.showSuccessToast(
-                        context.getString(R.string.title_pdf_to_md_success),
-                        context.getString(R.string.desc_pdf_to_md_success)
-                    )
-                } else {
-                    viewModel.showErrorToast(
-                        context.getString(R.string.error_pdf_to_md_failed),
-                        result.exceptionOrNull()?.localizedMessage ?: ""
-                    )
-                }
+    val importPdfLauncher = rememberVanguardPdfPicker { uri ->
+        coroutineScope.launch {
+            isProcessing = true
+            val result = MarkdownEngine.pdfToMarkdown(context, uri)
+            isProcessing = false
+            if (result.isSuccess) {
+                markdownText = result.getOrThrow()
+                documentTitle = FileUtils.getFileName(context, uri)?.removeSuffix(".pdf") ?: "Extracted Doc"
+                viewModel.showSuccessToast(
+                    context.getString(R.string.title_pdf_to_md_success),
+                    context.getString(R.string.desc_pdf_to_md_success)
+                )
+            } else {
+                viewModel.showErrorToast(
+                    context.getString(R.string.error_pdf_to_md_failed),
+                    result.exceptionOrNull()?.localizedMessage ?: ""
+                )
             }
         }
     }

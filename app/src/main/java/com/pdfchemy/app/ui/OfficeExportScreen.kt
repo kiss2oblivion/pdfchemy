@@ -46,13 +46,9 @@ fun OfficeExportScreen(
     var fileName by remember { mutableStateOf("") }
     var isProcessing by remember { mutableStateOf(false) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            selectedUri = uri
-            fileName = FileUtils.getFileName(context, uri) ?: "document.pdf"
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedUri = uri
+        fileName = FileUtils.getFileName(context, uri) ?: "document.pdf"
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(

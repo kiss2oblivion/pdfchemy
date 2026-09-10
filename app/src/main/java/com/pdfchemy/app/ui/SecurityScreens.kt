@@ -68,13 +68,9 @@ fun ProtectPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var confirmPassword by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            selectedPdfUri = uri
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        selectedPdfUri = uri
     }
 
     val createDocLauncher = rememberLauncherForActivityResult(
@@ -489,13 +485,9 @@ fun PdfToImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var qualitySlider by remember { mutableStateOf(90f) }
     var targetResolution by remember { mutableStateOf(1440) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            selectedPdfUri = uri
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        selectedPdfUri = uri
     }
 
     val dirPickerLauncher = rememberLauncherForActivityResult(

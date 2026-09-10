@@ -170,15 +170,11 @@ fun SignPdfScreen(
         }
     }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            currentPageIndex = 0
-            placedSignatures = emptyList()
-            renderPage(uri, 0)
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        currentPageIndex = 0
+        placedSignatures = emptyList()
+        renderPage(uri, 0)
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

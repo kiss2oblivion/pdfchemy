@@ -298,16 +298,12 @@ fun MergePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var showHistorySheet by remember { mutableStateOf(false) }
     val historyItems by viewModel.historyList.collectAsState()
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
-    ) { uris ->
-        if (uris.isNotEmpty()) {
-            val newItems = uris.map { uri ->
-                val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
-                PdfItem(uri, name)
-            }
-            selectedFiles = (selectedFiles + newItems).distinctBy { it.uri }
+    val filePickerLauncher = rememberVanguardMultiplePdfPicker { uris ->
+        val newItems = uris.map { uri ->
+            val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
+            PdfItem(uri, name)
         }
+        selectedFiles = (selectedFiles + newItems).distinctBy { it.uri }
     }
 
     val createDocLauncher = rememberLauncherForActivityResult(
@@ -554,13 +550,9 @@ fun SplitPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var extractMode by remember { mutableStateOf(0) } // 0 = All, 1 = Custom Range
     var customRange by remember { mutableStateOf("") }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
-            selectedFile = PdfItem(uri, name)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
+        selectedFile = PdfItem(uri, name)
     }
 
     val directoryPickerLauncher = rememberLauncherForActivityResult(
@@ -694,13 +686,9 @@ fun ExtractImagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            selectedPdfUri = it
-            selectedPdfName = com.pdfchemy.app.utils.FileUtils.getFileName(context, it)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        selectedPdfName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)
     }
 
     Scaffold(
@@ -811,13 +799,9 @@ fun DeletePagesScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var selectedFile by remember { mutableStateOf<PdfItem?>(null) }
     var pagesToDelete by remember { mutableStateOf("") }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
-            selectedFile = PdfItem(uri, name)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        val name = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
+        selectedFile = PdfItem(uri, name)
     }
 
     val createDocumentLauncher = rememberLauncherForActivityResult(
@@ -904,11 +888,9 @@ fun RotatePdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var pageRange by remember { mutableStateOf("") }
     var rotationDegrees by remember { mutableIntStateOf(90) }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            val docFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, it)
-            selectedFile = docFile
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        val docFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, uri)
+        selectedFile = docFile
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->

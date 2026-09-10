@@ -57,14 +57,10 @@ fun EbookConverterScreen(
     var progressCurrent by remember { mutableIntStateOf(0) }
     var progressTotal by remember { mutableIntStateOf(0) }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedSourceUri = uri
-            val baseName = FileUtils.getFileName(context, uri)?.substringBeforeLast(".") ?: "My Book"
-            bookTitle = baseName
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedSourceUri = uri
+        val baseName = FileUtils.getFileName(context, uri)?.substringBeforeLast(".") ?: "My Book"
+        bookTitle = baseName
     }
 
     // Save Output Launcher

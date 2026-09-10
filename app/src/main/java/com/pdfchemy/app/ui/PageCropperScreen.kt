@@ -131,15 +131,11 @@ fun PageCropperScreen(
         }
     }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            currentPageIndex = 0
-            cropRect = NormalizedCropRect(0.05f, 0.05f, 0.95f, 0.95f)
-            loadPagePreview(uri, 0)
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        currentPageIndex = 0
+        cropRect = NormalizedCropRect(0.05f, 0.05f, 0.95f, 0.95f)
+        loadPagePreview(uri, 0)
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

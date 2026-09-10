@@ -61,13 +61,9 @@ fun FindAndReplaceScreen(
     var searchSummary by remember { mutableStateOf<FindReplaceSummary?>(null) }
     var isSearching by remember { mutableStateOf(false) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            searchSummary = null
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        searchSummary = null
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

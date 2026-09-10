@@ -199,4 +199,28 @@ class PdfSanitizerAndBatesTest {
             assertEquals(encryptedUri, threatResult.uri)
         }
     }
+
+    @Test
+    fun testVanguardCleanPdfWithMetadataPasses() = runBlocking {
+        val metaFile = File(context.cacheDir, "vanguard_metadata_test.pdf")
+        val doc = PDDocument()
+        doc.addPage(PDPage(PDRectangle.A4))
+        doc.documentInformation = com.tom_roush.pdfbox.pdmodel.PDDocumentInformation().apply {
+            author = "Jane Doe"
+            title = "Annual Financial Report"
+            creator = "Microsoft Word"
+        }
+        doc.save(metaFile)
+        doc.close()
+
+        val metaUri = Uri.fromFile(metaFile)
+
+        // Metadata alone is not an executable threat or parse failure
+        val hasThreats = PdfSanitizerEngine.hasExecutableThreats(context, metaUri)
+        assertFalse("Clean PDF with document metadata must not be flagged as an executable threat", hasThreats)
+
+        val threatResult = PdfSanitizerEngine.checkVanguardThreat(context, metaUri)
+        assertTrue("Vanguard threat result for standard document with metadata must be Clean", threatResult is VanguardThreatResult.Clean)
+    }
 }
+

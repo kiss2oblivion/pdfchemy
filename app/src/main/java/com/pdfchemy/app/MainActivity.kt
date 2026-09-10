@@ -80,6 +80,8 @@ import com.pdfchemy.app.ui.ExtractTextScreen
 import com.pdfchemy.app.ui.ProtectPdfScreen
 import com.pdfchemy.app.ui.UnlockPdfScreen
 import com.pdfchemy.app.ui.VanguardScanningOverlay
+import com.pdfchemy.app.ui.rememberVanguardPdfPicker
+import com.pdfchemy.app.ui.rememberVanguardMultiplePdfPicker
 import com.pdfchemy.app.ui.PdfToImagesScreen
 import com.pdfchemy.app.ui.FillFormScreen
 import com.pdfchemy.app.ui.OcrPdfScreen
@@ -2194,22 +2196,14 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
     var sourceUri by remember { mutableStateOf<Uri?>(null) }
     var sourceName by remember { mutableStateOf<String?>(null) }
 
-    val pickPdfLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            sourceUri = uri
-            sourceName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: context.getString(R.string.label_selected_pdf)
-            viewModel.onFileSelected(context, uri)
-        }
+    val pickPdfLauncher = rememberVanguardPdfPicker { uri ->
+        sourceUri = uri
+        sourceName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: context.getString(R.string.label_selected_pdf)
+        viewModel.onFileSelected(context, uri)
     }
 
-    val pickMultiplePdfsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
-    ) { uris ->
-        if (uris.isNotEmpty()) {
-            viewModel.onFilesSelected(context, uris)
-        }
+    val pickMultiplePdfsLauncher = rememberVanguardMultiplePdfPicker { uris ->
+        viewModel.onFilesSelected(context, uris)
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

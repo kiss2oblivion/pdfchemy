@@ -93,13 +93,9 @@ fun MetadataSanitizerScreen(
         }
     }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            loadMetadata(uri)
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        loadMetadata(uri)
     }
 
     val savePdfLauncher = rememberLauncherForActivityResult(

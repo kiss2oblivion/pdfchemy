@@ -147,14 +147,10 @@ fun QuickFillSignScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            currentPageIndex = 0
-            pageModifications.clear()
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        currentPageIndex = 0
+        pageModifications.clear()
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(

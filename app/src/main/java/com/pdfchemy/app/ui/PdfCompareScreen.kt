@@ -81,20 +81,16 @@ fun PdfCompareScreen(
         }
     }
 
-    val doc1PickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            doc1Uri = uri
-            val currentDoc2 = doc2Uri
-            if (currentDoc2 != null) runComparison(uri, currentDoc2)
-        }
+    val doc1PickerLauncher = rememberVanguardPdfPicker { uri ->
+        doc1Uri = uri
+        val currentDoc2 = doc2Uri
+        if (currentDoc2 != null) runComparison(uri, currentDoc2)
     }
 
-    val doc2PickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            doc2Uri = uri
-            val currentDoc1 = doc1Uri
-            if (currentDoc1 != null) runComparison(currentDoc1, uri)
-        }
+    val doc2PickerLauncher = rememberVanguardPdfPicker { uri ->
+        doc2Uri = uri
+        val currentDoc1 = doc1Uri
+        if (currentDoc1 != null) runComparison(currentDoc1, uri)
     }
 
     Scaffold(
