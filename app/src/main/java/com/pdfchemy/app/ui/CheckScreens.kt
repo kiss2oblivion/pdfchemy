@@ -215,13 +215,9 @@ fun InspectMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            sourceUri = uri
-            viewModel.loadMetadata(context, uri)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        sourceUri = uri
+        viewModel.loadMetadata(context, uri)
     }
 
     val createDocLauncher = rememberLauncherForActivityResult(
@@ -354,13 +350,9 @@ fun StripMetadataScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var sourceUri by remember { mutableStateOf<Uri?>(null) }
     var fileName by remember { mutableStateOf("") }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            sourceUri = uri
-            fileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        sourceUri = uri
+        fileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri) ?: "Document.pdf"
     }
 
     val createDocLauncher = rememberLauncherForActivityResult(
@@ -485,10 +477,8 @@ fun ExtractTextScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     var selectedFile by remember { mutableStateOf<androidx.documentfile.provider.DocumentFile?>(null) }
     
-    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            selectedFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, it)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedFile = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, uri)
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->

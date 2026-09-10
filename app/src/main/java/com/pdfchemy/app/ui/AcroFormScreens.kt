@@ -51,22 +51,18 @@ fun FillFormScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var isLoadingFields by remember { mutableStateOf(false) }
     var flattenForm by remember { mutableStateOf(false) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            selectedPdfUri = uri
-            isLoadingFields = true
-            scope.launch {
-                val fields = AcroFormEngine.extractFields(context, uri)
-                formFields = fields
-                fieldValues.clear()
-                fields.forEach { field ->
-                    fieldValues[field.fullyQualifiedName] = field.value
-                }
-                isLoadingFields = false
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        selectedPdfUri = uri
+        isLoadingFields = true
+        scope.launch {
+            val fields = AcroFormEngine.extractFields(context, uri)
+            formFields = fields
+            fieldValues.clear()
+            fields.forEach { field ->
+                fieldValues[field.fullyQualifiedName] = field.value
             }
+            isLoadingFields = false
         }
     }
 

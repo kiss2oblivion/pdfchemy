@@ -146,7 +146,7 @@ object PdfSanitizerEngine {
         pdfUri: Uri
     ): Boolean = withContext(Dispatchers.IO) {
         val report = auditDocumentThreats(context, pdfUri)
-        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.isEncrypted || !report.isClean
+        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.isEncrypted || report.parseFailed
     }
 
     /**
@@ -163,7 +163,7 @@ object PdfSanitizerEngine {
         if (report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0) {
             return@withContext VanguardThreatResult.ExecutableThreat(report)
         }
-        if (!report.isClean || report.parseFailed) {
+        if (report.parseFailed) {
             return@withContext VanguardThreatResult.ParseFailed(pdfUri)
         }
         VanguardThreatResult.Clean

@@ -79,13 +79,9 @@ fun RedactionScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            foundBoxes = emptyList()
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        foundBoxes = emptyList()
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(

@@ -54,13 +54,9 @@ fun OcrPdfScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     var currentProgressPage by remember { mutableStateOf(0) }
     var totalProgressPages by remember { mutableStateOf(0) }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            selectedPdfUri = uri
-        }
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        selectedPdfUri = uri
     }
 
     val saveDocLauncher = rememberLauncherForActivityResult(

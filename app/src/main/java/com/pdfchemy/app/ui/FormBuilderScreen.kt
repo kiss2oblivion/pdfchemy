@@ -142,14 +142,10 @@ fun FormBuilderScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            currentPageIndex = 0
-            placedFields.clear()
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        currentPageIndex = 0
+        placedFields.clear()
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(

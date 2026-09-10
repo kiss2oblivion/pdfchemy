@@ -80,12 +80,9 @@ fun PageOrganizerScreen(
         }
     }
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedPdfUri = uri
-            coroutineScope.launch(Dispatchers.IO) {
+    val pdfPickerLauncher = rememberVanguardPdfPicker { uri ->
+        selectedPdfUri = uri
+        coroutineScope.launch(Dispatchers.IO) {
                 var pfd: ParcelFileDescriptor? = null
                 var renderer: PdfRenderer? = null
                 try {
@@ -135,7 +132,6 @@ fun PageOrganizerScreen(
                 }
             }
         }
-    }
 
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")

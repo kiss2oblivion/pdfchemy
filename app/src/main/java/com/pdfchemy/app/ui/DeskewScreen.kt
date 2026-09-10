@@ -118,12 +118,8 @@ fun DeskewScreen(
         }
     }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            analyzeDocument(uri)
-        }
+    val filePickerLauncher = rememberVanguardPdfPicker { uri ->
+        analyzeDocument(uri)
     }
 
     val saveFileLauncher = rememberLauncherForActivityResult(
