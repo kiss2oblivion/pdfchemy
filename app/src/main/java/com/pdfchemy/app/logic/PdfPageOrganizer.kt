@@ -27,7 +27,7 @@ object PdfPageOrganizer {
         var newDoc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                sourceDoc = PDDocument.load(inStream)
+                sourceDoc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 if (sourceDoc == null) return@withContext false
 
                 newDoc = PDDocument()

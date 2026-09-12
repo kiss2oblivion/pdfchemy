@@ -49,7 +49,7 @@ object PdfMetadataEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val info = document.documentInformation
             val catalog = document.documentCatalog
 
@@ -106,7 +106,7 @@ object PdfMetadataEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             if (wipeAllMetadata) {
                 // Wipe all document information fields

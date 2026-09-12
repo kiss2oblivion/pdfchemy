@@ -60,7 +60,7 @@ object PdfOutlineReader {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
-                doc = PDDocument.load(stream)
+                doc = PDDocument.load(stream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 if (doc != null) {
                     totalPages = doc!!.numberOfPages
                     // 1. Extract outline

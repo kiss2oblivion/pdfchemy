@@ -83,7 +83,7 @@ object PdfRedactionEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val totalPages = document.numberOfPages
             val foundBoxes = mutableListOf<RedactionBox>()
 
@@ -176,7 +176,7 @@ object PdfRedactionEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val totalPages = document.numberOfPages
             val font = PDType1Font.HELVETICA_BOLD
 
@@ -249,7 +249,7 @@ object PdfRedactionEngine {
                     rasterFile = File(context.cacheDir, "rasterized_${System.currentTimeMillis()}.pdf")
                     pfd = try { ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY) } catch (_: Exception) { null }
                     renderer = if (pfd != null) try { PdfRenderer(pfd) } catch (_: Exception) { null } else null
-                    val baseDoc = PDDocument.load(tempFile)
+                    val baseDoc = PDDocument.load(tempFile, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     
                     if (renderer != null) {
                         newDoc = PDDocument()
@@ -303,19 +303,10 @@ object PdfRedactionEngine {
                         tempFile.delete()
                         rasterFile
                     } else {
-                        // Headless fallback (e.g. JVM unit tests): scrub underlying contents on redacted pages
-                        for (i in 0 until baseDoc.numberOfPages) {
-                            if (boxesByPage.containsKey(i)) {
-                                val p = baseDoc.getPage(i)
-                                p.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
-                                p.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
-                            }
-                        }
-                        baseDoc.save(rasterFile)
                         baseDoc.close()
                         try { pfd?.close() } catch (_: Exception) {}
                         tempFile.delete()
-                        rasterFile
+                        throw SecurityException("Cannot forensically rasterize the PDF because PdfRenderer is unavailable. Aborting redaction to ensure maximum security without data loss.")
                     }
                 } else {
                     tempFile

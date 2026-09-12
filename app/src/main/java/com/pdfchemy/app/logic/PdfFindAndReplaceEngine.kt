@@ -114,7 +114,7 @@ object PdfFindAndReplaceEngine {
         try {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: return@withContext FindReplaceSummary(0, 0, emptyList())
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             val stripper = PositionalSearchStripper(query, matchCase)
             val nullWriter = OutputStreamWriter(ByteArrayOutputStream())
@@ -163,7 +163,7 @@ object PdfFindAndReplaceEngine {
 
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalArgumentException("Cannot open source PDF")
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             val stripper = PositionalSearchStripper(findText, matchCase)
             val nullWriter = OutputStreamWriter(ByteArrayOutputStream())
@@ -283,47 +283,7 @@ object PdfFindAndReplaceEngine {
                 }
 
                 if (!rasterized) {
-                    // Fallback when PdfRenderer is unavailable (e.g. headless JVM unit tests):
-                    // Under our Inviolable Cardinal Ethical Mantra, never leave original sensitive text in the byte stream.
-                    page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
-                    page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
-                    val pageHeight = cropBox.height
-
-                    PDPageContentStream(
-                        document,
-                        page,
-                        PDPageContentStream.AppendMode.OVERWRITE,
-                        false,
-                        false
-                    ).use { cs ->
-                        for (match in pageMatches) {
-                            val pdfX = match.bounds.left
-                            val pdfWidth = match.bounds.width()
-                            val pdfHeight = match.bounds.height()
-                            val pdfY = pageHeight - match.bounds.bottom
-
-                            // 1. Draw opaque background rectangle
-                            cs.setNonStrokingColor(maskColorRgb.first, maskColorRgb.second, maskColorRgb.third)
-                            cs.addRect(pdfX - 1f, pdfY - 1f, pdfWidth + 2f, pdfHeight + 2f)
-                            cs.fill()
-
-                            // 2. Draw replacement text if not empty
-                            if (replaceText.isNotEmpty()) {
-                                val winAnsi = sanitizeForWinAnsi(replaceText)
-                                if (winAnsi.isNotBlank()) {
-                                    try {
-                                        cs.beginText()
-                                        cs.setNonStrokingColor(textColorRgb.first, textColorRgb.second, textColorRgb.third)
-                                        cs.setFont(PDType1Font.HELVETICA, match.fontSize)
-                                        cs.newLineAtOffset(pdfX, pdfY + 1f)
-                                        cs.showText(winAnsi)
-                                        cs.endText()
-                                    } catch (_: Exception) {}
-                                }
-                            }
-                            totalReplaced++
-                        }
-                    }
+                    throw SecurityException("Cannot forensically rasterize the PDF page because PdfRenderer is unavailable. Aborting find and replace to ensure maximum security without data loss.")
                 }
             }
 

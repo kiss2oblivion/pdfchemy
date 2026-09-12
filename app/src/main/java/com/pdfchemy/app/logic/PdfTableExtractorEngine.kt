@@ -29,7 +29,7 @@ object PdfTableExtractorEngine {
         var document: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                document = PDDocument.load(inputStream)
+                document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val doc = document ?: return@withContext ""
                 extractFromDocument(doc, pageIndex)
             } ?: ""

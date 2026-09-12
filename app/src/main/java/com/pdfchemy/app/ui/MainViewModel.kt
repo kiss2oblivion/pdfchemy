@@ -25,6 +25,8 @@ import java.io.InputStreamReader
 import com.pdfchemy.app.utils.AppLogger
 import android.graphics.BitmapFactory
 import android.graphics.Bitmap
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
@@ -408,7 +410,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Processing
             try {
                 withContext(Dispatchers.IO) {
-                    val document = com.tom_roush.pdfbox.pdmodel.PDDocument()
+                    val document = com.tom_roush.pdfbox.pdmodel.PDDocument(com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     try {
                         for (uri in imageUris) {
                             // Decode bounds first to compute sample size and prevent OOM
@@ -514,23 +516,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             _selectedFiles.value = _selectedFiles.value + newList
 
-            // Analyze them sequentially
-            newList.forEach { selectedFile ->
-                val analysisResult = PdfCompressor.analyzePdf(context, selectedFile.uri)
-                analysisResult.onSuccess { analysis ->
-                    _selectedFiles.value = _selectedFiles.value.map { item ->
-                        if (item.uri == selectedFile.uri) item.copy(analysis = analysis, isAnalyzing = false) else item
+            // Analyze them concurrently
+            withContext(Dispatchers.IO) {
+                newList.map { selectedFile ->
+                    async {
+                        val analysisResult = PdfCompressor.analyzePdf(context, selectedFile.uri)
+                        withContext(Dispatchers.Main) {
+                            analysisResult.onSuccess { analysis ->
+                                _selectedFiles.update { currentFiles ->
+                                    currentFiles.map { item ->
+                                        if (item.uri == selectedFile.uri) item.copy(analysis = analysis, isAnalyzing = false) else item
+                                    }
+                                }
+                                if (_pdfAnalysis.value == null && _selectedFiles.value.firstOrNull()?.uri == selectedFile.uri) {
+                                    _pdfAnalysis.value = analysis
+                                    _compressionQuality.value = analysis.recommendedQuality
+                                    applyScenarioDefaults(analysis.scenario)
+                                }
+                            }.onFailure {
+                                _selectedFiles.update { currentFiles ->
+                                    currentFiles.map { item ->
+                                        if (item.uri == selectedFile.uri) item.copy(isAnalyzing = false) else item
+                                    }
+                                }
+                            }
+                        }
                     }
-                    if (_pdfAnalysis.value == null && _selectedFiles.value.firstOrNull()?.uri == selectedFile.uri) {
-                        _pdfAnalysis.value = analysis
-                        _compressionQuality.value = analysis.recommendedQuality
-                        applyScenarioDefaults(analysis.scenario)
-                    }
-                }.onFailure {
-                    _selectedFiles.value = _selectedFiles.value.map { item ->
-                        if (item.uri == selectedFile.uri) item.copy(isAnalyzing = false) else item
-                    }
-                }
+                }.awaitAll()
             }
         }
     }

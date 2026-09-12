@@ -18,7 +18,7 @@ data class ReleaseInfo(
 )
 
 object DesktopUpdateManager {
-    const val CURRENT_VERSION = "1.0.2"
+    const val CURRENT_VERSION = "1.0.3"
     const val GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/kiss2oblivion/pdfchemy/releases/latest"
     const val GITHUB_RELEASES_WEB = "https://github.com/kiss2oblivion/pdfchemy/releases"
 

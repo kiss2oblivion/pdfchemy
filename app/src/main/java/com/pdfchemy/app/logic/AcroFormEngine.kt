@@ -58,7 +58,7 @@ object AcroFormEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
-                doc = PDDocument.load(stream)
+                doc = PDDocument.load(stream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val acroForm = doc?.documentCatalog?.acroForm
                 val hasFields = acroForm != null && acroForm.fields.isNotEmpty()
                 hasFields
@@ -75,7 +75,7 @@ object AcroFormEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
-                doc = PDDocument.load(stream)
+                doc = PDDocument.load(stream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val acroForm = doc?.documentCatalog?.acroForm ?: return@withContext emptyList()
                 
                 for (field in acroForm.fieldTree) {
@@ -178,7 +178,7 @@ object AcroFormEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                doc = PDDocument.load(inStream)
+                doc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val acroForm = doc?.documentCatalog?.acroForm ?: return@withContext false
                 acroForm.setNeedAppearances(true)
 
@@ -245,7 +245,7 @@ object AcroFormEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                doc = PDDocument.load(inStream)
+                doc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val document = doc ?: return@withContext false
                 val catalog = document.documentCatalog
                 var acroForm = catalog.acroForm

@@ -64,7 +64,7 @@ object PdfRepairEngine {
 
             try {
                 PDFBoxResourceLoader.init(context)
-                val doc = PDDocument.load(bytes)
+                val doc = PDDocument.load(java.io.ByteArrayInputStream(bytes), com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 pageCount = doc.numberOfPages
                 isEncrypted = doc.isEncrypted
                 doc.close()

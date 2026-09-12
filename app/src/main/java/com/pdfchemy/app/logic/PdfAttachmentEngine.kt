@@ -41,7 +41,7 @@ object PdfAttachmentEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val names = document.documentCatalog.names
             val embeddedFiles = names?.embeddedFiles
             val result = mutableListOf<PdfAttachment>()
@@ -92,7 +92,7 @@ object PdfAttachmentEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val names = document.documentCatalog.names
             val embeddedFiles = names?.embeddedFiles
                 ?: return@withContext Result.failure(IllegalStateException("No embedded files found"))
@@ -150,7 +150,7 @@ object PdfAttachmentEngine {
             attachStream = context.contentResolver.openInputStream(fileToEmbedUri)
                 ?: throw IllegalStateException("Cannot open file to attach")
 
-            document = PDDocument.load(srcPdfStream)
+            document = PDDocument.load(srcPdfStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val fileName = customFileName ?: FileUtils.getFileName(context, fileToEmbedUri) ?: "attachment.dat"
             val fileBytes = attachStream.readBytes()
 
@@ -226,7 +226,7 @@ object PdfAttachmentEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val names = document.documentCatalog.names
             val embeddedFiles = names?.embeddedFiles
 

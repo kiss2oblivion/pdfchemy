@@ -41,7 +41,7 @@ object PdfImageReplacerEngine {
         try {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: return@withContext emptyList()
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             for (pageIndex in 0 until document.numberOfPages) {
                 val page = document.getPage(pageIndex)
@@ -124,7 +124,7 @@ object PdfImageReplacerEngine {
         return@withContext try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalArgumentException("Cannot open source PDF")
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             if (pageIndex !in 0 until document.numberOfPages) {
                 throw IndexOutOfBoundsException("Invalid page index: $pageIndex")
