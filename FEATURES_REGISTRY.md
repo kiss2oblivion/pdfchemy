@@ -101,7 +101,7 @@
 | **Compress** | 3 Presets + Custom Quality/DPI, Grayscale toggle, Metadata stripping | `DesktopPdfEngine.compressPdf` | ✅ Live |
 | **Page Studio** | Rotate (left/right), Reorder, Duplicate, Delete, Extract, Impose N-Up (2-Up, 4-Up), Booklet Creator, Margin Cropper, Auto-Deskew | `DesktopPdfEngine.kt` | ✅ Live |
 | **Convert** | • Images to PDF<br>• PDF to High-Res PNG Images<br>• Extract Plain Text (.txt)<br>• OCR Searchable PDF (Tesseract)<br>• PDF to ISO 19005-1b PDF/A<br>• Extract Tables to RFC 4180 CSV<br>• **Office Export:** PDF to Word (.docx), Excel (.xlsx), PowerPoint (.pptx) | `DesktopPdfEngine.kt`, `DesktopOfficeExportEngine.kt` | ✅ Live |
-| **Reader** | Single page, dual-page spread, zoom in/out, fit width, page rotation, dark/light theme | `DesktopPdfEngine.renderPage` | ✅ Live |
+| **Reader** | Multi-page visual rendering (144 DPI, memory-bounded LRU cache), continuous vertical scroll, single page, two-up spread, reflow clean text, thumbnail filmstrip sidebar, zoom in/out, fit width, page rotation (90°), dark/light/sepia themes, night color inversion, and linear-time in-document text search with direct page jump | `DesktopPdfEngine.renderPage`, `DesktopPdfEngine.getPageDimensions`, `DesktopPdfEngine.extractAllPagesText`, `DesktopApp.kt` | ✅ Live |
 | **Security** | • Encrypt & Lock (User/Owner Password)<br>• Decrypt & Unlock<br>• Deep Threat Sanitizer (JS, Actions, Beacons)<br>• PDF Recovery & Repair (Broken XRef/Trailers)<br>• Permanent Redaction (Pattern & manual scrub)<br>• Embedded File Attachments (Inspect, Extract, Embed) | `DesktopPdfEngine.kt` | ✅ Live |
 | **Compare Studio** | Side-by-side synchronized comparison, line-by-line textual diffs, revision change statistics | `DesktopApp.kt` (`CompareView`), `DesktopPdfEngine.compareDocuments` | ✅ Live |
 | **Merge** | Multi-document combiner with reorderable list | `DesktopPdfEngine.mergePdfs` | ✅ Live |
@@ -113,7 +113,7 @@
 | **Split Studio** | Split by Page Ranges, Split by Blank Pages, Split by Bookmarks | `DesktopPdfEngine.splitByBlankPages`, `splitByBookmarks` | ✅ Live |
 | **Multi-Language (i18n)** | 20 languages / 21 locales with runtime top-bar switcher and CLI `--lang` flags | `DesktopLocalization.kt`, `DesktopStrings.kt` | ✅ Live |
 | **In-App Updater & Auto-Installer** | Checks GitHub Releases, downloads platform installers (.msi/.exe on Windows, .deb/.rpm/.jar on Linux) with real-time progress, verifies cryptographic SHA-256 checksum against official `SHA256SUMS.txt`, securely launches installer without shell injection, and exits running process | `DesktopUpdateManager.kt`, `DesktopApp.kt` | ✅ Live |
-| **The Lifetime Manifesto** | 4 Guarantees dialog & developer tip jar | `DesktopApp.kt` | ✅ Live |
+| **The Lifetime Manifesto** | 4 Guarantees dialog | `DesktopApp.kt` | ✅ Live |
 
 ---
 
