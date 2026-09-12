@@ -156,6 +156,7 @@ fun DesktopApp(
     onToggleFullScreen: () -> Unit = {}
 ) {
     val currentLang by DesktopLocalization.currentLanguageState
+    val defaultLang by DesktopLocalization.defaultLanguageState
     val strings = DesktopLocalization.strings
     var showSetupDialog by remember { mutableStateOf(initialShowSetup) }
     var showLanguageMenu by remember { mutableStateOf(false) }
@@ -355,10 +356,35 @@ fun DesktopApp(
                         DropdownMenu(
                             expanded = showLanguageMenu,
                             onDismissRequest = { showLanguageMenu = false },
-                            modifier = Modifier.heightIn(max = 420.dp)
+                            modifier = Modifier.heightIn(max = 440.dp).widthIn(min = 280.dp)
                         ) {
+                            // Header showing active default language
+                            val activeDefault = defaultLang ?: DesktopLanguage.detectSystemLanguage()
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text("📌", fontSize = 13.sp)
+                                    Text(
+                                        text = String.format(strings.defaultLanguageHeader, "${activeDefault.nativeName} (${activeDefault.englishName})"),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                             DesktopLanguage.entries.forEach { lang ->
-                                val isSelected = currentLang == lang
+                                val isCurrent = currentLang == lang
+                                val isDefault = (defaultLang ?: DesktopLanguage.detectSystemLanguage()) == lang
                                 DropdownMenuItem(
                                     text = {
                                         Row(
@@ -366,13 +392,32 @@ fun DesktopApp(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = "${lang.nativeName} (${lang.englishName})",
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                            )
-                                            if (isSelected) {
-                                                Spacer(modifier = Modifier.width(12.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${lang.nativeName} (${lang.englishName})",
+                                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                if (isDefault) {
+                                                    Surface(
+                                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                                        shape = RoundedCornerShape(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = strings.defaultLanguageBadge,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (isCurrent) {
                                                 Icon(
                                                     Icons.Rounded.Check,
                                                     contentDescription = null,
@@ -383,11 +428,40 @@ fun DesktopApp(
                                         }
                                     },
                                     onClick = {
-                                        DesktopLocalization.currentLanguage = lang
+                                        DesktopLocalization.setDefaultLanguage(lang)
+                                        statusMessage = String.format(strings.defaultLanguageSaved, "${lang.nativeName} (${lang.englishName})")
                                         showLanguageMenu = false
                                     }
                                 )
                             }
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            val detectedOsLang = DesktopLanguage.detectSystemLanguage()
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Refresh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                        Text(
+                                            text = String.format(strings.resetToSystemLanguage, "${detectedOsLang.nativeName} (${detectedOsLang.englishName})"),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    DesktopLocalization.setDefaultLanguage(null)
+                                    statusMessage = String.format(strings.defaultLanguageSaved, "${detectedOsLang.nativeName} (${detectedOsLang.englishName})")
+                                    showLanguageMenu = false
+                                }
+                            )
                         }
                     }
 
@@ -9034,7 +9108,10 @@ private fun InstallationSetupDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(
-                onClick = onDismiss,
+                onClick = {
+                    DesktopLocalization.setDefaultLanguage(currentLang)
+                    onDismiss()
+                },
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
             ) {
@@ -9114,7 +9191,7 @@ private fun InstallationSetupDialog(onDismiss: () -> Unit) {
                                     val lang = langs[idx]
                                     val isSelected = currentLang == lang
                                     Surface(
-                                        onClick = { DesktopLocalization.currentLanguage = lang },
+                                        onClick = { DesktopLocalization.setDefaultLanguage(lang) },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(8.dp),
                                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),

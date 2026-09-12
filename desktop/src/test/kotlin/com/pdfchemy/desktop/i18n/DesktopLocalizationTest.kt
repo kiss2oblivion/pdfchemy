@@ -1,9 +1,15 @@
 package com.pdfchemy.desktop.i18n
 
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 
 class DesktopLocalizationTest {
+
+    @After
+    fun tearDown() {
+        DesktopLocalization.setDefaultLanguage(DesktopLanguage.EN)
+    }
 
     @Test
     fun testLanguageFromCodeResolution() {
@@ -79,5 +85,31 @@ class DesktopLocalizationTest {
         // Force setup flag
         val forceSetup = DesktopLocalization.initFromCli(null, forceSetup = true)
         assertTrue("forceSetup = true should return true", forceSetup)
+    }
+
+    @Test
+    fun testDefaultLanguagePersistenceAndResolution() {
+        // Explicitly set default language to English
+        DesktopLocalization.setDefaultLanguage(DesktopLanguage.EN)
+        assertEquals(DesktopLanguage.EN, DesktopLocalization.defaultLanguage)
+        assertEquals(DesktopLanguage.EN, DesktopLocalization.currentLanguage)
+        assertEquals(DesktopLanguage.EN, DesktopLocalization.resolveSavedDefaultLanguage())
+        assertFalse(DesktopLocalization.isFirstRun)
+
+        // Set default to German
+        DesktopLocalization.setDefaultLanguage(DesktopLanguage.DE)
+        assertEquals(DesktopLanguage.DE, DesktopLocalization.defaultLanguage)
+        assertEquals(DesktopLanguage.DE, DesktopLocalization.currentLanguage)
+        assertEquals(DesktopLanguage.DE, DesktopLocalization.resolveSavedDefaultLanguage())
+
+        // Reset to system language by passing null
+        DesktopLocalization.setDefaultLanguage(null)
+        assertNull(DesktopLocalization.defaultLanguage)
+        assertNull(DesktopLocalization.resolveSavedDefaultLanguage())
+        assertEquals(DesktopLanguage.detectSystemLanguage(), DesktopLocalization.currentLanguage)
+
+        // Set default back to English so user environment opens in English
+        DesktopLocalization.setDefaultLanguage(DesktopLanguage.EN)
+        assertEquals(DesktopLanguage.EN, DesktopLocalization.defaultLanguage)
     }
 }
