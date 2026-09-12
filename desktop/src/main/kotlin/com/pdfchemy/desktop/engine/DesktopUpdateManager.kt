@@ -84,14 +84,8 @@ object DesktopUpdateManager {
         val host = uri.host?.lowercase(Locale.ROOT)
             ?: throw SecurityException("Security violation: Invalid host in URL ($uri)")
 
-        val allowedHosts = listOf(
-            "api.github.com",
-            "github.com",
-            "objects.githubusercontent.com",
-            "raw.githubusercontent.com",
-            "github-releases.githubusercontent.com"
-        )
-        val isAllowed = allowedHosts.any { allowed -> host == allowed || host.endsWith(".$allowed") }
+        val isAllowed = host == "github.com" || host.endsWith(".github.com") ||
+                        host == "githubusercontent.com" || host.endsWith(".githubusercontent.com")
         if (!isAllowed) {
             throw SecurityException("Security violation: Untrusted update host '$host'. Only GitHub official domains are permitted.")
         }
