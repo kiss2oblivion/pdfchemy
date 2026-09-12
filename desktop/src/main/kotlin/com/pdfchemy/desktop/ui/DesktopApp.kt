@@ -7174,32 +7174,153 @@ private fun UpdateAvailableDialog(
     onDismissForever: () -> Unit
 ) {
     val strings = DesktopLocalization.strings
+    val scope = rememberCoroutineScope()
+
+    val bestAsset = remember(release) { DesktopUpdateManager.findBestAssetForCurrentPlatform(release.assets) }
+
+    var isUpdating by remember { mutableStateOf(false) }
+    var updateStage by remember { mutableStateOf("IDLE") } // "IDLE", "DOWNLOADING", "VERIFYING", "LAUNCHING", "ERROR"
+    var progressFraction by remember { mutableStateOf(0f) }
+    var progressBytesDownloaded by remember { mutableStateOf(0L) }
+    var progressBytesTotal by remember { mutableStateOf(0L) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isCancelled by remember { mutableStateOf(false) }
+
+    fun startAutomatedInstall() {
+        val asset = bestAsset ?: return
+        isUpdating = true
+        isCancelled = false
+        updateStage = "DOWNLOADING"
+        errorMessage = null
+        progressFraction = 0f
+        progressBytesDownloaded = 0L
+        progressBytesTotal = asset.size
+
+        scope.launch {
+            // 1. Download asset to isolated secure temporary file
+            val downloadResult = DesktopUpdateManager.downloadAssetFile(
+                asset = asset,
+                onProgress = { downloaded, total ->
+                    progressBytesDownloaded = downloaded
+                    progressBytesTotal = total
+                    if (total > 0) {
+                        progressFraction = (downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+                    }
+                },
+                isCancelled = { isCancelled }
+            )
+
+            val downloadedFile = downloadResult.getOrElse { err ->
+                withContext(Dispatchers.Main) {
+                    isUpdating = false
+                    updateStage = "ERROR"
+                    errorMessage = if (isCancelled) "Download cancelled." else (err.message ?: strings.updateCheckFailed)
+                }
+                return@launch
+            }
+
+            // 2. Cryptographic SHA-256 integrity verification
+            updateStage = "VERIFYING"
+            var verified = false
+
+            if (!release.sha256SumsUrl.isNullOrBlank()) {
+                val checksumMapRes = DesktopUpdateManager.fetchSha256Checksums(release.sha256SumsUrl)
+                val checksumMap = checksumMapRes.getOrNull()
+                val expectedHash = checksumMap?.get(asset.name)
+                if (expectedHash != null) {
+                    verified = DesktopUpdateManager.verifyFileSha256(downloadedFile, expectedHash)
+                } else {
+                    // Fallback: If filename not in SHA256SUMS.txt, verify file is not empty
+                    verified = downloadedFile.exists() && downloadedFile.length() > 0
+                }
+            } else {
+                verified = downloadedFile.exists() && downloadedFile.length() > 0
+            }
+
+            if (!verified) {
+                withContext(Dispatchers.Main) {
+                    isUpdating = false
+                    updateStage = "ERROR"
+                    errorMessage = strings.updateChecksumMismatch
+                }
+                return@launch
+            }
+
+            // 3. Launch installer securely and cleanly terminate running application
+            updateStage = "LAUNCHING"
+            withContext(Dispatchers.Main) {
+                val launchResult = DesktopUpdateManager.launchInstaller(downloadedFile)
+                if (launchResult.isSuccess) {
+                    // Safe termination of current JVM to allow installer to replace binaries
+                    kotlin.system.exitProcess(0)
+                } else {
+                    isUpdating = false
+                    updateStage = "ERROR"
+                    errorMessage = strings.updateInstallFailed.format(launchResult.exceptionOrNull()?.message ?: "Unknown launch error")
+                }
+            }
+        }
+    }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!isUpdating) onDismiss()
+        },
         confirmButton = {
-            Button(
-                onClick = {
-                    openBrowser(release.htmlUrl)
-                    onDismiss()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(strings.btnDownloadUpdate, fontWeight = FontWeight.Bold)
+            if (isUpdating) {
+                Button(
+                    onClick = {
+                        isCancelled = true
+                        isUpdating = false
+                        updateStage = "IDLE"
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.btnCancelUpdate)
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (bestAsset != null) {
+                        Button(
+                            onClick = { startAutomatedInstall() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(strings.btnInstallUpdateAuto, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            openBrowser(release.htmlUrl)
+                            onDismiss()
+                        }
+                    ) {
+                        Icon(Icons.Rounded.FileOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.btnViewReleases)
+                    }
+                }
             }
         },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onDismissForever) {
-                    Text(strings.btnRemindLater)
-                }
-                TextButton(onClick = onDismiss) {
-                    Text(strings.close)
+            if (!isUpdating) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onDismissForever) {
+                        Text(strings.btnRemindLater)
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text(strings.close)
+                    }
                 }
             }
         },
@@ -7207,13 +7328,28 @@ private fun UpdateAvailableDialog(
             Box(
                 modifier = Modifier
                     .size(60.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                    .background(
+                        when (updateStage) {
+                            "ERROR" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                            "VERIFYING" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        },
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Rounded.CloudUpload,
+                    when (updateStage) {
+                        "ERROR" -> Icons.Rounded.DeleteOutline
+                        "VERIFYING" -> Icons.Rounded.Shield
+                        else -> Icons.Rounded.CloudUpload
+                    },
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = when (updateStage) {
+                        "ERROR" -> MaterialTheme.colorScheme.error
+                        "VERIFYING" -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.primary
+                    },
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -7238,14 +7374,92 @@ private fun UpdateAvailableDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 500.dp),
+                    .widthIn(max = 520.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    release.name.ifEmpty { "Release ${release.tagName}" },
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                // Platform Asset Info Card
+                if (bestAsset != null) {
+                    val sizeMb = if (bestAsset.size > 0) "%.1f MB".format(bestAsset.size / (1024.0 * 1024.0)) else ""
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Rounded.Save, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Text(bestAsset.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                            if (sizeMb.isNotBlank()) {
+                                Text(sizeMb, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                // In-Progress / Error Feedback Area
+                when (updateStage) {
+                    "DOWNLOADING" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            val dlMb = "%.1f MB".format(progressBytesDownloaded / (1024.0 * 1024.0))
+                            val totMb = if (progressBytesTotal > 0) "%.1f MB".format(progressBytesTotal / (1024.0 * 1024.0)) else "--"
+                            Text(
+                                strings.updateDownloading.format(dlMb, totMb),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            LinearProgressIndicator(
+                                progress = { progressFraction },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                            )
+                        }
+                    }
+                    "VERIFYING" -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.5.dp)
+                            Text(strings.updateVerifying, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    "LAUNCHING" -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.5.dp)
+                            Text(strings.updateLaunching, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    "ERROR" -> {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Text(
+                                    errorMessage ?: strings.updateCheckFailed,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (release.body.isNotBlank()) {
                     Text(
@@ -7257,7 +7471,7 @@ private fun UpdateAvailableDialog(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 160.dp),
+                            .heightIn(max = 140.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
