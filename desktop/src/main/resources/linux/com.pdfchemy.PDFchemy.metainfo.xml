@@ -36,6 +36,11 @@
   <url type="vcs-browser">https://github.com/kiss2oblivion/pdfchemy</url>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.0.4" date="2026-09-12">
+      <description>
+        <p>Ultimate PDF Viewing Experience: Borderless full screen immersion, PDF bookmarks outline tree, smooth zoom and 2.5x magnifier loupe, nightlight candlelight and paper dimmer, dyslexia suite with reading ruler guide, real-time color blindness matrices, and 100% offline speech synthesis.</p>
+      </description>
+    </release>
     <release version="1.0.3" date="2026-09-12">
       <description>
         <p>Security enhancements with universal Vanguard Zero-Trust shield integration, EPUB text extraction support, and comprehensive performance optimizations.</p>

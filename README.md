@@ -31,20 +31,39 @@
 
 ## 🚀 Desktop Superpowers
 
-1. **Visual Page Studio (The "PDF Arranger Killer"):**
+1. **Ultimate Reader Studio (Distraction-Free Immersion):**
+   * **Borderless Full Screen (`F11` / `⛶`):** 100% immersion with auto-hiding top bar, auto-hiding navigation rail, and zero distracting footers on the canvas.
+   * **Document Outline & Bookmarks Tree:** Hierarchical table of contents extracted from the PDF catalog with instant 1-click chapter jumps.
+   * **Smooth Zoom & Floating Magnifier Loupe:** Smooth `Ctrl + Wheel` zooming (25% to 800%), `Fit Page` / `Fit Width` presets, and a floating **2.5× Circular Magnifier Loupe (`🔍`)** to inspect fine print, footnotes, and schematics.
+   * **Page Rotation:** Global view rotation (90° CW/CCW) and permanent single-page in-place rotation.
+   * **Nightlight & Eye-Comfort Engine:** Amber candlelight blue-light filter slider (0%–100%), ambient paper dimmer slider (30%–100%), and 5 curated reading palettes (*Paperwhite*, *Warm Sepia*, *Sage Mint*, *Charcoal*, *OLED Pitch Black*) plus smart color inversion.
+   * **Dyslexia Suite:** Reading Ruler horizontal highlight guide following the cursor, OpenDyslexic-styled letter and line spacing, and Bionic reading fixation bolding.
+   * **Color Blindness Vision Suite:** Real-time GPU color matrices for Deuteranopia (green-weak), Protanopia (red-weak), Tritanopia (blue-yellow), and High-Contrast Monochromatic.
+   * **Blind & Low-Vision Suite:** 100% offline text-to-speech Read Aloud (`DesktopSpeechSynthesizer`) with playback speed controls and full screen-reader accessibility semantics (`contentDescription`).
+2. **Visual Page Studio (The "PDF Arranger Killer"):**
    * Real-time Compose thumbnail grid of all pages.
    * In-place quick actions: 🔄 Rotate 90°, ⬅️ ➡️ Reorder sequence, 📄 Duplicate page, and 🗑️ Delete page.
    * One-click "Save Organized PDF".
-2. **Smart Target-Size Compressor ("Fit Under 2MB"):**
+3. **Smart Target-Size Compressor ("Fit Under 2MB"):**
    * Automatic iterative DPI and JPEG quality optimizer to guarantee your output fits under government, email, and portal upload thresholds (500 KB, 1.0 MB, 2.0 MB, 5.0 MB).
-3. **Images ⇄ PDF Studio:**
-   * **Images to PDF:** Select any collection of photos, scans, or receipts (PNG, JPG, BMP, WebP) and compile them into a unified PDF.
-   * **PDF to Images:** Batch-extract every page as high-res 150/300 DPI PNG images into any chosen local folder.
-4. **Multi-Core Batch Queue:**
+4. **Interactive Form Builder & AcroForm Studio:**
+   * Convert flat PDFs into genuine fillable forms by adding interactive Text Fields, Checkboxes, and Dropdowns.
+   * Interactive form filling with full form flattening and appearance preservation across Adobe Acrobat, Chrome, and Apple Preview.
+5. **Directory Spotlight Search:**
+   * High-speed multi-document keyword search across hundreds of local PDFs with extracted line snippets and 1-click direct page jump to Reader.
+6. **Side-by-Side Revision Compare Studio:**
+   * Synchronized side-by-side comparison with line-by-line textual diffs and revision change statistics.
+7. **Images ⇄ PDF & Office Export Studio:**
+   * **Images to PDF:** Select photos, scans, or receipts (PNG, JPG, BMP, WebP) and compile them into a unified PDF.
+   * **PDF to Images:** Batch-extract every page as high-res 150/300 DPI PNG images into any local folder.
+   * **Office Export:** Pure OpenXML archive generator exporting PDF to Word (`.docx`), Excel (`.xlsx`), and PowerPoint (`.pptx`).
+8. **Multi-Core Batch Queue:**
    * Drop 10, 20, or 50+ PDFs and batch compress or merge in parallel across all CPU cores.
-5. **Privacy & Security:**
-   * 128/256-bit AES encryption and password removal.
-   * Zero cloud uploads. Zero telemetry. Zero file leaks.
+9. **Legal Bates Stamping & Watermarking:**
+   * Standard legal Bates numbering with 6 placement positions, custom zero-padding, prefix, and suffix.
+10. **Zero-Trust Privacy & Security:**
+    * 128/256-bit AES encryption, decryption, deep threat sanitizer, and forensic vector redaction.
+    * 100% air-gapped on-device execution: zero cloud uploads, zero telemetry, zero file leaks.
 
 ---
 
