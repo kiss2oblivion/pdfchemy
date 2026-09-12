@@ -293,7 +293,7 @@ fun DesktopApp(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                         ) {
                             Text(
-                                strings.desktopEdition,
+                                "${strings.desktopEdition} v${DesktopUpdateManager.CURRENT_VERSION}",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
@@ -303,7 +303,7 @@ fun DesktopApp(
                     }
                 },
                 actions = {
-                    // Update Available Badge Button
+                    // Update Button (Always visible at the top)
                     if (availableUpdate != null) {
                         FilledTonalButton(
                             onClick = { showUpdateDialog = true },
@@ -317,6 +317,24 @@ fun DesktopApp(
                             Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF00C853))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Update ${availableUpdate!!.tagName}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    } else {
+                        FilledTonalButton(
+                            onClick = { performManualUpdateCheck() },
+                            enabled = !isCheckingUpdate,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            if (isCheckingUpdate) {
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(strings.checkingForUpdates, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Rounded.CloudUpload, contentDescription = strings.checkForUpdates, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(strings.checkForUpdates, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
@@ -617,6 +635,41 @@ private fun HomeView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // Top Version & Update Header Row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Text(
+                    "PDFchemy Tools v${DesktopUpdateManager.CURRENT_VERSION}",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(
+                onClick = onCheckForUpdates,
+                enabled = !isCheckingUpdate,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                if (isCheckingUpdate) {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.checkingForUpdates, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                } else {
+                    Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(strings.checkForUpdates, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
         // New Version Available Banner
         if (availableUpdate != null) {
             Card(
@@ -886,38 +939,7 @@ private fun HomeView(
 
 
 
-        // Subtle, Understated Footer
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    "PDFchemy Tools v${DesktopUpdateManager.CURRENT_VERSION}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-                TextButton(
-                    onClick = onCheckForUpdates,
-                    enabled = !isCheckingUpdate,
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                ) {
-                    if (isCheckingUpdate) {
-                        CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 1.5.dp)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(strings.checkingForUpdates, fontSize = 11.sp)
-                    } else {
-                        Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(12.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(strings.checkForUpdates, fontSize = 11.sp)
-                    }
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
