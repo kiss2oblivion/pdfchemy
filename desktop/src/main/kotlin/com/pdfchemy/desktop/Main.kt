@@ -66,14 +66,14 @@ fun main(args: Array<String>) = application {
                         }
                         true
                     }
-                    // Esc: Exit Fullscreen or Return to Home Dashboard
+                    // Esc: Exit Fullscreen only (do NOT switch to Home or close active tool)
                     keyEvent.key == Key.Escape -> {
                         if (windowState.placement == WindowPlacement.Fullscreen) {
                             windowState.placement = WindowPlacement.Floating
+                            true
                         } else {
-                            currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.HOME
+                            false
                         }
-                        true
                     }
                     // Ctrl+1..7: Switch to tool tabs
                     keyEvent.isCtrlPressed && keyEvent.key == Key.One -> {

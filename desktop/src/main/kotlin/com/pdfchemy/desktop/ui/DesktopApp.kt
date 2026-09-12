@@ -6039,7 +6039,13 @@ private fun ReaderView(
                             true
                         }
                         event.key == Key.Escape -> {
-                            if (isLoupeActive) {
+                            if (showZoomMenu) {
+                                showZoomMenu = false
+                                true
+                            } else if (showAppearanceMenu) {
+                                showAppearanceMenu = false
+                                true
+                            } else if (isLoupeActive) {
                                 isLoupeActive = false
                                 true
                             } else if (isSearchVisible) {
@@ -6049,7 +6055,10 @@ private fun ReaderView(
                             } else if (isFullScreen) {
                                 onToggleFullScreen()
                                 true
-                            } else false
+                            } else {
+                                // Explicitly consume Escape so the document reader is NEVER closed on Escape
+                                true
+                            }
                         }
                         else -> false
                     }
