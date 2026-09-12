@@ -89,13 +89,41 @@ class PdfFindAndReplaceTest {
         assertEquals(2, result.getOrThrow())
         assertTrue("Destination file should exist and have content", destFile.exists() && destFile.length() > 0)
 
-        // Verify with PDFTextStripper that replacement text is present
+        // Verify with PDFTextStripper that replacement text is present AND original text is obliterated
         FileInputStream(destFile).use { inStream ->
             val updatedDoc = PDDocument.load(inStream)
             val text = PDFTextStripper().getText(updatedDoc)
             updatedDoc.close()
 
             assertTrue("Text should contain replacement GLOBAL_ENTERPRISE", text.contains("GLOBAL_ENTERPRISE"))
+            assertFalse("Original searched text ACME_CORP must be completely obliterated from byte stream", text.contains("ACME_CORP"))
+        }
+    }
+
+    @Test
+    fun testReplaceAll_withUnicodeCharacters_doesNotCrashAndObliteratesText() = runBlocking {
+        val destFile = File(context.cacheDir, "output_replaced_unicode.pdf")
+        val destUri = Uri.fromFile(destFile)
+
+        val result = PdfFindAndReplaceEngine.replaceAll(
+            context = context,
+            sourcePdfUri = testPdfUri,
+            destPdfUri = destUri,
+            findText = "ACME_CORP",
+            replaceText = "GLOBAL_ENTERPRISE_ROMÂNĂ_ȚȘ",
+            matchCase = true
+        )
+
+        assertTrue("Replace text with Unicode should succeed without crashing on Type 1 font", result.isSuccess)
+        assertEquals(2, result.getOrThrow())
+
+        FileInputStream(destFile).use { inStream ->
+            val updatedDoc = PDDocument.load(inStream)
+            val text = PDFTextStripper().getText(updatedDoc)
+            updatedDoc.close()
+
+            assertFalse("Original searched text ACME_CORP must be completely obliterated", text.contains("ACME_CORP"))
+            assertTrue("Sanitized searchable layer should contain ASCII base equivalent", text.contains("GLOBAL_ENTERPRISE_ROMANA_TS"))
         }
     }
 }

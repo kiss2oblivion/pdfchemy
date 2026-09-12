@@ -122,8 +122,9 @@ object PdfMetadataEngine {
                 blankInfo.trapped = null
                 document.documentInformation = blankInfo
 
-                // Remove XMP XML metadata packet
+                // Remove XMP XML metadata packet and document ID
                 document.documentCatalog?.metadata = null
+                document.document.trailer.removeItem(com.tom_roush.pdfbox.cos.COSName.ID)
             } else if (newMetadata != null) {
                 var info = document.documentInformation
                 if (info == null) {

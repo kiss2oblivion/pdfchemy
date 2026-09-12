@@ -93,64 +93,56 @@ object PdfRedactionEngine {
                 Pattern.compile(Pattern.quote(query), Pattern.CASE_INSENSITIVE)
             } ?: return@withContext Result.success(emptyList())
 
-            val pagePositions = mutableMapOf<Int, MutableList<TextPosition>>()
             val stripper = object : PDFTextStripper() {
-                private var currentPageList: MutableList<TextPosition>? = null
+                override fun writeString(text: String, textPositions: MutableList<TextPosition>) {
+                    val pageIdx = (currentPageNo - 1).coerceAtLeast(0)
+                    if (pageIdx !in 0 until totalPages) return
+                    val page = document.getPage(pageIdx)
+                    val cropBox = page.cropBox ?: page.mediaBox
+                    val rot = ((page.rotation % 360) + 360) % 360
+                    val pageW = if (rot == 90 || rot == 270) cropBox.height else cropBox.width
+                    val pageH = if (rot == 90 || rot == 270) cropBox.width else cropBox.height
 
-                override fun startPage(page: com.tom_roush.pdfbox.pdmodel.PDPage) {
-                    val list = mutableListOf<TextPosition>()
-                    currentPageList = list
-                    pagePositions[(currentPageNo - 1).coerceAtLeast(0)] = list
-                }
+                    val matcher = pattern.matcher(text)
+                    while (matcher.find()) {
+                        val start = matcher.start()
+                        val end = matcher.end()
+                        if (start in textPositions.indices && end - 1 in textPositions.indices) {
+                            val matchPositions = textPositions.subList(start, end)
+                            if (matchPositions.isNotEmpty()) {
+                                val firstPos = matchPositions.first()
+                                val lastPos = matchPositions.last()
 
-                override fun processTextPosition(text: TextPosition) {
-                    currentPageList?.add(text)
-                    super.processTextPosition(text)
+                                val minX = minOf(firstPos.xDirAdj, lastPos.xDirAdj)
+                                val maxX = maxOf(firstPos.xDirAdj + firstPos.widthDirAdj, lastPos.xDirAdj + lastPos.widthDirAdj)
+                                val topY = minOf(firstPos.yDirAdj, lastPos.yDirAdj)
+                                val height = matchPositions.map { it.heightDir }.average().toFloat().coerceAtLeast(12f)
+                                val bottomY = topY + height
+
+                                val leftNorm = (minX / pageW).coerceIn(0f, 1f)
+                                val topNorm = (topY / pageH).coerceIn(0f, 1f)
+                                val rightNorm = (maxX / pageW).coerceIn(0f, 1f)
+                                val bottomNorm = (bottomY / pageH).coerceIn(0f, 1f)
+
+                                if (rightNorm > leftNorm && bottomNorm > topNorm) {
+                                    foundBoxes.add(
+                                        RedactionBox(
+                                            pageIndex = pageIdx,
+                                            normalizedRect = RectF(leftNorm, topNorm, rightNorm, bottomNorm),
+                                            overlayLabel = matcher.group()
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    super.writeString(text, textPositions)
                 }
             }
             stripper.startPage = 1
             stripper.endPage = totalPages
             val dummyWriter = OutputStreamWriter(ByteArrayOutputStream())
             stripper.writeText(document, dummyWriter)
-
-            for (pageIdx in 0 until totalPages) {
-                val page = document.getPage(pageIdx)
-                val mediaBox = page.mediaBox
-                val pageW = mediaBox.width
-                val pageH = mediaBox.height
-
-                val textPositions = pagePositions[pageIdx] ?: emptyList()
-                val fullText = textPositions.joinToString("") { it.unicode ?: "" }
-                val matcher = pattern.matcher(fullText)
-
-                while (matcher.find()) {
-                    val start = matcher.start()
-                    val end = matcher.end()
-                    if (start in textPositions.indices && end - 1 in textPositions.indices) {
-                        val firstPos = textPositions[start]
-                        val lastPos = textPositions[end - 1]
-
-                        val minX = firstPos.xDirAdj
-                        val maxX = lastPos.xDirAdj + lastPos.widthDirAdj
-                        val topY = firstPos.yDirAdj
-                        val height = firstPos.heightDir.coerceAtLeast(12f)
-                        val bottomY = topY + height
-
-                        val leftNorm = (minX / pageW).coerceIn(0f, 1f)
-                        val topNorm = (topY / pageH).coerceIn(0f, 1f)
-                        val rightNorm = (maxX / pageW).coerceIn(0f, 1f)
-                        val bottomNorm = (bottomY / pageH).coerceIn(0f, 1f)
-
-                        foundBoxes.add(
-                            RedactionBox(
-                                pageIndex = pageIdx,
-                                normalizedRect = RectF(leftNorm, topNorm, rightNorm, bottomNorm),
-                                overlayLabel = matcher.group()
-                            )
-                        )
-                    }
-                }
-            }
 
             Result.success(foundBoxes)
         } catch (e: Exception) {
@@ -255,47 +247,76 @@ object PdfRedactionEngine {
 
                 val finalFile = if (config.forensicSanitize) {
                     rasterFile = File(context.cacheDir, "rasterized_${System.currentTimeMillis()}.pdf")
-                    pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
-                    renderer = PdfRenderer(pfd)
+                    pfd = try { ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY) } catch (_: Exception) { null }
+                    renderer = if (pfd != null) try { PdfRenderer(pfd) } catch (_: Exception) { null } else null
+                    val baseDoc = PDDocument.load(tempFile)
                     
-                    newDoc = PDDocument()
-                    for (i in 0 until renderer.pageCount) {
-                        var renderPage: PdfRenderer.Page? = null
-                        var bmp: Bitmap? = null
+                    if (renderer != null) {
+                        newDoc = PDDocument()
                         try {
-                            renderPage = renderer.openPage(i)
-                            val maxDim = 2048
-                            val scale = minOf(2f, maxDim.toFloat() / maxOf(renderPage.width, renderPage.height).coerceAtLeast(1))
-                            val targetW = (renderPage.width * scale).toInt().coerceAtLeast(1)
-                            val targetH = (renderPage.height * scale).toInt().coerceAtLeast(1)
-                            bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.RGB_565)
-                            val canvas = android.graphics.Canvas(bmp)
-                            canvas.drawColor(android.graphics.Color.WHITE)
-                            
-                            renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-                            
-                            val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
-                            newDoc.addPage(pdfPage)
-                            
-                            val pdImage = JPEGFactory.createFromImage(newDoc, bmp, 0.85f)
-                            PDPageContentStream(newDoc, pdfPage).use { cs ->
-                                cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
+                            for (i in 0 until renderer.pageCount) {
+                                if (boxesByPage.containsKey(i)) {
+                                    // Forensically flatten only pages with redactions to permanently scrub underlying text
+                                    var renderPage: PdfRenderer.Page? = null
+                                    var bmp: Bitmap? = null
+                                    try {
+                                        renderPage = renderer.openPage(i)
+                                        val maxDim = 2048
+                                        val scale = minOf(2f, maxDim.toFloat() / maxOf(renderPage.width, renderPage.height).coerceAtLeast(1))
+                                        val targetW = (renderPage.width * scale).toInt().coerceAtLeast(1)
+                                        val targetH = (renderPage.height * scale).toInt().coerceAtLeast(1)
+                                        bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.RGB_565)
+                                        val canvas = android.graphics.Canvas(bmp)
+                                        canvas.drawColor(android.graphics.Color.WHITE)
+                                        
+                                        renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                                        
+                                        val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
+                                        newDoc.addPage(pdfPage)
+                                        
+                                        val pdImage = JPEGFactory.createFromImage(newDoc, bmp, 0.90f)
+                                        PDPageContentStream(newDoc, pdfPage).use { cs ->
+                                            cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
+                                        }
+                                    } finally {
+                                        bmp?.recycle()
+                                        renderPage?.close()
+                                    }
+                                } else {
+                                    // Preserve original crisp vector page, fonts, and searchability for unredacted pages
+                                    if (i < baseDoc.numberOfPages) {
+                                        newDoc.importPage(baseDoc.getPage(i))
+                                    }
+                                }
                             }
                         } finally {
-                            bmp?.recycle()
-                            renderPage?.close()
+                            try { baseDoc.close() } catch (_: Exception) {}
                         }
+                        try { renderer.close() } catch (_: Exception) {}
+                        renderer = null
+                        try { pfd?.close() } catch (_: Exception) {}
+                        pfd = null
+                        
+                        newDoc.save(rasterFile)
+                        newDoc.close()
+                        newDoc = null
+                        tempFile.delete()
+                        rasterFile
+                    } else {
+                        // Headless fallback (e.g. JVM unit tests): scrub underlying contents on redacted pages
+                        for (i in 0 until baseDoc.numberOfPages) {
+                            if (boxesByPage.containsKey(i)) {
+                                val p = baseDoc.getPage(i)
+                                p.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
+                                p.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
+                            }
+                        }
+                        baseDoc.save(rasterFile)
+                        baseDoc.close()
+                        try { pfd?.close() } catch (_: Exception) {}
+                        tempFile.delete()
+                        rasterFile
                     }
-                    renderer.close()
-                    renderer = null
-                    pfd.close()
-                    pfd = null
-                    
-                    newDoc.save(rasterFile)
-                    newDoc.close()
-                    newDoc = null
-                    tempFile.delete()
-                    rasterFile
                 } else {
                     tempFile
                 }

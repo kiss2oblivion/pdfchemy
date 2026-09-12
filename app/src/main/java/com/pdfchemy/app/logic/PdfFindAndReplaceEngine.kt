@@ -152,8 +152,15 @@ object PdfFindAndReplaceEngine {
         var inputStream: InputStream? = null
         var document: PDDocument? = null
         var tempFile: File? = null
+        var pfd: android.os.ParcelFileDescriptor? = null
+        var renderer: android.graphics.pdf.PdfRenderer? = null
 
         return@withContext try {
+            pfd = try { com.pdfchemy.app.utils.FileUtils.openParcelFileDescriptor(context, sourcePdfUri) } catch (_: Exception) { null }
+            if (pfd != null) {
+                renderer = try { android.graphics.pdf.PdfRenderer(pfd) } catch (_: Exception) { null }
+            }
+
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalArgumentException("Cannot open source PDF")
             document = PDDocument.load(inputStream)
@@ -171,37 +178,151 @@ object PdfFindAndReplaceEngine {
                 if (pageIndex !in 0 until document.numberOfPages) continue
                 val page = document.getPage(pageIndex)
                 val cropBox = page.cropBox ?: page.mediaBox
-                val pageHeight = cropBox.height
+                var rasterized = false
 
-                PDPageContentStream(
-                    document,
-                    page,
-                    PDPageContentStream.AppendMode.APPEND,
-                    true,
-                    true
-                ).use { cs ->
-                    for (match in pageMatches) {
-                        // Invert topY to PDF bottom-left coordinate space
-                        val pdfX = match.bounds.left
-                        val pdfWidth = match.bounds.width()
-                        val pdfHeight = match.bounds.height()
-                        val pdfY = pageHeight - match.bounds.bottom
+                if (renderer != null && pageIndex in 0 until renderer.pageCount) {
+                    var renderPage: android.graphics.pdf.PdfRenderer.Page? = null
+                    var baseBmp: android.graphics.Bitmap? = null
+                    try {
+                        renderPage = renderer.openPage(pageIndex)
+                        val origW = renderPage.width.coerceAtLeast(1)
+                        val origH = renderPage.height.coerceAtLeast(1)
+                        val maxDim = 2400f
+                        val scale = (maxDim / maxOf(origW, origH)).coerceIn(1.5f, 2.5f)
+                        val targetW = (origW * scale).toInt().coerceAtLeast(1)
+                        val targetH = (origH * scale).toInt().coerceAtLeast(1)
 
-                        // 1. Draw opaque background rectangle to mask out old text
-                        cs.setNonStrokingColor(maskColorRgb.first, maskColorRgb.second, maskColorRgb.third)
-                        cs.addRect(pdfX - 1f, pdfY - 1f, pdfWidth + 2f, pdfHeight + 2f)
-                        cs.fill()
+                        baseBmp = android.graphics.Bitmap.createBitmap(targetW, targetH, android.graphics.Bitmap.Config.ARGB_8888)
+                        val canvas = android.graphics.Canvas(baseBmp)
+                        canvas.drawColor(android.graphics.Color.WHITE)
+                        renderPage.render(baseBmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
 
-                        // 2. Draw replacement text if not empty
-                        if (replaceText.isNotEmpty()) {
-                            cs.beginText()
-                            cs.setNonStrokingColor(textColorRgb.first, textColorRgb.second, textColorRgb.third)
-                            cs.setFont(PDType1Font.HELVETICA, match.fontSize)
-                            cs.newLineAtOffset(pdfX, pdfY + 1f)
-                            cs.showText(replaceText)
-                            cs.endText()
+                        val maskPaint = android.graphics.Paint().apply {
+                            color = android.graphics.Color.rgb(
+                                (maskColorRgb.first * 255f).toInt().coerceIn(0, 255),
+                                (maskColorRgb.second * 255f).toInt().coerceIn(0, 255),
+                                (maskColorRgb.third * 255f).toInt().coerceIn(0, 255)
+                            )
+                            style = android.graphics.Paint.Style.FILL
                         }
-                        totalReplaced++
+
+                        val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                            color = android.graphics.Color.rgb(
+                                (textColorRgb.first * 255f).toInt().coerceIn(0, 255),
+                                (textColorRgb.second * 255f).toInt().coerceIn(0, 255),
+                                (textColorRgb.third * 255f).toInt().coerceIn(0, 255)
+                            )
+                            isFakeBoldText = true
+                        }
+
+                        for (match in pageMatches) {
+                            val normLeft = (match.bounds.left / origW.toFloat()).coerceIn(0f, 1f)
+                            val normTop = (match.bounds.top / origH.toFloat()).coerceIn(0f, 1f)
+                            val normWidth = (match.bounds.width() / origW.toFloat()).coerceIn(0.001f, 1f)
+                            val normHeight = (match.bounds.height() / origH.toFloat()).coerceIn(0.001f, 1f)
+
+                            val pxLeft = normLeft * targetW
+                            val pxTop = normTop * targetH
+                            val pxWidth = normWidth * targetW
+                            val pxHeight = normHeight * targetH
+
+                            // 1. Mask out old text completely from raster canvas
+                            canvas.drawRect(pxLeft - 2f, pxTop - 1f, pxLeft + pxWidth + 2f, pxTop + pxHeight + 2f, maskPaint)
+
+                            // 2. Draw replacement text with native Android font support (handles all Unicode/locales)
+                            if (replaceText.isNotEmpty()) {
+                                textPaint.textSize = (match.fontSize * scale * 1.05f).coerceAtLeast(10f)
+                                val baselineY = pxTop + (pxHeight * 0.82f)
+                                canvas.drawText(replaceText, pxLeft, baselineY, textPaint)
+                            }
+                            totalReplaced++
+                        }
+
+                        val pdImage = com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory.createFromImage(document, baseBmp, 0.92f)
+                        baseBmp.recycle()
+                        baseBmp = null
+
+                        // Replace page content stream and clear annotations to completely destroy original text
+                        page.rotation = 0
+                        page.cropBox = null
+                        page.mediaBox = com.tom_roush.pdfbox.pdmodel.common.PDRectangle(origW.toFloat(), origH.toFloat())
+                        page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
+
+                        PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).use { cs ->
+                            cs.drawImage(pdImage, 0f, 0f, origW.toFloat(), origH.toFloat())
+
+                            // 3. Inject transparent selectable text layer for searchability
+                            if (replaceText.isNotEmpty()) {
+                                val extGState = com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState().apply {
+                                    nonStrokingAlphaConstant = 0.0f
+                                }
+                                cs.setGraphicsStateParameters(extGState)
+                                val winAnsiText = sanitizeForWinAnsi(replaceText)
+                                if (winAnsiText.isNotBlank()) {
+                                    for (match in pageMatches) {
+                                        try {
+                                            cs.beginText()
+                                            cs.setFont(PDType1Font.HELVETICA, match.fontSize)
+                                            val pdfX = match.bounds.left
+                                            val pdfY = origH.toFloat() - match.bounds.bottom
+                                            cs.newLineAtOffset(pdfX, pdfY)
+                                            cs.showText(winAnsiText)
+                                            cs.endText()
+                                        } catch (_: Exception) {}
+                                    }
+                                }
+                            }
+                        }
+                        rasterized = true
+                    } catch (e: Exception) {
+                        AppLogger.w("PdfFindAndReplaceEngine: raster flattening failed for page $pageIndex: ${e.message}")
+                    } finally {
+                        try { renderPage?.close() } catch (_: Exception) {}
+                        try { baseBmp?.recycle() } catch (_: Exception) {}
+                    }
+                }
+
+                if (!rasterized) {
+                    // Fallback when PdfRenderer is unavailable (e.g. headless JVM unit tests):
+                    // Under our Inviolable Cardinal Ethical Mantra, never leave original sensitive text in the byte stream.
+                    page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
+                    page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
+                    val pageHeight = cropBox.height
+
+                    PDPageContentStream(
+                        document,
+                        page,
+                        PDPageContentStream.AppendMode.OVERWRITE,
+                        false,
+                        false
+                    ).use { cs ->
+                        for (match in pageMatches) {
+                            val pdfX = match.bounds.left
+                            val pdfWidth = match.bounds.width()
+                            val pdfHeight = match.bounds.height()
+                            val pdfY = pageHeight - match.bounds.bottom
+
+                            // 1. Draw opaque background rectangle
+                            cs.setNonStrokingColor(maskColorRgb.first, maskColorRgb.second, maskColorRgb.third)
+                            cs.addRect(pdfX - 1f, pdfY - 1f, pdfWidth + 2f, pdfHeight + 2f)
+                            cs.fill()
+
+                            // 2. Draw replacement text if not empty
+                            if (replaceText.isNotEmpty()) {
+                                val winAnsi = sanitizeForWinAnsi(replaceText)
+                                if (winAnsi.isNotBlank()) {
+                                    try {
+                                        cs.beginText()
+                                        cs.setNonStrokingColor(textColorRgb.first, textColorRgb.second, textColorRgb.third)
+                                        cs.setFont(PDType1Font.HELVETICA, match.fontSize)
+                                        cs.newLineAtOffset(pdfX, pdfY + 1f)
+                                        cs.showText(winAnsi)
+                                        cs.endText()
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                            totalReplaced++
+                        }
                     }
                 }
             }
@@ -228,9 +349,43 @@ object PdfFindAndReplaceEngine {
             AppLogger.e("PdfFindAndReplaceEngine: Error replacing text", e)
             Result.failure(e)
         } finally {
+            try { renderer?.close() } catch (_: Exception) {}
+            try { pfd?.close() } catch (_: Exception) {}
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
             tempFile?.delete()
         }
+    }
+
+    private fun sanitizeForWinAnsi(text: String): String {
+        // Expand common Latin ligatures and special characters
+        val expanded = text
+            .replace("ß", "ss").replace("ẞ", "SS")
+            .replace("æ", "ae").replace("Æ", "AE")
+            .replace("œ", "oe").replace("Œ", "OE")
+            .replace("ø", "o").replace("Ø", "O")
+            .replace("đ", "d").replace("Đ", "D")
+            .replace("ł", "l").replace("Ł", "L")
+
+        // Decompose all diacritics to base letters + combining marks, then strip combining marks
+        val normalized = java.text.Normalizer.normalize(expanded, java.text.Normalizer.Form.NFD)
+        val stripped = normalized.replace("\\p{M}+".toRegex(), "")
+
+        val sb = StringBuilder()
+        for (ch in stripped) {
+            when {
+                ch.code in 32..126 -> sb.append(ch)
+                ch == '‘' || ch == '’' -> sb.append('\'')
+                ch == '“' || ch == '”' -> sb.append('"')
+                ch == '—' || ch == '–' -> sb.append('-')
+                ch == '…' -> sb.append("...")
+                ch == ' ' -> sb.append(' ')
+                ch == '\n' || ch == '\r' || ch == '\t' -> sb.append(' ')
+                else -> {
+                    // Skip unsupported glyphs for Type 1 font to avoid IllegalArgumentException
+                }
+            }
+        }
+        return sb.toString()
     }
 }

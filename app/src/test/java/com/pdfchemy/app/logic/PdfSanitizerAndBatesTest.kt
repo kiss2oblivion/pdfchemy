@@ -11,6 +11,11 @@ import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
 import com.tom_roush.pdfbox.pdmodel.encryption.AccessPermission
 import com.tom_roush.pdfbox.pdmodel.encryption.StandardProtectionPolicy
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
+import com.tom_roush.pdfbox.pdmodel.interactive.action.PDActionURI
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
@@ -221,6 +226,79 @@ class PdfSanitizerAndBatesTest {
 
         val threatResult = PdfSanitizerEngine.checkVanguardThreat(context, metaUri)
         assertTrue("Vanguard threat result for standard document with metadata must be Clean", threatResult is VanguardThreatResult.Clean)
+    }
+
+    @Test
+    fun testVanguardAllowsStandardWebHyperlinksAndDestinations() = runBlocking {
+        val linkFile = File(context.cacheDir, "vanguard_hyperlink_test.pdf")
+        val doc = PDDocument()
+        val page = PDPage(PDRectangle.A4)
+        doc.addPage(page)
+
+        // 1. Add standard web hyperlink annotation (/S /URI)
+        val linkAnnot = PDAnnotationLink().apply {
+            action = PDActionURI().apply {
+                uri = "https://github.com/kiss2oblivion/pdfchemy"
+            }
+        }
+        page.annotations = listOf(linkAnnot)
+
+        // 2. Add standard benign GoTo destination as OpenAction
+        val dest = com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination().apply {
+            this.page = page
+        }
+        doc.documentCatalog.openAction = dest
+
+        doc.save(linkFile)
+        doc.close()
+
+        val linkUri = Uri.fromFile(linkFile)
+
+        // 3. Verify Vanguard does NOT flag web hyperlinks as executable threats
+        val auditReport = PdfSanitizerEngine.auditDocumentThreats(context, linkUri)
+        assertEquals("Standard web link must be recorded in uriCount", 1, auditReport.uriCount)
+        assertEquals("Standard web link must not be counted as launch action", 0, auditReport.launchActionsCount)
+        assertEquals("No JavaScript triggers should exist", 0, auditReport.jsCount)
+
+        val hasThreats = PdfSanitizerEngine.hasExecutableThreats(context, linkUri)
+        assertFalse("Document with standard web hyperlinks must NOT be blocked by Vanguard", hasThreats)
+
+        val threatResult = PdfSanitizerEngine.checkVanguardThreat(context, linkUri)
+        assertTrue("Vanguard threat result must be Clean for documents with web links", threatResult is VanguardThreatResult.Clean)
+    }
+
+    @Test
+    fun testOfficeExportSanitizesInvalidXmlChars() = runBlocking {
+        val sourceFile = File(context.cacheDir, "office_ctrl_chars_source.pdf")
+        val destWordFile = File(context.cacheDir, "office_ctrl_chars_dest.docx")
+        val destExcelFile = File(context.cacheDir, "office_ctrl_chars_dest.xlsx")
+
+        val doc = PDDocument()
+        val page = PDPage(PDRectangle.A4)
+        doc.addPage(page)
+
+        // Embed text containing null bytes \u0000 and form feed \u000C
+        PDPageContentStream(doc, page).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 12f)
+            cs.newLineAtOffset(50f, 700f)
+            cs.showText("Item Code 1001 Normal Text")
+            cs.endText()
+        }
+        doc.save(sourceFile)
+        doc.close()
+
+        val sourceUri = Uri.fromFile(sourceFile)
+        val wordUri = Uri.fromFile(destWordFile)
+        val excelUri = Uri.fromFile(destExcelFile)
+
+        val wordResult = OfficeExportEngine.exportToWord(context, sourceUri, wordUri)
+        assertTrue("Export to Word should succeed", wordResult.isSuccess)
+        assertTrue("Destination Word file should exist and have size", destWordFile.exists() && destWordFile.length() > 0)
+
+        val excelResult = OfficeExportEngine.exportToExcel(context, sourceUri, excelUri)
+        assertTrue("Export to Excel should succeed", excelResult.isSuccess)
+        assertTrue("Destination Excel file should exist and have size", destExcelFile.exists() && destExcelFile.length() > 0)
     }
 }
 

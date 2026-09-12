@@ -639,8 +639,11 @@ object OfficeExportEngine {
         zip.finish()
     }
 
+    private val INVALID_XML_CONTROL_CHARS = Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]")
+
     private fun escapeXml(text: String): String {
-        return text
+        val sanitized = INVALID_XML_CONTROL_CHARS.replace(text, "")
+        return sanitized
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")

@@ -67,6 +67,35 @@ object PdfTableExtractorEngine {
         val startPage = if (pageIndex != null) (pageIndex + 1).coerceIn(1, totalPages) else 1
         val endPage = if (pageIndex != null) (pageIndex + 1).coerceIn(1, totalPages) else totalPages
 
+        val allRows = mutableListOf<List<String>>()
+
+        for (p in startPage..endPage) {
+            val pageRows = extractPageRows(doc, p)
+            if (pageRows.isNotEmpty()) {
+                allRows.addAll(pageRows)
+            }
+        }
+
+        if (allRows.isEmpty()) return ""
+
+        // Format into RFC 4180 CSV
+        val sb = StringBuilder()
+        for (row in allRows) {
+            val rowStr = row.joinToString(",") { cell ->
+                val escaped = cell.replace("\"", "\"\"")
+                if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r")) {
+                    "\"$escaped\""
+                } else {
+                    escaped
+                }
+            }
+            sb.append(rowStr).append("\r\n")
+        }
+
+        return sb.toString()
+    }
+
+    fun extractPageRows(doc: PDDocument, pageNumber1Based: Int): List<List<String>> {
         val allWords = mutableListOf<SpatialWord>()
         val currentWordChars = StringBuilder()
         var wordStartX = 0f
@@ -134,12 +163,12 @@ object PdfTableExtractorEngine {
                 super.processTextPosition(text)
             }
         }
-        stripper.startPage = startPage
-        stripper.endPage = endPage
+        stripper.startPage = pageNumber1Based
+        stripper.endPage = pageNumber1Based
         stripper.writeText(doc, java.io.StringWriter())
         flushWord()
 
-        if (allWords.isEmpty()) return ""
+        if (allWords.isEmpty()) return emptyList()
 
         // Group into words based on horizontal proximity on the same horizontal line
         val lineThreshold = 3.5f
@@ -195,20 +224,6 @@ object PdfTableExtractorEngine {
             }
         }
 
-        // Format into RFC 4180 CSV
-        val sb = StringBuilder()
-        for (row in csvRows) {
-            val rowStr = row.joinToString(",") { cell ->
-                val escaped = cell.replace("\"", "\"\"")
-                if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r")) {
-                    "\"$escaped\""
-                } else {
-                    escaped
-                }
-            }
-            sb.append(rowStr).append("\r\n")
-        }
-
-        return sb.toString()
+        return csvRows
     }
 }

@@ -70,8 +70,11 @@ fun ReflowReaderScreen(
     val scope = rememberCoroutineScope()
 
     var selectedPdfUri by remember { mutableStateOf<Uri?>(initialUri) }
+    var uriHash by remember { mutableStateOf("default") }
     var reflowSections by remember { mutableStateOf<List<ReflowSection>>(emptyList()) }
     var bookmarks by remember { mutableStateOf<List<OutlineBookmark>>(emptyList()) }
+    var isScannedOnly by remember { mutableStateOf(false) }
+    var isOcrExtracting by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
     val configuration = LocalConfiguration.current
@@ -81,8 +84,20 @@ fun ReflowReaderScreen(
     var forceTabletopMode by remember { mutableStateOf(false) }
     val isTabletopMode = postureInfo.isTabletop || forceTabletopMode
 
-    val isVanguardEnabled = remember {
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getBoolean("vanguard_enabled", true)
+    val prefs = remember(context) { context.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE) }
+    var isVanguardEnabled by remember {
+        mutableStateOf(prefs.getBoolean("vanguard_enabled", true))
+    }
+    androidx.compose.runtime.DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "vanguard_enabled") {
+                isVanguardEnabled = prefs.getBoolean("vanguard_enabled", true)
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
     var showVanguardBlockedDialog by remember { mutableStateOf(false) }
     var showVanguardEncryptedDialog by remember { mutableStateOf(false) }
@@ -192,6 +207,8 @@ fun ReflowReaderScreen(
                             val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
                             reflowSections = docData.sections
                             bookmarks = docData.bookmarks
+                            isScannedOnly = docData.isScannedOnly
+                            uriHash = initialUri.toString().hashCode().toString()
                             isLoading = false
                         }
                         is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
@@ -211,6 +228,8 @@ fun ReflowReaderScreen(
                 val docData = PdfOutlineReader.loadReflowDocument(context, initialUri)
                 reflowSections = docData.sections
                 bookmarks = docData.bookmarks
+                isScannedOnly = docData.isScannedOnly
+                uriHash = initialUri.toString().hashCode().toString()
                 isLoading = false
             }
         }
@@ -221,6 +240,28 @@ fun ReflowReaderScreen(
     var useSerifFont by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val listState = rememberLazyListState()
+
+    LaunchedEffect(reflowSections, uriHash) {
+        if (reflowSections.isNotEmpty() && !isScannedOnly) {
+            val savedIndex = prefs.getInt("reader_scroll_index_$uriHash", 0)
+            val savedOffset = prefs.getInt("reader_scroll_offset_$uriHash", 0)
+            if (savedIndex < reflowSections.size) {
+                listState.scrollToItem(savedIndex, savedOffset)
+            }
+        }
+    }
+
+    LaunchedEffect(listState, uriHash, reflowSections) {
+        androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (reflowSections.isNotEmpty() && !isScannedOnly) {
+                    prefs.edit()
+                        .putInt("reader_scroll_index_$uriHash", index)
+                        .putInt("reader_scroll_offset_$uriHash", offset)
+                        .apply()
+                }
+            }
+    }
 
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -234,6 +275,17 @@ fun ReflowReaderScreen(
 
     val allParagraphs = remember(reflowSections) {
         reflowSections.flatMap { it.paragraphs }
+    }
+    
+    val paragraphToSection = remember(reflowSections) {
+        val map = mutableMapOf<Int, Int>()
+        var pIdx = 0
+        for ((sIdx, section) in reflowSections.withIndex()) {
+            for (p in section.paragraphs) {
+                map[pIdx++] = sIdx
+            }
+        }
+        map
     }
 
     fun speakParagraph(index: Int) {
@@ -259,19 +311,27 @@ fun ReflowReaderScreen(
         }
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                isTtsPlaying = true
+                scope.launch(kotlinx.coroutines.Dispatchers.Main) { 
+                    isTtsPlaying = true 
+                    val sIdx = paragraphToSection[currentSpeakingIndex]
+                    if (sIdx != null && !listState.isScrollInProgress) {
+                        listState.animateScrollToItem(sIdx)
+                    }
+                }
             }
             override fun onDone(utteranceId: String?) {
-                if (currentSpeakingIndex + 1 < allParagraphs.size) {
-                    currentSpeakingIndex++
-                    val nextText = allParagraphs[currentSpeakingIndex]
-                    tts.speak(nextText, TextToSpeech.QUEUE_FLUSH, null, "P_$currentSpeakingIndex")
-                } else {
-                    isTtsPlaying = false
+                scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    if (currentSpeakingIndex + 1 < allParagraphs.size) {
+                        currentSpeakingIndex++
+                        val nextText = allParagraphs[currentSpeakingIndex]
+                        tts.speak(nextText, TextToSpeech.QUEUE_FLUSH, null, "P_$currentSpeakingIndex")
+                    } else {
+                        isTtsPlaying = false
+                    }
                 }
             }
             override fun onError(utteranceId: String?) {
-                isTtsPlaying = false
+                scope.launch(kotlinx.coroutines.Dispatchers.Main) { isTtsPlaying = false }
             }
         })
         ttsEngine = tts
@@ -338,6 +398,8 @@ fun ReflowReaderScreen(
                                 val docData = PdfOutlineReader.loadReflowDocument(context, uri)
                                 reflowSections = docData.sections
                                 bookmarks = docData.bookmarks
+                                isScannedOnly = docData.isScannedOnly
+                                uriHash = uri.toString().hashCode().toString()
                                 isLoading = false
                             }
                             is com.pdfchemy.app.logic.VanguardThreatResult.EncryptedCannotVerify -> {
@@ -359,6 +421,8 @@ fun ReflowReaderScreen(
                     val docData = PdfOutlineReader.loadReflowDocument(context, uri)
                     reflowSections = docData.sections
                     bookmarks = docData.bookmarks
+                    isScannedOnly = docData.isScannedOnly
+                    uriHash = uri.toString().hashCode().toString()
                     isLoading = false
                 }
             }
@@ -719,6 +783,73 @@ fun ReflowReaderScreen(
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (selectedPdfUri != null && isScannedOnly && reflowSections.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 500.dp)
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .background(MaterialTheme.colorScheme.errorContainer, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.DocumentScanner,
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp),
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+
+                        Text(
+                            text = stringResource(R.string.scanned_pdf_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            color = selectedTheme.text
+                        )
+
+                        Text(
+                            text = stringResource(R.string.scanned_pdf_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = selectedTheme.text.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+
+                        if (isOcrExtracting) {
+                            CircularProgressIndicator()
+                            Text(stringResource(R.string.running_ocr), color = selectedTheme.text)
+                        } else {
+                            Button(
+                                onClick = {
+                                    isOcrExtracting = true
+                                    scope.launch {
+                                        val extractedText = com.pdfchemy.app.logic.PdfTextExtractor.extractUsingOcr(context, selectedPdfUri!!)
+                                        if (extractedText.isNotBlank()) {
+                                            val paragraphs = extractedText.split(Regex("\n\n+"))
+                                                .map { it.replace(Regex("\n+"), " ").trim() }
+                                                .filter { it.isNotBlank() }
+                                            
+                                            reflowSections = listOf(ReflowSection(pageNumber = 1, title = "OCR Extracted", paragraphs = paragraphs))
+                                            isScannedOnly = false
+                                        }
+                                        isOcrExtracting = false
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 50.dp)
+                            ) {
+                                Icon(Icons.Rounded.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.run_on_device_ocr), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 } else if (selectedPdfUri == null) {
                     Column(
                         modifier = Modifier
@@ -812,13 +943,18 @@ fun ReflowReaderScreen(
                                         }
 
                                         section.paragraphs.forEach { p ->
-                                            HighlightedParagraph(
-                                                text = p,
-                                                searchQuery = searchQuery,
-                                                textColor = selectedTheme.text,
-                                                fontSizeSp = fontSizeSp,
-                                                useSerifFont = useSerifFont
-                                            )
+                                            val isSpoken = isTtsPlaying && p == allParagraphs.getOrNull(currentSpeakingIndex)
+                                            val bgColor = if (isSpoken) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+                                            
+                                            Box(modifier = Modifier.background(bgColor, RoundedCornerShape(4.dp)).padding(2.dp)) {
+                                                HighlightedParagraph(
+                                                    text = p,
+                                                    searchQuery = searchQuery,
+                                                    textColor = selectedTheme.text,
+                                                    fontSizeSp = fontSizeSp,
+                                                    useSerifFont = useSerifFont
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -972,13 +1108,18 @@ fun ReflowReaderScreen(
                                 }
 
                                 section.paragraphs.forEach { p ->
-                                    HighlightedParagraph(
-                                        text = p,
-                                        searchQuery = searchQuery,
-                                        textColor = selectedTheme.text,
-                                        fontSizeSp = fontSizeSp,
-                                        useSerifFont = useSerifFont
-                                    )
+                                    val isSpoken = isTtsPlaying && p == allParagraphs.getOrNull(currentSpeakingIndex)
+                                    val bgColor = if (isSpoken) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+                                    
+                                    Box(modifier = Modifier.background(bgColor, RoundedCornerShape(4.dp)).padding(2.dp)) {
+                                        HighlightedParagraph(
+                                            text = p,
+                                            searchQuery = searchQuery,
+                                            textColor = selectedTheme.text,
+                                            fontSizeSp = fontSizeSp,
+                                            useSerifFont = useSerifFont
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1013,13 +1154,18 @@ fun ReflowReaderScreen(
                                 }
 
                                 section.paragraphs.forEach { p ->
-                                    HighlightedParagraph(
-                                        text = p,
-                                        searchQuery = searchQuery,
-                                        textColor = selectedTheme.text,
-                                        fontSizeSp = fontSizeSp,
-                                        useSerifFont = useSerifFont
-                                    )
+                                    val isSpoken = isTtsPlaying && p == allParagraphs.getOrNull(currentSpeakingIndex)
+                                    val bgColor = if (isSpoken) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+                                    
+                                    Box(modifier = Modifier.background(bgColor, RoundedCornerShape(4.dp)).padding(2.dp)) {
+                                        HighlightedParagraph(
+                                            text = p,
+                                            searchQuery = searchQuery,
+                                            textColor = selectedTheme.text,
+                                            fontSizeSp = fontSizeSp,
+                                            useSerifFont = useSerifFont
+                                        )
+                                    }
                                 }
                             }
                             HorizontalDivider(color = selectedTheme.text.copy(alpha = 0.1f))

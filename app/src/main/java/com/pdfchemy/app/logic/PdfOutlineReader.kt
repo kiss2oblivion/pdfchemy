@@ -23,7 +23,9 @@ data class ReflowSection(
 
 data class ReflowDocumentData(
     val sections: List<ReflowSection>,
-    val bookmarks: List<OutlineBookmark>
+    val bookmarks: List<OutlineBookmark>,
+    val isScannedOnly: Boolean = false,
+    val totalPages: Int = 0
 )
 
 object PdfOutlineReader {
@@ -48,16 +50,19 @@ object PdfOutlineReader {
             val sections = chapters.mapIndexed { index, pair ->
                 ReflowSection(pageNumber = index + 1, title = pair.first, paragraphs = pair.second)
             }
-            return@withContext ReflowDocumentData(sections, bookmarks)
+            return@withContext ReflowDocumentData(sections, bookmarks, isScannedOnly = false, totalPages = sections.size)
         }
 
         val sections = mutableListOf<ReflowSection>()
         val bookmarks = mutableListOf<OutlineBookmark>()
+        var isScannedOnly = false
+        var totalPages = 0
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { stream ->
                 doc = PDDocument.load(stream)
                 if (doc != null) {
+                    totalPages = doc!!.numberOfPages
                     // 1. Extract outline
                     val catalog = doc?.documentCatalog
                     val outline = catalog?.documentOutline
@@ -71,6 +76,9 @@ object PdfOutlineReader {
 
                     // 2. Extract reflow paragraphs in the same pass
                     val allPagesText = PdfTextExtractor.extractAllPagesText(doc!!)
+                    val hasAnyText = allPagesText.any { it.trim().isNotEmpty() }
+                    isScannedOnly = totalPages > 0 && !hasAnyText
+
                     for ((idx, rawText) in allPagesText.withIndex()) {
                         val pageNum = idx + 1
                         val trimmed = rawText.trim()
@@ -96,7 +104,7 @@ object PdfOutlineReader {
         } finally {
             doc?.close()
         }
-        ReflowDocumentData(sections, bookmarks)
+        ReflowDocumentData(sections, bookmarks, isScannedOnly, totalPages)
     }
 
     private fun parseOutlineNode(
@@ -165,26 +173,44 @@ object PdfOutlineReader {
             }
 
             val opfEntry = zip.getEntry(opfPath)
-            val opfDir = if (opfPath.contains('/')) opfPath.substringBeforeLast('/') + "/" else ""
+            val opfBaseUri = java.net.URI.create("file:///" + opfPath.replace(" ", "%20"))
             val spineItems = mutableListOf<String>()
 
             if (opfEntry != null) {
                 val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
                 val itemMap = mutableMapOf<String, String>()
-                val itemRegex = Regex("""<item\s+[^>]*id\s*=\s*["']([^"']+)["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+                // Flexible regex for opf:item or item
+                val itemRegex = Regex("""<(?:opf:)?item\s+([^>]+)>""", RegexOption.IGNORE_CASE)
                 for (m in itemRegex.findAll(opfText)) {
-                    itemMap[m.groupValues[1]] = opfDir + m.groupValues[2]
-                }
-                val itemRegex2 = Regex("""<item\s+[^>]*href\s*=\s*["']([^"']+)["'][^>]*id\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
-                for (m in itemRegex2.findAll(opfText)) {
-                    itemMap[m.groupValues[2]] = opfDir + m.groupValues[1]
+                    val attrs = m.groupValues[1]
+                    val idMatch = Regex("""id\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(attrs)
+                    val hrefMatch = Regex("""href\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(attrs)
+                    if (idMatch != null && hrefMatch != null) {
+                        val id = idMatch.groupValues[1]
+                        var href = hrefMatch.groupValues[1]
+                        
+                        // Clean href (remove anchors)
+                        href = href.substringBefore('#')
+                        // URL decode
+                        href = java.net.URLDecoder.decode(href, "UTF-8")
+                        
+                        // Resolve relative path
+                        val resolvedUri = opfBaseUri.resolve(href.replace(" ", "%20"))
+                        var resolvedPath = resolvedUri.path
+                        if (resolvedPath.startsWith("/")) resolvedPath = resolvedPath.substring(1)
+                        
+                        // URL decode the final path just in case the zip entry uses decoded names
+                        resolvedPath = java.net.URLDecoder.decode(resolvedPath, "UTF-8")
+                        
+                        itemMap[id] = resolvedPath
+                    }
                 }
 
-                val itemrefRegex = Regex("""<itemref\s+[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+                val itemrefRegex = Regex("""<(?:opf:)?itemref\s+[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
                 for (m in itemrefRegex.findAll(opfText)) {
                     val resolved = itemMap[m.groupValues[1]]
                     if (resolved != null && (resolved.endsWith(".xhtml", true) || resolved.endsWith(".html", true) || resolved.endsWith(".htm", true))) {
-                        if (!resolved.contains("nav.xhtml", true)) {
+                        if (!resolved.contains("nav.xhtml", true) && !resolved.contains("toc.xhtml", true)) {
                             spineItems.add(resolved)
                         }
                     }
@@ -194,7 +220,7 @@ object PdfOutlineReader {
             if (spineItems.isEmpty()) {
                 val allHtml = zip.entries().toList().filter { 
                     it.name.endsWith(".xhtml", true) || it.name.endsWith(".html", true) 
-                }.filter { !it.name.contains("nav.xhtml", true) }.sortedBy { it.name }
+                }.filter { !it.name.contains("nav.xhtml", true) && !it.name.contains("toc.xhtml", true) }.sortedBy { it.name }
                 for (entry in allHtml) spineItems.add(entry.name)
             }
 
@@ -202,17 +228,31 @@ object PdfOutlineReader {
                 val entry = zip.getEntry(path) ?: continue
                 val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
                 
-                val titleMatch = Regex("""<(?:h[1-3]|title)[^>]*>([^<]+)</(?:h[1-3]|title)>""", RegexOption.IGNORE_CASE).find(html)
-                val chapTitle = titleMatch?.groupValues?.get(1)?.trim() ?: "Chapter ${idx + 1}"
+                // Enhanced title extraction
+                val titleMatch = Regex("""<(?:h[1-3]|title)[^>]*>(.*?)</(?:h[1-3]|title)>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(html)
+                var chapTitle = titleMatch?.groupValues?.get(1)?.replace(Regex("""<[^>]+>"""), "")?.trim() ?: "Chapter ${idx + 1}"
+                
+                chapTitle = decodeHtmlEntities(chapTitle)
 
                 var clean = html.replace(Regex("""<head.*?</head>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
                 clean = clean.replace(Regex("""<style.*?</style>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
                 clean = clean.replace(Regex("""<script.*?</script>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
-                clean = clean.replace(Regex("""<(p|h[1-6]|div|li)[^>]*>""", RegexOption.IGNORE_CASE), "\n")
+                clean = clean.replace(Regex("""<(p|h[1-6]|div|li|tr)[^>]*>""", RegexOption.IGNORE_CASE), "\n")
                 clean = clean.replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
                 clean = clean.replace(Regex("""<[^>]+>"""), "")
-                clean = clean.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
+                
+                clean = decodeHtmlEntities(clean)
+                
                 val paragraphs = clean.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                
+                // Descriptive chapter title for generic "Page X" or "Chapter X"
+                if ((chapTitle.startsWith("Chapter", ignoreCase = true) || chapTitle.startsWith("Page", ignoreCase = true) || chapTitle.length < 2) && paragraphs.isNotEmpty()) {
+                    val firstLine = paragraphs.first()
+                    if (firstLine.length in 3..100) {
+                        chapTitle = firstLine
+                    }
+                }
+
                 if (paragraphs.isNotEmpty()) {
                     chapters.add(chapTitle to paragraphs)
                 }
@@ -224,6 +264,35 @@ object PdfOutlineReader {
             tempFile?.delete()
         }
         return chapters
+    }
+
+    private fun decodeHtmlEntities(text: String): String {
+        var decoded = text
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&#39;", "'")
+            .replace("&mdash;", "—")
+            .replace("&ndash;", "–")
+            .replace("&hellip;", "…")
+            .replace("&lsquo;", "‘")
+            .replace("&rsquo;", "’")
+            .replace("&ldquo;", "“")
+            .replace("&rdquo;", "”")
+            .replace("&bull;", "•")
+        
+        // Hex entities
+        decoded = Regex("""&#x([0-9a-fA-F]+);""").replace(decoded) {
+            try { it.groupValues[1].toInt(16).toChar().toString() } catch (e: Exception) { it.value }
+        }
+        // Numeric entities
+        decoded = Regex("""&#([0-9]+);""").replace(decoded) {
+            try { it.groupValues[1].toInt().toChar().toString() } catch (e: Exception) { it.value }
+        }
+        return decoded
     }
 
     private fun extractEpubOutline(context: Context, sourceUri: Uri): List<OutlineBookmark> {
