@@ -57,9 +57,22 @@ fun main(args: Array<String>) = application {
                         isDarkTheme = !isDarkTheme
                         true
                     }
-                    // Esc: Return to Home Dashboard
+                    // F11: Toggle True Borderless Full Screen
+                    keyEvent.key == Key.F11 -> {
+                        windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                            WindowPlacement.Floating
+                        } else {
+                            WindowPlacement.Fullscreen
+                        }
+                        true
+                    }
+                    // Esc: Exit Fullscreen or Return to Home Dashboard
                     keyEvent.key == Key.Escape -> {
-                        currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.HOME
+                        if (windowState.placement == WindowPlacement.Fullscreen) {
+                            windowState.placement = WindowPlacement.Floating
+                        } else {
+                            currentTab = com.pdfchemy.desktop.ui.DesktopNavTab.HOME
+                        }
                         true
                     }
                     // Ctrl+1..7: Switch to tool tabs
@@ -151,7 +164,15 @@ fun main(args: Array<String>) = application {
                 isDarkTheme = isDarkTheme,
                 onToggleTheme = { isDarkTheme = !isDarkTheme },
                 currentTab = currentTab,
-                onTabChange = { currentTab = it }
+                onTabChange = { currentTab = it },
+                isFullScreen = windowState.placement == WindowPlacement.Fullscreen,
+                onToggleFullScreen = {
+                    windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                        WindowPlacement.Floating
+                    } else {
+                        WindowPlacement.Fullscreen
+                    }
+                }
             )
         }
     }
