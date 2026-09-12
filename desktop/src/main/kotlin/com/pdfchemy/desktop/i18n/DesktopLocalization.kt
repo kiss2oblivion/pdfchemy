@@ -1,7 +1,9 @@
 package com.pdfchemy.desktop.i18n
 
 import androidx.compose.runtime.mutableStateOf
+import java.io.File
 import java.util.Locale
+import java.util.Properties
 import java.util.prefs.Preferences
 
 /**
@@ -63,34 +65,93 @@ enum class DesktopLanguage(
 
 /**
  * State and lifecycle manager for desktop localization.
- * Backed by Compose mutableStateOf for instant reactive UI updates.
+ * Backed by Compose mutableStateOf for instant reactive UI updates and robust ~/.pdfchemy/config.properties file persistence.
  */
 object DesktopLocalization {
     private const val PREF_KEY_LANG = "desktop_language"
     private const val PREF_KEY_FIRST_RUN_DONE = "desktop_setup_completed"
+    private const val CONFIG_PROP_LANG = "default_language"
+    private const val CONFIG_PROP_SETUP = "setup_completed"
+
+    private val configDir = File(System.getProperty("user.home"), ".pdfchemy")
+    private val configFile = File(configDir, "config.properties")
 
     private val prefs: Preferences by lazy {
         Preferences.userNodeForPackage(DesktopLocalization::class.java)
     }
 
     val currentLanguageState = mutableStateOf(resolveInitialLanguage())
+    val defaultLanguageState = mutableStateOf(resolveSavedDefaultLanguage())
 
     var currentLanguage: DesktopLanguage
         get() = currentLanguageState.value
         set(value) {
-            currentLanguageState.value = value
-            try {
-                prefs.put(PREF_KEY_LANG, value.code)
-                prefs.putBoolean(PREF_KEY_FIRST_RUN_DONE, true)
-                prefs.flush()
-            } catch (_: Exception) {}
+            setDefaultLanguage(value)
         }
 
+    val defaultLanguage: DesktopLanguage?
+        get() = defaultLanguageState.value
+
     val isFirstRun: Boolean
-        get() = !prefs.getBoolean(PREF_KEY_FIRST_RUN_DONE, false)
+        get() {
+            try {
+                if (configFile.exists()) {
+                    val props = Properties()
+                    configFile.inputStream().use { props.load(it) }
+                    if (props.getProperty(CONFIG_PROP_SETUP) == "true" || !props.getProperty(CONFIG_PROP_LANG).isNullOrBlank()) {
+                        return false
+                    }
+                }
+            } catch (_: Exception) {}
+            return !prefs.getBoolean(PREF_KEY_FIRST_RUN_DONE, false)
+        }
 
     var cliOverrideActive: Boolean = false
         private set
+
+    /**
+     * Sets the default language permanently across sessions and updates current language.
+     * Pass null to clear explicit default and restore dynamic OS system language detection.
+     */
+    fun setDefaultLanguage(language: DesktopLanguage?) {
+        defaultLanguageState.value = language
+        if (language != null) {
+            currentLanguageState.value = language
+            // 1. Persist to ~/.pdfchemy/config.properties (100% reliable across all OS environments & packaged runtimes)
+            try {
+                configDir.mkdirs()
+                val props = Properties()
+                if (configFile.exists()) {
+                    configFile.inputStream().use { props.load(it) }
+                }
+                props.setProperty(CONFIG_PROP_LANG, language.code)
+                props.setProperty(CONFIG_PROP_SETUP, "true")
+                configFile.outputStream().use { props.store(it, "PDFchemy Configuration") }
+            } catch (_: Exception) {}
+
+            // 2. Persist to Java Preferences fallback
+            try {
+                prefs.put(PREF_KEY_LANG, language.code)
+                prefs.putBoolean(PREF_KEY_FIRST_RUN_DONE, true)
+                prefs.flush()
+            } catch (_: Exception) {}
+        } else {
+            // Reset to system language
+            try {
+                if (configFile.exists()) {
+                    val props = Properties()
+                    configFile.inputStream().use { props.load(it) }
+                    props.remove(CONFIG_PROP_LANG)
+                    configFile.outputStream().use { props.store(it, "PDFchemy Configuration") }
+                }
+            } catch (_: Exception) {}
+            try {
+                prefs.remove(PREF_KEY_LANG)
+                prefs.flush()
+            } catch (_: Exception) {}
+            currentLanguageState.value = DesktopLanguage.detectSystemLanguage()
+        }
+    }
 
     /**
      * Initializes localization from CLI arguments or environment.
@@ -110,7 +171,31 @@ object DesktopLocalization {
     }
 
     fun completeSetup(language: DesktopLanguage) {
-        currentLanguage = language
+        setDefaultLanguage(language)
+    }
+
+    fun resolveSavedDefaultLanguage(): DesktopLanguage? {
+        // 1. File-based configuration in ~/.pdfchemy/config.properties
+        try {
+            if (configFile.exists()) {
+                val props = Properties()
+                configFile.inputStream().use { props.load(it) }
+                val code = props.getProperty(CONFIG_PROP_LANG)
+                if (!code.isNullOrBlank()) {
+                    return DesktopLanguage.fromCode(code)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Java Preferences fallback
+        try {
+            val saved = prefs.get(PREF_KEY_LANG, null)
+            if (!saved.isNullOrBlank()) {
+                return DesktopLanguage.fromCode(saved)
+            }
+        } catch (_: Exception) {}
+
+        return null
     }
 
     private fun resolveInitialLanguage(): DesktopLanguage {
@@ -119,13 +204,11 @@ object DesktopLocalization {
         if (!sysProp.isNullOrBlank()) {
             return DesktopLanguage.fromCode(sysProp)
         }
-        // 2. Persisted user preference
-        try {
-            val saved = prefs.get(PREF_KEY_LANG, null)
-            if (!saved.isNullOrBlank()) {
-                return DesktopLanguage.fromCode(saved)
-            }
-        } catch (_: Exception) {}
+        // 2. Persisted user default preference
+        val saved = resolveSavedDefaultLanguage()
+        if (saved != null) {
+            return saved
+        }
         // 3. Dynamic OS detection (Linux $LANG / Windows default locale)
         return DesktopLanguage.detectSystemLanguage()
     }

@@ -111,7 +111,7 @@
 | **Digital Signatures (PKI)** | Cryptographic certificate signing (`.p12` / `.pfx` keystores) with visual seal | `PdfCryptoSigner.kt` (BouncyCastle) | ✅ Live |
 | **Bates Numbering** | Legal bates numbering engine with 6 placement positions | `DesktopPdfEngine.applyBatesNumbering` | ✅ Live |
 | **Split Studio** | Split by Page Ranges, Split by Blank Pages, Split by Bookmarks | `DesktopPdfEngine.splitByBlankPages`, `splitByBookmarks` | ✅ Live |
-| **Multi-Language (i18n)** | 20 languages / 21 locales with runtime top-bar switcher and CLI `--lang` flags | `DesktopLocalization.kt`, `DesktopStrings.kt` | ✅ Live |
+| **Multi-Language (i18n)** | 20 languages / 21 locales with runtime top-bar switcher, permanent default startup language setting with `~/.pdfchemy/config.properties` file-backed persistence (surviving OS restarts and packaged MSI/Debian environments), and CLI `--lang` flags | `DesktopLocalization.kt`, `DesktopStrings.kt` | ✅ Live |
 | **In-App Updater & Auto-Installer** | Checks GitHub Releases, downloads platform installers (.msi/.exe on Windows, .deb/.rpm/.jar on Linux) with real-time progress, verifies cryptographic SHA-256 checksum against official `SHA256SUMS.txt`, securely launches installer without shell injection, and exits running process | `DesktopUpdateManager.kt`, `DesktopApp.kt` | ✅ Live |
 | **The Lifetime Manifesto** | 4 Guarantees dialog | `DesktopApp.kt` | ✅ Live |
 

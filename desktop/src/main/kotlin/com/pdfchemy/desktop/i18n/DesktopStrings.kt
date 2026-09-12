@@ -393,6 +393,13 @@ data class DesktopStrings(
     var updateChecksumMismatch: String = "Security Error: SHA-256 integrity verification failed! Update aborted."
     var btnCancelUpdate: String = "Cancel Download"
     var updateInstallerReady: String = "Installer downloaded and verified successfully."
+
+    // 11. Default Language Settings
+    var defaultLanguageBadge: String = "Default"
+    var setDefaultLanguage: String = "Set as Default Language"
+    var defaultLanguageSaved: String = "%1\$s set as default startup language"
+    var resetToSystemLanguage: String = "Use System Language (%1\$s)"
+    var defaultLanguageHeader: String = "%1\$s is your default startup language"
 }
 
 /**
@@ -1174,7 +1181,13 @@ object DesktopStringStore {
         compareDiffCount = "%1\$d Modificări Detectate",
         compareChooseDocA = "Alege Documentul A",
         compareChooseDocB = "Alege Documentul B"
-    )
+    ).apply {
+        defaultLanguageBadge = "Implicit"
+        setDefaultLanguage = "Setează ca limbă implicită"
+        defaultLanguageSaved = "%1\$s a fost setată ca limbă implicită de pornire"
+        resetToSystemLanguage = "Folosește limba sistemului (%1\$s)"
+        defaultLanguageHeader = "%1\$s este limba ta implicită de pornire"
+    }
 
     val IT = DesktopStrings(
         appTitle = "PDFchemy Tools",
