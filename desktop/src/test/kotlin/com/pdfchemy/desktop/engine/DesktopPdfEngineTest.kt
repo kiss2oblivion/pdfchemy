@@ -839,6 +839,40 @@ class DesktopPdfEngineTest {
         assertEquals(0, bookmarks[1].depth)
         assertTrue(bookmarks[1].children.isEmpty())
     }
+
+    @Test
+    fun testValidateSecureGitHubUri() {
+        // Valid GitHub official domains & subdomains
+        DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("https://github.com/kiss2oblivion/pdfchemy/releases/download/v1.0.4/PDFchemy-1.0.4.msi"))
+        DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("https://api.github.com/repos/kiss2oblivion/pdfchemy/releases/latest"))
+        DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("https://release-assets.githubusercontent.com/github-production-release-asset/1356451472/file.msi"))
+        DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("https://objects.githubusercontent.com/github-production-release-asset/1356451472/file.msi"))
+        DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("https://raw.githubusercontent.com/kiss2oblivion/pdfchemy/main/README.md"))
+
+        // Insecure HTTP must fail
+        try {
+            DesktopUpdateManager.validateSecureGitHubUri(java.net.URI("http://github.com/file.msi"))
+            fail("Should reject non-HTTPS")
+        } catch (e: SecurityException) {
+            assertTrue(e.message!!.contains("HTTPS"))
+        }
+
+        // Untrusted / Lookalike domains must fail
+        val untrusted = listOf(
+            "https://evil-github.com/file.msi",
+            "https://github.attacker.org/file.msi",
+            "https://fake-githubusercontent.com/file.msi",
+            "https://evil.com/file.msi"
+        )
+        for (u in untrusted) {
+            try {
+                DesktopUpdateManager.validateSecureGitHubUri(java.net.URI(u))
+                fail("Should reject untrusted domain: $u")
+            } catch (e: SecurityException) {
+                assertTrue(e.message!!.contains("Untrusted update host"))
+            }
+        }
+    }
 }
 
 
