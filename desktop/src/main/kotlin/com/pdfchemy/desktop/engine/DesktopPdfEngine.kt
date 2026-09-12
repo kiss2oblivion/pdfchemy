@@ -104,6 +104,13 @@ data class PdfDiffSummary(
     val isEntirelyIdentical: Boolean
 )
 
+data class DesktopPdfBookmark(
+    val title: String,
+    val pageIndex: Int,
+    val children: List<DesktopPdfBookmark> = emptyList(),
+    val depth: Int = 0
+)
+
 // --- BATES STAMPING DATA MODELS ---
 enum class DesktopBatesPosition {
     TOP_LEFT, TOP_CENTER, TOP_RIGHT,
@@ -410,6 +417,73 @@ object DesktopPdfEngine {
             }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    /**
+     * Extracts hierarchical bookmarks / table of contents from a PDF document outline.
+     */
+    fun extractBookmarks(file: File): List<DesktopPdfBookmark> {
+        if (!file.exists() || file.name.lowercase().endsWith(".epub")) return emptyList()
+        return try {
+            PDDocument.load(file).use { doc ->
+                val outline = doc.documentCatalog?.documentOutline ?: return emptyList()
+                fun traverse(item: PDOutlineItem?, depth: Int): List<DesktopPdfBookmark> {
+                    val list = mutableListOf<DesktopPdfBookmark>()
+                    var cur = item
+                    while (cur != null) {
+                        var targetPageIdx = 0
+                        try {
+                            val dest = cur.destination ?: (cur.action as? org.apache.pdfbox.pdmodel.interactive.action.PDActionGoTo)?.destination
+                            if (dest is PDPageDestination) {
+                                val pdPage = dest.page
+                                if (pdPage != null) {
+                                    val idx = doc.pages.indexOf(pdPage)
+                                    if (idx >= 0) targetPageIdx = idx
+                                } else {
+                                    val pageNum = dest.retrievePageNumber()
+                                    if (pageNum >= 0) targetPageIdx = pageNum
+                                }
+                            }
+                        } catch (_: Exception) {}
+                        val children = traverse(cur.firstChild, depth + 1)
+                        list.add(
+                            DesktopPdfBookmark(
+                                title = cur.title ?: "Untitled Section",
+                                pageIndex = targetPageIdx.coerceIn(0, (doc.numberOfPages - 1).coerceAtLeast(0)),
+                                children = children,
+                                depth = depth
+                            )
+                        )
+                        cur = cur.nextSibling
+                    }
+                    return list
+                }
+                traverse(outline.firstChild, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Permanently rotates a single page in a PDF by degreesDelta (e.g. +90 or -90) and saves to outputFile.
+     */
+    fun rotateSinglePage(inputFile: File, outputFile: File, pageIndex: Int, degreesDelta: Int): Result<Boolean> {
+        return try {
+            PDDocument.load(inputFile).use { doc ->
+                if (pageIndex in 0 until doc.numberOfPages) {
+                    val page = doc.getPage(pageIndex)
+                    val currentRotation = page.rotation
+                    page.rotation = ((currentRotation + degreesDelta) % 360 + 360) % 360
+                    doc.save(outputFile)
+                    Result.success(true)
+                } else {
+                    Result.failure(IllegalArgumentException("Page index $pageIndex out of bounds for document with ${doc.numberOfPages} pages"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -2854,4 +2928,59 @@ object DesktopPdfEngine {
     }
 }
 
+/**
+ * 100% offline, privacy-first speech synthesizer utilizing native OS speech services (Windows SAPI / Linux spd-say).
+ */
+object DesktopSpeechSynthesizer {
+    private var currentProcess: Process? = null
+    private val isWindows = System.getProperty("os.name")?.lowercase()?.contains("win") == true
+    private val isLinux = System.getProperty("os.name")?.lowercase()?.contains("linux") == true
 
+    fun speak(text: String, rate: Int = 0, onFinished: () -> Unit = {}) {
+        stop()
+        val clean = text.trim()
+        if (clean.isBlank()) {
+            onFinished()
+            return
+        }
+        Thread {
+            try {
+                if (isWindows) {
+                    val tempScript = File.createTempFile("pdfchemy_tts_", ".ps1").apply {
+                        deleteOnExit()
+                        val safeText = clean.replace("`", "``").replace("\"", "`\"").replace("\$", "`$").take(6000)
+                        val scriptContent = """
+                            Add-Type -AssemblyName System.Speech
+                            ${'$'}synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+                            ${'$'}synth.Rate = $rate
+                            ${'$'}synth.Speak("$safeText")
+                        """.trimIndent()
+                        writeText(scriptContent, Charsets.UTF_8)
+                    }
+                    val pb = ProcessBuilder("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", tempScript.absolutePath)
+                    currentProcess = pb.start()
+                    currentProcess?.waitFor()
+                    tempScript.delete()
+                } else if (isLinux) {
+                    val safeText = clean.take(6000)
+                    val pb = ProcessBuilder("spd-say", "-r", (rate * 15).toString(), safeText)
+                    currentProcess = pb.start()
+                    currentProcess?.waitFor()
+                }
+            } catch (_: Exception) {}
+            finally {
+                currentProcess = null
+                onFinished()
+            }
+        }.start()
+    }
+
+    fun stop() {
+        try {
+            currentProcess?.destroyForcibly()
+        } catch (_: Exception) {}
+        currentProcess = null
+    }
+
+    fun isSpeaking(): Boolean = currentProcess?.isAlive == true
+}

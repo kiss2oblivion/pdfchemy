@@ -77,6 +77,16 @@ import com.pdfchemy.desktop.engine.DesktopCropConfig
 import com.pdfchemy.desktop.engine.DesktopAttachment
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.pdfchemy.desktop.engine.DesktopPdfBookmark
+import com.pdfchemy.desktop.engine.DesktopSpeechSynthesizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -141,7 +151,9 @@ fun DesktopApp(
     isDarkTheme: Boolean = true,
     onToggleTheme: () -> Unit = {},
     currentTab: DesktopNavTab = DesktopNavTab.HOME,
-    onTabChange: (DesktopNavTab) -> Unit = {}
+    onTabChange: (DesktopNavTab) -> Unit = {},
+    isFullScreen: Boolean = false,
+    onToggleFullScreen: () -> Unit = {}
 ) {
     val currentLang by DesktopLocalization.currentLanguageState
     val strings = DesktopLocalization.strings
@@ -262,7 +274,8 @@ fun DesktopApp(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            if (!isFullScreen || activeTab != DesktopNavTab.READER) {
+                TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Box(
@@ -423,42 +436,46 @@ fun DesktopApp(
                 }
             )
         }
+    }
     ) { padding ->
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Left Navigation Rail
-            NavigationRail(
-                modifier = Modifier.width(110.dp),
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Left Navigation Rail (auto-hidden in full screen or reader mode for 100% immersion)
+            if (!isFullScreen || activeTab != DesktopNavTab.READER) {
+                NavigationRail(
+                    modifier = Modifier.width(110.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DesktopNavTab.values().forEach { tab ->
-                        NavigationRailItem(
-                            selected = activeTab == tab,
-                            onClick = { activeTab = tab; onTabChange(tab) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
-                            label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
-                        )
+                    Column(
+                        modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DesktopNavTab.values().forEach { tab ->
+                            NavigationRailItem(
+                                selected = activeTab == tab,
+                                onClick = { activeTab = tab; onTabChange(tab) },
+                                icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
+                                label = { Text(tab.label(strings), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                            )
+                        }
                     }
                 }
+
+                VerticalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             }
 
-            VerticalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-
             // Main Workspace Area
+            val workspacePadding = if (activeTab == DesktopNavTab.READER) 0.dp else 24.dp
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(24.dp)
+                    .padding(workspacePadding)
             ) {
                 when (activeTab) {
                     // [FEATURE: Home Dashboard] — Recents, quick tools, Manifesto, Update check
@@ -488,7 +505,9 @@ fun DesktopApp(
                         file = selectedFile,
                         initialPageIndex = readerTargetPage,
                         onClearTargetPage = { readerTargetPage = null },
-                        onFileChange = { selectedFile = it }
+                        onFileChange = { selectedFile = it },
+                        isFullScreen = isFullScreen,
+                        onToggleFullScreen = onToggleFullScreen
                     )
                     // [FEATURE: Security Studio] — Encrypt, decrypt, sanitize threats, repair, redact, attachments
                     DesktopNavTab.SECURITY -> SecurityView(selectedFile, onFileChange = { selectedFile = it })
@@ -5336,7 +5355,7 @@ private fun BatchQueueView() {
 }
 
 // =================================================================================================
-// 8. [FEATURE: Reader Studio] — Single/Dual Spread, Continuous Scroll, Dark/Light Themes
+// 8. [FEATURE: Reader Studio] — Ultimate PDF Viewer: Full Screen, Bookmarks, Rotation, Nightlight & Accessibility
 // =================================================================================================
 private enum class ReaderViewMode(val label: String) {
     CONTINUOUS("Continuous"),
@@ -5346,9 +5365,25 @@ private enum class ReaderViewMode(val label: String) {
 }
 
 private enum class ReaderThemePalette(val label: String) {
-    DARK("Dark"),
-    LIGHT("Light"),
-    SEPIA("Sepia")
+    LIGHT("Paperwhite"),
+    SEPIA("Warm Sepia"),
+    MINT("Sage Mint"),
+    DARK("Charcoal"),
+    OLED_DARK("OLED Black")
+}
+
+private enum class ColorBlindMode(val label: String) {
+    NONE("Normal Vision"),
+    DEUTERANOPIA("Deuteranopia (Green-Weak)"),
+    PROTANOPIA("Protanopia (Red-Weak)"),
+    TRITANOPIA("Tritanopia (Blue-Yellow)"),
+    MONOCHROME("High-Contrast Mono")
+}
+
+private enum class ReaderSidebarTab(val label: String) {
+    THUMBNAILS("Pages"),
+    BOOKMARKS("Contents"),
+    SEARCH("Search")
 }
 
 private data class ReaderThemeColors(
@@ -5364,13 +5399,199 @@ private data class ReaderSearchMatch(
     val snippet: String
 )
 
-@OptIn(ExperimentalFoundationApi::class)
+private fun buildReaderColorFilter(
+    invert: Boolean,
+    colorBlind: ColorBlindMode,
+    warmth: Float,
+    dimmer: Float
+): ColorFilter? {
+    if (!invert && colorBlind == ColorBlindMode.NONE && warmth <= 0.01f && dimmer >= 0.99f) {
+        return null
+    }
+    var cur = floatArrayOf(
+        1f, 0f, 0f, 0f, 0f,
+        0f, 1f, 0f, 0f, 0f,
+        0f, 0f, 1f, 0f, 0f,
+        0f, 0f, 0f, 1f, 0f
+    )
+    fun multiply(b: FloatArray) {
+        val res = FloatArray(20)
+        for (r in 0 until 4) {
+            for (c in 0 until 4) {
+                var s = 0f
+                for (i in 0 until 4) s += cur[r * 5 + i] * b[i * 5 + c]
+                res[r * 5 + c] = s
+            }
+            res[r * 5 + 4] = cur[r * 5 + 0] * b[0 * 5 + 4] +
+                             cur[r * 5 + 1] * b[1 * 5 + 4] +
+                             cur[r * 5 + 2] * b[2 * 5 + 4] +
+                             cur[r * 5 + 3] * b[3 * 5 + 4] +
+                             cur[r * 5 + 4]
+        }
+        cur = res
+    }
+
+    if (invert) {
+        multiply(floatArrayOf(
+            -1f,  0f,  0f, 0f, 255f,
+             0f, -1f,  0f, 0f, 255f,
+             0f,  0f, -1f, 0f, 255f,
+             0f,  0f,  0f, 1f,   0f
+        ))
+    }
+    when (colorBlind) {
+        ColorBlindMode.DEUTERANOPIA -> multiply(floatArrayOf(
+            0.625f, 0.375f, 0f, 0f, 0f,
+            0.700f, 0.300f, 0f, 0f, 0f,
+            0f,     0.300f, 0.700f, 0f, 0f,
+            0f,     0f,     0f,     1f, 0f
+        ))
+        ColorBlindMode.PROTANOPIA -> multiply(floatArrayOf(
+            0.567f, 0.433f, 0f, 0f, 0f,
+            0.558f, 0.442f, 0f, 0f, 0f,
+            0f,     0.242f, 0.758f, 0f, 0f,
+            0f,     0f,     0f,     1f, 0f
+        ))
+        ColorBlindMode.TRITANOPIA -> multiply(floatArrayOf(
+            0.950f, 0.050f, 0f, 0f, 0f,
+            0f,     0.433f, 0.567f, 0f, 0f,
+            0f,     0.475f, 0.525f, 0f, 0f,
+            0f,     0f,     0f,     1f, 0f
+        ))
+        ColorBlindMode.MONOCHROME -> multiply(floatArrayOf(
+            0.299f, 0.587f, 0.114f, 0f, 0f,
+            0.299f, 0.587f, 0.114f, 0f, 0f,
+            0.299f, 0.587f, 0.114f, 0f, 0f,
+            0f,     0f,     0f,     1f, 0f
+        ))
+        ColorBlindMode.NONE -> {}
+    }
+    if (warmth > 0.01f) {
+        val bScale = (1f - warmth * 0.6f).coerceIn(0.2f, 1f)
+        val rScale = (1f + warmth * 0.12f).coerceIn(1f, 1.25f)
+        multiply(floatArrayOf(
+            rScale, 0f, 0f, 0f, 0f,
+            0f, 1f, 0f, 0f, 0f,
+            0f, 0f, bScale, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        ))
+    }
+    if (dimmer < 0.99f) {
+        val d = dimmer.coerceIn(0.4f, 1f)
+        multiply(floatArrayOf(
+            d,  0f, 0f, 0f, 0f,
+            0f, d,  0f, 0f, 0f,
+            0f, 0f, d,  0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        ))
+    }
+    return ColorFilter.colorMatrix(ColorMatrix(cur))
+}
+
+private fun formatBionicText(text: String): AnnotatedString {
+    return buildAnnotatedString {
+        val words = text.split(Regex("(?<=\\s)|(?=\\s)"))
+        for (w in words) {
+            if (w.isBlank()) {
+                append(w)
+            } else {
+                val boldLen = when {
+                    w.length <= 3 -> 1
+                    w.length <= 5 -> 2
+                    w.length <= 8 -> 3
+                    else -> (w.length * 0.45f).toInt().coerceAtLeast(3)
+                }
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(w.take(boldLen))
+                }
+                append(w.drop(boldLen))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarksTreeView(
+    bookmarks: List<DesktopPdfBookmark>,
+    onSelectBookmark: (Int) -> Unit
+) {
+    if (bookmarks.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text(
+                "No bookmarks outline found in this document.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                textAlign = TextAlign.Center
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(bookmarks) { bm ->
+                BookmarkItemRow(bm, onSelectBookmark)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkItemRow(
+    bookmark: DesktopPdfBookmark,
+    onSelectBookmark: (Int) -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(true) }
+    Column(modifier = Modifier.fillMaxWidth().padding(start = (bookmark.depth * 12).dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .clickable { onSelectBookmark(bookmark.pageIndex) }
+                .padding(vertical = 4.dp, horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (bookmark.children.isNotEmpty()) {
+                IconButton(onClick = { isExpanded = !isExpanded }, modifier = Modifier.size(20.dp)) {
+                    Text(if (isExpanded) "▾" else "▸", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Spacer(modifier = Modifier.width(20.dp))
+            }
+            Text(
+                text = bookmark.title,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (bookmark.depth == 0) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "${bookmark.pageIndex + 1}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        if (isExpanded && bookmark.children.isNotEmpty()) {
+            bookmark.children.forEach { child ->
+                BookmarkItemRow(child, onSelectBookmark)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 private fun ReaderView(
     file: File?,
     initialPageIndex: Int? = null,
     onClearTargetPage: () -> Unit = {},
-    onFileChange: (File) -> Unit
+    onFileChange: (File) -> Unit,
+    isFullScreen: Boolean = false,
+    onToggleFullScreen: () -> Unit = {}
 ) {
     val strings = DesktopLocalization.strings
     var pageCount by remember(file) { mutableIntStateOf(0) }
@@ -5380,9 +5601,26 @@ private fun ReaderView(
     var themePalette by remember { mutableStateOf(ReaderThemePalette.DARK) }
     var invertColors by remember { mutableStateOf(false) }
     var isSidebarOpen by remember { mutableStateOf(true) }
+    var sidebarTab by remember { mutableStateOf(ReaderSidebarTab.THUMBNAILS) }
     var zoomPercent by remember { mutableIntStateOf(100) }
     var isFitWidth by remember { mutableStateOf(false) }
+    var isFitPage by remember { mutableStateOf(false) }
     var viewRotation by remember { mutableIntStateOf(0) }
+    val perPageRotations = remember(file) { mutableStateMapOf<Int, Int>() }
+
+    var nightlightWarmth by remember { mutableFloatStateOf(0f) }
+    var paperDimmer by remember { mutableFloatStateOf(1.0f) }
+    var colorBlindMode by remember { mutableStateOf(ColorBlindMode.NONE) }
+    var isReadingRulerActive by remember { mutableStateOf(false) }
+    var rulerY by remember { mutableFloatStateOf(120f) }
+    var isBionicReading by remember { mutableStateOf(false) }
+
+    var isLoupeActive by remember { mutableStateOf(false) }
+    var loupePosition by remember { mutableStateOf(Offset(200f, 200f)) }
+
+    var isSpeaking by remember { mutableStateOf(false) }
+    var speechRate by remember { mutableIntStateOf(0) }
+
     var isLoadingDoc by remember(file) { mutableStateOf(false) }
     var statusText by remember(file) { mutableStateOf<String?>(null) }
     var pageJumpInput by remember { mutableStateOf("1") }
@@ -5391,11 +5629,13 @@ private fun ReaderView(
     var currentMatchIndex by remember { mutableIntStateOf(0) }
     var fontSizeSp by remember { mutableFloatStateOf(16f) }
     var showZoomMenu by remember { mutableStateOf(false) }
+    var showAppearanceMenu by remember { mutableStateOf(false) }
 
     val renderedPages = remember(file, viewRotation) { mutableStateMapOf<Int, ImageBitmap>() }
     val thumbnails = remember(file, viewRotation) { mutableStateMapOf<Int, ImageBitmap>() }
     var pageTexts by remember(file) { mutableStateOf<List<String>>(emptyList()) }
     var fullExtractedText by remember(file) { mutableStateOf<String?>(null) }
+    var bookmarks by remember(file) { mutableStateOf<List<DesktopPdfBookmark>>(emptyList()) }
 
     val lazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -5404,18 +5644,11 @@ private fun ReaderView(
 
     val themeColors = remember(themePalette) {
         when (themePalette) {
-            ReaderThemePalette.DARK -> ReaderThemeColors(
-                canvasBg = Color(0xFF131316),
-                barBg = Color(0xFF1E1E24),
-                paperBg = Color.White,
-                paperBorder = Color(0xFF2E2E38),
-                textColor = Color(0xFFECECF1)
-            )
             ReaderThemePalette.LIGHT -> ReaderThemeColors(
-                canvasBg = Color(0xFFE5E7EB),
+                canvasBg = Color(0xFFF3F4F6),
                 barBg = Color(0xFFFFFFFF),
                 paperBg = Color.White,
-                paperBorder = Color(0xFFD1D5DB),
+                paperBorder = Color(0xFFE5E7EB),
                 textColor = Color(0xFF1F2937)
             )
             ReaderThemePalette.SEPIA -> ReaderThemeColors(
@@ -5425,24 +5658,47 @@ private fun ReaderView(
                 paperBorder = Color(0xFFD8C7A3),
                 textColor = Color(0xFF433422)
             )
+            ReaderThemePalette.MINT -> ReaderThemeColors(
+                canvasBg = Color(0xFFE5EFE4),
+                barBg = Color(0xFFD9E8D7),
+                paperBg = Color(0xFFF4FAF3),
+                paperBorder = Color(0xFFC6DBC4),
+                textColor = Color(0xFF233827)
+            )
+            ReaderThemePalette.DARK -> ReaderThemeColors(
+                canvasBg = Color(0xFF131316),
+                barBg = Color(0xFF1E1E24),
+                paperBg = Color.White,
+                paperBorder = Color(0xFF2E2E38),
+                textColor = Color(0xFFECECF1)
+            )
+            ReaderThemePalette.OLED_DARK -> ReaderThemeColors(
+                canvasBg = Color(0xFF000000),
+                barBg = Color(0xFF121212),
+                paperBg = Color(0xFF181818),
+                paperBorder = Color(0xFF282828),
+                textColor = Color(0xFFE0E0E0)
+            )
         }
     }
 
-    val invertColorMatrix = remember {
-        ColorMatrix(floatArrayOf(
-            -1f,  0f,  0f, 0f, 255f,
-             0f, -1f,  0f, 0f, 255f,
-             0f,  0f, -1f, 0f, 255f,
-             0f,  0f,  0f, 1f,   0f
-        ))
+    val dynamicColorFilter = remember(invertColors, colorBlindMode, nightlightWarmth, paperDimmer) {
+        buildReaderColorFilter(invertColors, colorBlindMode, nightlightWarmth, paperDimmer)
+    }
+
+    fun getEffectivePageRotation(pageIdx: Int): Int {
+        val perPage = perPageRotations[pageIdx] ?: 0
+        return ((viewRotation + perPage) % 360 + 360) % 360
     }
 
     fun ensurePageRendered(pageIdx: Int) {
         if (file == null || pageIdx !in 0 until pageCount) return
+        val currentEffectiveRot = getEffectivePageRotation(pageIdx)
         if (renderedPages.containsKey(pageIdx)) return
+        val targetDpi = (144f * (zoomPercent / 100f)).coerceIn(100f, 320f)
         scope.launch(Dispatchers.IO) {
             try {
-                val bimg = DesktopPdfEngine.renderPage(file, pageIdx, dpi = 144f, viewRotation = viewRotation)
+                val bimg = DesktopPdfEngine.renderPage(file, pageIdx, dpi = targetDpi, viewRotation = currentEffectiveRot)
                 val bmp = bimg.toComposeImageBitmap()
                 withContext(Dispatchers.Main) {
                     if (renderedPages.size > 25) {
@@ -5453,6 +5709,15 @@ private fun ReaderView(
                 }
             } catch (_: Exception) {}
         }
+    }
+
+    fun rotateCurrentPage(delta: Int) {
+        if (pageCount == 0) return
+        val cur = perPageRotations[currentPageIndex] ?: 0
+        perPageRotations[currentPageIndex] = (cur + delta) % 360
+        renderedPages.remove(currentPageIndex)
+        thumbnails.remove(currentPageIndex)
+        ensurePageRendered(currentPageIndex)
     }
 
     fun jumpToPage(target: Int) {
@@ -5470,8 +5735,13 @@ private fun ReaderView(
     LaunchedEffect(file) {
         renderedPages.clear()
         thumbnails.clear()
+        perPageRotations.clear()
         searchQuery = ""
         isSearchVisible = false
+        bookmarks = emptyList()
+        DesktopSpeechSynthesizer.stop()
+        isSpeaking = false
+
         if (file != null && file.exists()) {
             isLoadingDoc = true
             statusText = null
@@ -5491,19 +5761,21 @@ private fun ReaderView(
                         val count = DesktopPdfEngine.getPageCount(file)
                         val dims = DesktopPdfEngine.getPageDimensions(file)
                         val texts = DesktopPdfEngine.extractAllPagesText(file)
+                        val bms = DesktopPdfEngine.extractBookmarks(file)
                         val textAll = texts.joinToString("\n\n")
                         withContext(Dispatchers.Main) {
                             pageCount = count
                             pageDimensions = dims
                             pageTexts = texts
                             fullExtractedText = textAll
+                            bookmarks = bms
                             val startPage = (initialPageIndex ?: 0).coerceIn(0, (count - 1).coerceAtLeast(0))
                             currentPageIndex = startPage
                             pageJumpInput = "${startPage + 1}"
                         }
                         if (count > 0) {
                             val startPage = (initialPageIndex ?: 0).coerceIn(0, (count - 1).coerceAtLeast(0))
-                            val firstImg = DesktopPdfEngine.renderPage(file, startPage, dpi = 144f, viewRotation = viewRotation)
+                            val firstImg = DesktopPdfEngine.renderPage(file, startPage, dpi = 144f, viewRotation = getEffectivePageRotation(startPage))
                             val firstThumb = DesktopPdfEngine.renderThumbnail(file, startPage, targetWidth = 160)
                             withContext(Dispatchers.Main) {
                                 renderedPages[startPage] = firstImg.toComposeImageBitmap()
@@ -5532,6 +5804,7 @@ private fun ReaderView(
             pageDimensions = emptyList()
             pageTexts = emptyList()
             fullExtractedText = null
+            bookmarks = emptyList()
         }
     }
 
@@ -5586,9 +5859,11 @@ private fun ReaderView(
         jumpToPage(match.pageIndex)
     }
 
-    val annotatedReflowText = remember(fullExtractedText, searchQuery, currentMatchIndex) {
+    val annotatedReflowText = remember(fullExtractedText, searchQuery, currentMatchIndex, isBionicReading) {
         val text = fullExtractedText ?: return@remember AnnotatedString("")
-        if (searchQuery.isBlank()) {
+        if (isBionicReading) {
+            formatBionicText(text)
+        } else if (searchQuery.isBlank()) {
             AnnotatedString(text)
         } else {
             val matches = try {
@@ -5626,24 +5901,43 @@ private fun ReaderView(
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when {
+                        event.key == Key.F11 -> {
+                            onToggleFullScreen()
+                            true
+                        }
                         event.isCtrlPressed && event.key == Key.F -> {
                             isSearchVisible = true
+                            sidebarTab = ReaderSidebarTab.SEARCH
+                            isSidebarOpen = true
                             searchFocusRequester.requestFocus()
                             true
                         }
                         event.isCtrlPressed && (event.key == Key.Equals || event.key == Key.Plus) -> {
-                            zoomPercent = (zoomPercent + 25).coerceAtMost(300)
+                            zoomPercent = (zoomPercent + 25).coerceAtMost(800)
                             isFitWidth = false
+                            isFitPage = false
                             true
                         }
                         event.isCtrlPressed && event.key == Key.Minus -> {
                             zoomPercent = (zoomPercent - 25).coerceAtLeast(25)
                             isFitWidth = false
+                            isFitPage = false
                             true
                         }
                         event.isCtrlPressed && event.key == Key.Zero -> {
+                            isFitPage = !isFitPage
+                            isFitWidth = false
+                            true
+                        }
+                        event.isCtrlPressed && event.key == Key.One -> {
                             zoomPercent = 100
                             isFitWidth = false
+                            isFitPage = false
+                            true
+                        }
+                        event.isCtrlPressed && event.key == Key.Two -> {
+                            isFitWidth = true
+                            isFitPage = false
                             true
                         }
                         event.key == Key.PageDown || (event.key == Key.DirectionRight && !event.isCtrlPressed) -> {
@@ -5662,14 +5956,24 @@ private fun ReaderView(
                             if (pageCount > 0) jumpToPage(pageCount - 1)
                             true
                         }
-                        event.key == Key.R && !event.isCtrlPressed -> {
-                            viewRotation = (viewRotation + 90) % 360
+                        event.key == Key.R && !event.isCtrlPressed && !event.isShiftPressed -> {
+                            rotateCurrentPage(90)
+                            true
+                        }
+                        event.key == Key.R && event.isShiftPressed -> {
+                            rotateCurrentPage(-90)
                             true
                         }
                         event.key == Key.Escape -> {
-                            if (isSearchVisible) {
+                            if (isLoupeActive) {
+                                isLoupeActive = false
+                                true
+                            } else if (isSearchVisible) {
                                 isSearchVisible = false
                                 searchQuery = ""
+                                true
+                            } else if (isFullScreen) {
+                                onToggleFullScreen()
                                 true
                             } else false
                         }
@@ -5677,29 +5981,52 @@ private fun ReaderView(
                     }
                 } else false
             }
+            .onPointerEvent(PointerEventType.Scroll) { event ->
+                if (event.keyboardModifiers.isCtrlPressed) {
+                    val delta = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                    if (delta < 0f) {
+                        zoomPercent = (zoomPercent + 15).coerceAtMost(800)
+                        isFitWidth = false
+                        isFitPage = false
+                    } else if (delta > 0f) {
+                        zoomPercent = (zoomPercent - 15).coerceAtLeast(25)
+                        isFitWidth = false
+                        isFitPage = false
+                    }
+                }
+            }
+            .onPointerEvent(PointerEventType.Move) { event ->
+                val pos = event.changes.firstOrNull()?.position
+                if (pos != null) {
+                    rulerY = pos.y
+                    if (isLoupeActive) loupePosition = pos
+                }
+            }
     ) {
         // 1. TOP HEADER & CONTROL RIBBON
         Surface(
             color = themeColors.barBg,
-            shadowElevation = 4.dp,
+            shadowElevation = 3.dp,
             border = BorderStroke(1.dp, themeColors.paperBorder.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left section: Sidebar toggle & Document info
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
                         onClick = { isSidebarOpen = !isSidebarOpen },
-                        enabled = file != null && pageCount > 0
+                        enabled = file != null && pageCount > 0,
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             Icons.Rounded.GridView,
-                            contentDescription = "Toggle Thumbnails",
-                            tint = if (isSidebarOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            contentDescription = "Toggle Sidebar",
+                            tint = if (isSidebarOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
@@ -5707,21 +6034,15 @@ private fun ReaderView(
                         Text(
                             file?.name ?: strings.readerTitle,
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = themeColors.textColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 240.dp)
+                            modifier = Modifier.widthIn(max = 200.dp)
                         )
                         if (file != null && pageCount > 0) {
                             Text(
                                 "$pageCount pages • ${(file.length() / 1024L).coerceAtLeast(1L)} KB",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            Text(
-                                strings.readerTitle,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -5733,41 +6054,34 @@ private fun ReaderView(
                             val f = DesktopFileDialog.openPdf()
                             if (f != null) onFileChange(f)
                         },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(30.dp)
                     ) {
-                        Icon(Icons.Rounded.FileOpen, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Open Document")
+                        Icon(Icons.Rounded.FileOpen, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 // Center section: Navigation, Zoom & Rotation
                 if (file != null && pageCount > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         // First page
-                        IconButton(
-                            onClick = { jumpToPage(0) },
-                            enabled = currentPageIndex > 0,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Text("⇤", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = { jumpToPage(0) }, enabled = currentPageIndex > 0, modifier = Modifier.size(28.dp)) {
+                            Text("⇤", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
 
                         // Prev page
-                        IconButton(
-                            onClick = { jumpToPage(currentPageIndex - 1) },
-                            enabled = currentPageIndex > 0,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Rounded.ChevronLeft, contentDescription = strings.prevPage)
+                        IconButton(onClick = { jumpToPage(currentPageIndex - 1) }, enabled = currentPageIndex > 0, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Rounded.ChevronLeft, contentDescription = strings.prevPage, modifier = Modifier.size(18.dp))
                         }
 
                         // Page Jump text box
                         OutlinedTextField(
                             value = pageJumpInput,
                             onValueChange = { pageJumpInput = it.filter { ch -> ch.isDigit() }.take(5) },
-                            modifier = Modifier.width(54.dp).height(36.dp),
+                            modifier = Modifier.width(52.dp).height(32.dp),
                             textStyle = MaterialTheme.typography.bodySmall.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Bold),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -5796,36 +6110,29 @@ private fun ReaderView(
                         )
 
                         // Next page
-                        IconButton(
-                            onClick = { jumpToPage(currentPageIndex + 1) },
-                            enabled = currentPageIndex < pageCount - 1,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Rounded.ChevronRight, contentDescription = strings.nextPage)
+                        IconButton(onClick = { jumpToPage(currentPageIndex + 1) }, enabled = currentPageIndex < pageCount - 1, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = strings.nextPage, modifier = Modifier.size(18.dp))
                         }
 
                         // Last page
-                        IconButton(
-                            onClick = { jumpToPage(pageCount - 1) },
-                            enabled = currentPageIndex < pageCount - 1,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Text("⇥", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = { jumpToPage(pageCount - 1) }, enabled = currentPageIndex < pageCount - 1, modifier = Modifier.size(28.dp)) {
+                            Text("⇥", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(modifier = Modifier.width(1.dp).height(24.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         // Zoom Out
                         IconButton(
                             onClick = {
                                 isFitWidth = false
+                                isFitPage = false
                                 zoomPercent = (zoomPercent - 25).coerceAtLeast(25)
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         ) {
-                            Text("−", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("−", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
 
                         // Zoom Dropdown
@@ -5833,35 +6140,26 @@ private fun ReaderView(
                             OutlinedButton(
                                 onClick = { showZoomMenu = true },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.height(32.dp),
+                                modifier = Modifier.height(30.dp),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    if (isFitWidth) strings.fitWidth else "$zoomPercent%",
-                                    fontSize = 12.sp,
+                                    when {
+                                        isFitPage -> "Fit Page"
+                                        isFitWidth -> "Fit Width"
+                                        else -> "$zoomPercent%"
+                                    },
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            DropdownMenu(
-                                expanded = showZoomMenu,
-                                onDismissRequest = { showZoomMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(strings.fitWidth) },
-                                    onClick = {
-                                        isFitWidth = true
-                                        showZoomMenu = false
-                                    }
-                                )
-                                listOf(50, 75, 100, 125, 150, 200, 300).forEach { z ->
-                                    DropdownMenuItem(
-                                        text = { Text("$z%") },
-                                        onClick = {
-                                            zoomPercent = z
-                                            isFitWidth = false
-                                            showZoomMenu = false
-                                        }
-                                    )
+                            DropdownMenu(expanded = showZoomMenu, onDismissRequest = { showZoomMenu = false }) {
+                                DropdownMenuItem(text = { Text("Fit Page (Ctrl+0)") }, onClick = { isFitPage = true; isFitWidth = false; showZoomMenu = false })
+                                DropdownMenuItem(text = { Text("Fit Width (Ctrl+2)") }, onClick = { isFitWidth = true; isFitPage = false; showZoomMenu = false })
+                                DropdownMenuItem(text = { Text("Actual Size 100% (Ctrl+1)") }, onClick = { zoomPercent = 100; isFitWidth = false; isFitPage = false; showZoomMenu = false })
+                                HorizontalDivider()
+                                listOf(25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 800).forEach { z ->
+                                    DropdownMenuItem(text = { Text("$z%") }, onClick = { zoomPercent = z; isFitWidth = false; isFitPage = false; showZoomMenu = false })
                                 }
                             }
                         }
@@ -5870,48 +6168,58 @@ private fun ReaderView(
                         IconButton(
                             onClick = {
                                 isFitWidth = false
-                                zoomPercent = (zoomPercent + 25).coerceAtMost(300)
+                                isFitPage = false
+                                zoomPercent = (zoomPercent + 25).coerceAtMost(800)
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         ) {
                             Icon(Icons.Rounded.Add, contentDescription = strings.zoomIn, modifier = Modifier.size(16.dp))
                         }
 
-                        // Fit Width Quick Button
+                        // Magnifier Loupe Toggle
                         IconButton(
-                            onClick = { isFitWidth = !isFitWidth },
-                            modifier = Modifier.size(32.dp)
+                            onClick = { isLoupeActive = !isLoupeActive },
+                            modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(
-                                Icons.Rounded.Straighten,
-                                contentDescription = strings.fitWidth,
-                                modifier = Modifier.size(18.dp),
-                                tint = if (isFitWidth) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            Text(
+                                "🔍",
+                                fontSize = 13.sp,
+                                modifier = if (isLoupeActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape).padding(2.dp) else Modifier
                             )
                         }
 
-                        // Rotate 90° Clockwise
-                        IconButton(
-                            onClick = { viewRotation = (viewRotation + 90) % 360 },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = "Rotate 90°", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)))
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Rotate Current Page CCW
+                        IconButton(onClick = { rotateCurrentPage(-90) }, modifier = Modifier.size(28.dp)) {
+                            Text("⟲", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // Rotate Current Page CW
+                        IconButton(onClick = { rotateCurrentPage(90) }, modifier = Modifier.size(28.dp)) {
+                            Text("⟳", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                // Right section: Search toggle, View Mode & Theme
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Right section: Search, View Mode, Kindle "Aa" Panel & Fullscreen
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Search toggle
                     if (file != null) {
                         IconButton(
                             onClick = {
                                 isSearchVisible = !isSearchVisible
-                                if (isSearchVisible) searchFocusRequester.requestFocus()
+                                if (isSearchVisible) {
+                                    isSidebarOpen = true
+                                    sidebarTab = ReaderSidebarTab.SEARCH
+                                    searchFocusRequester.requestFocus()
+                                }
                             },
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
-                            Text("🔍", fontSize = 14.sp)
+                            Text("🔎", fontSize = 13.sp)
                         }
                     }
 
@@ -5928,9 +6236,9 @@ private fun ReaderView(
                                     onClick = { viewMode = mode },
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.height(28.dp)
+                                    modifier = Modifier.height(26.dp)
                                 ) {
-                                    Box(modifier = Modifier.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                                    Box(modifier = Modifier.padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                                         Text(
                                             mode.label,
                                             fontSize = 11.sp,
@@ -5943,236 +6251,337 @@ private fun ReaderView(
                         }
                     }
 
-                    // Theme selector chips
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    ) {
-                        Row(modifier = Modifier.padding(2.dp)) {
-                            ReaderThemePalette.values().forEach { theme ->
-                                val isSelected = themePalette == theme
-                                Surface(
-                                    onClick = { themePalette = theme },
-                                    color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Box(modifier = Modifier.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            theme.label,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else themeColors.textColor
-                                        )
-                                    }
-                                }
-                            }
+                    // Kindle "Aa" Reading Appearance & Accessibility Button
+                    Box {
+                        OutlinedButton(
+                            onClick = { showAppearanceMenu = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text("Aa", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                         }
-                    }
 
-                    // Invert Colors (Night paper toggle)
-                    IconButton(
-                        onClick = { invertColors = !invertColors },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            if (invertColors) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
-                            contentDescription = "Invert Paper Colors",
-                            modifier = Modifier.size(18.dp),
-                            tint = if (invertColors) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        DropdownMenu(
+                            expanded = showAppearanceMenu,
+                            onDismissRequest = { showAppearanceMenu = false },
+                            modifier = Modifier.width(320.dp).padding(12.dp)
+                        ) {
+                            Text("Reading Comfort & Accessibility", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                    // Font size adjustments (only for Reflow mode)
-                    if (viewMode == ReaderViewMode.REFLOW_TEXT) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { fontSizeSp = (fontSizeSp - 2f).coerceAtLeast(12f) }, modifier = Modifier.size(28.dp)) {
-                                Text("A-", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Text("${fontSizeSp.toInt()}", style = MaterialTheme.typography.labelSmall)
-                            IconButton(onClick = { fontSizeSp = (fontSizeSp + 2f).coerceAtMost(32f) }, modifier = Modifier.size(28.dp)) {
-                                Text("A+", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. SEARCH TOOLBAR (EXPANDABLE)
-        AnimatedVisibility(visible = isSearchVisible) {
-            Surface(
-                color = themeColors.barBg,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("🔍", fontSize = 16.sp)
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search text across pages... (Enter for next)") },
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(searchFocusRequester)
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
-                                    if (searchMatches.isNotEmpty()) {
-                                        if (keyEvent.isShiftPressed) {
-                                            jumpToMatch(currentMatchIndex - 1)
-                                        } else {
-                                            jumpToMatch(currentMatchIndex + 1)
+                            // 1. Reading Palettes
+                            Text("Palettes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                ReaderThemePalette.values().forEach { pal ->
+                                    val isSel = themePalette == pal
+                                    Surface(
+                                        onClick = { themePalette = pal },
+                                        color = if (isSel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = BorderStroke(1.dp, if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent),
+                                        modifier = Modifier.weight(1f).height(28.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(pal.label.take(6), fontSize = 10.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                         }
                                     }
-                                    true
-                                } else false
-                            },
-                        singleLine = true,
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                                    Icon(Icons.Rounded.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
                                 }
                             }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
 
-                    if (searchQuery.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            IconButton(
-                                onClick = { jumpToMatch(currentMatchIndex - 1) },
-                                enabled = searchMatches.isNotEmpty(),
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Text("▲", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            // Invert Colors (Smart Night Invert)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Invert Paper (White-to-Black)", style = MaterialTheme.typography.bodySmall)
+                                Switch(checked = invertColors, onCheckedChange = { invertColors = it })
                             }
 
-                            IconButton(
-                                onClick = { jumpToMatch(currentMatchIndex + 1) },
-                                enabled = searchMatches.isNotEmpty(),
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Text("▼", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+
+                            // 2. Warm Amber Nightlight Slider
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Warm Nightlight", style = MaterialTheme.typography.labelSmall)
+                                Text("${(nightlightWarmth * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = nightlightWarmth,
+                                onValueChange = { nightlightWarmth = it },
+                                valueRange = 0f..0.7f,
+                                modifier = Modifier.height(24.dp)
+                            )
+
+                            // Paper Dimmer Slider
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Glare Dimmer", style = MaterialTheme.typography.labelSmall)
+                                Text("${(paperDimmer * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = paperDimmer,
+                                onValueChange = { paperDimmer = it },
+                                valueRange = 0.5f..1.0f,
+                                modifier = Modifier.height(24.dp)
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+
+                            // 3. Dyslexia Suite
+                            Text("Dyslexia Assistance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Reading Ruler (Line Guide)", style = MaterialTheme.typography.bodySmall)
+                                Switch(checked = isReadingRulerActive, onCheckedChange = { isReadingRulerActive = it })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Bionic Guided Fixation", style = MaterialTheme.typography.bodySmall)
+                                Switch(checked = isBionicReading, onCheckedChange = { isBionicReading = it })
                             }
 
-                            Surface(
-                                color = if (searchMatches.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    if (searchMatches.isNotEmpty()) {
-                                        val matchPage = searchMatches[currentMatchIndex.coerceIn(0, searchMatches.size - 1)].pageIndex + 1
-                                        "${currentMatchIndex + 1} of ${searchMatches.size} (Page $matchPage)"
-                                    } else "0 matches",
-                                    color = if (searchMatches.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+
+                            // 4. Color Blindness (Daltonism)
+                            Text("Color Vision Filter", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            ColorBlindMode.values().forEach { mode ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clickable { colorBlindMode = mode }.padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(selected = colorBlindMode == mode, onClick = { colorBlindMode = mode })
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(mode.label, style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                         }
                     }
 
-                    IconButton(onClick = { isSearchVisible = false }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Close search", modifier = Modifier.size(18.dp))
+                    // Read Aloud (TTS) Button
+                    if (file != null && pageCount > 0) {
+                        FilledTonalButton(
+                            onClick = {
+                                if (isSpeaking) {
+                                    DesktopSpeechSynthesizer.stop()
+                                    isSpeaking = false
+                                } else {
+                                    val textToRead = pageTexts.getOrNull(currentPageIndex) ?: ""
+                                    if (textToRead.isNotBlank()) {
+                                        isSpeaking = true
+                                        DesktopSpeechSynthesizer.speak(textToRead, rate = speechRate) {
+                                            scope.launch(Dispatchers.Main) { isSpeaking = false }
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isSpeaking) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = if (isSpeaking) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(if (isSpeaking) "⏹ Stop" else "🔊 Listen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Fullscreen Toggle Button
+                    IconButton(
+                        onClick = onToggleFullScreen,
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Text(if (isFullScreen) "🗗" else "⛶", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
 
-        // 3. MAIN WORKSPACE (SIDEBAR + DOCUMENT CANVAS)
-        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            // COLLAPSIBLE THUMBNAIL FILMSTRIP SIDEBAR
-            if (isSidebarOpen && file != null && pageCount > 0 && viewMode != ReaderViewMode.REFLOW_TEXT) {
+        // 2. MAIN VIEWER CONTENT + MULTI-TAB SIDEBAR
+        Row(modifier = Modifier.fillMaxSize()) {
+            // SIDEBAR WITH TABS (PAGES / CONTENTS / SEARCH)
+            AnimatedVisibility(
+                visible = isSidebarOpen && file != null && pageCount > 0,
+                enter = expandHorizontally() + fadeIn(),
+                exit = shrinkHorizontally() + fadeOut()
+            ) {
                 Surface(
-                    modifier = Modifier.width(190.dp).fillMaxHeight(),
-                    color = themeColors.barBg.copy(alpha = 0.95f),
+                    modifier = Modifier.width(220.dp).fillMaxHeight(),
+                    color = themeColors.barBg.copy(alpha = 0.98f),
                     border = BorderStroke(1.dp, themeColors.paperBorder.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Sidebar Tab Bar
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                "Thumbnails ($pageCount)",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = themeColors.textColor
-                            )
-                            IconButton(onClick = { isSidebarOpen = false }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Rounded.Close, contentDescription = "Close sidebar", modifier = Modifier.size(16.dp))
+                            ReaderSidebarTab.values().forEach { tab ->
+                                val isSel = sidebarTab == tab
+                                Surface(
+                                    onClick = { sidebarTab = tab },
+                                    color = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.weight(1f).height(26.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            tab.label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSel) MaterialTheme.colorScheme.onPrimary else themeColors.textColor
+                                        )
+                                    }
+                                }
                             }
                         }
 
                         HorizontalDivider(color = themeColors.paperBorder.copy(alpha = 0.2f))
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(pageCount) { pIdx ->
-                                val isSelected = pIdx == currentPageIndex
-                                val thumb = thumbnails[pIdx]
-                                val dim = pageDimensions.getOrNull(pIdx) ?: DesktopPdfEngine.PageDimension(595f, 842f)
-                                val aspect = if (viewRotation % 180 == 0) dim.aspectRatio else (1f / dim.aspectRatio.coerceAtLeast(0.1f))
-
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().clickable { jumpToPage(pIdx) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else themeColors.barBg
-                                    ),
-                                    border = BorderStroke(
-                                        if (isSelected) 2.dp else 1.dp,
-                                        if (isSelected) MaterialTheme.colorScheme.primary else themeColors.paperBorder.copy(alpha = 0.4f)
-                                    )
+                        when (sidebarTab) {
+                            // TAB 1: THUMBNAILS (WITH PER-PAGE ROTATE)
+                            ReaderSidebarTab.THUMBNAILS -> {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Column(
-                                        modifier = Modifier.padding(6.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier.fillMaxWidth().aspectRatio(aspect),
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = Color.White,
-                                            border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.5f))
+                                    items(pageCount) { pIdx ->
+                                        val isSelected = pIdx == currentPageIndex
+                                        val thumb = thumbnails[pIdx]
+                                        val dim = pageDimensions.getOrNull(pIdx) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                        val effRot = getEffectivePageRotation(pIdx)
+                                        val aspect = if (effRot % 180 == 0) dim.aspectRatio else (1f / dim.aspectRatio.coerceAtLeast(0.1f))
+
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { jumpToPage(pIdx) }
+                                                .semantics { contentDescription = "Page ${pIdx + 1} thumbnail" },
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else themeColors.barBg
+                                            ),
+                                            border = BorderStroke(
+                                                if (isSelected) 2.dp else 1.dp,
+                                                if (isSelected) MaterialTheme.colorScheme.primary else themeColors.paperBorder.copy(alpha = 0.4f)
+                                            )
                                         ) {
-                                            if (thumb != null) {
-                                                Image(
-                                                    bitmap = thumb,
-                                                    contentDescription = "Thumb ${pIdx + 1}",
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    contentScale = ContentScale.Fit
-                                                )
-                                            } else {
-                                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                    Text("${pIdx + 1}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                            Column(
+                                                modifier = Modifier.padding(6.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Surface(
+                                                    modifier = Modifier.fillMaxWidth().aspectRatio(aspect),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color.White,
+                                                    border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.5f))
+                                                ) {
+                                                    if (thumb != null) {
+                                                        Image(
+                                                            bitmap = thumb,
+                                                            contentDescription = "Thumb ${pIdx + 1}",
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            contentScale = ContentScale.Fit
+                                                        )
+                                                    } else {
+                                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                            Text("${pIdx + 1}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                                        }
+                                                    }
+                                                }
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            perPageRotations[pIdx] = ((perPageRotations[pIdx] ?: 0) - 90) % 360
+                                                            renderedPages.remove(pIdx)
+                                                            thumbnails.remove(pIdx)
+                                                            ensurePageRendered(pIdx)
+                                                        },
+                                                        modifier = Modifier.size(22.dp)
+                                                    ) {
+                                                        Text("⟲", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                    }
+
+                                                    Text(
+                                                        "Page ${pIdx + 1}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                        color = if (isSelected) MaterialTheme.colorScheme.primary else themeColors.textColor
+                                                    )
+
+                                                    IconButton(
+                                                        onClick = {
+                                                            perPageRotations[pIdx] = ((perPageRotations[pIdx] ?: 0) + 90) % 360
+                                                            renderedPages.remove(pIdx)
+                                                            thumbnails.remove(pIdx)
+                                                            ensurePageRendered(pIdx)
+                                                        },
+                                                        modifier = Modifier.size(22.dp)
+                                                    ) {
+                                                        Text("⟳", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                    }
                                                 }
                                             }
                                         }
-                                        Text(
-                                            "Page ${pIdx + 1}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else themeColors.textColor
-                                        )
+                                    }
+                                }
+                            }
+
+                            // TAB 2: BOOKMARKS / OUTLINE TREE
+                            ReaderSidebarTab.BOOKMARKS -> {
+                                BookmarksTreeView(bookmarks = bookmarks, onSelectBookmark = { jumpToPage(it) })
+                            }
+
+                            // TAB 3: SEARCH RESULTS
+                            ReaderSidebarTab.SEARCH -> {
+                                Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = { Text("Find in document...", fontSize = 12.sp) },
+                                        modifier = Modifier.fillMaxWidth().focusRequester(searchFocusRequester),
+                                        singleLine = true,
+                                        trailingIcon = {
+                                            if (searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(20.dp)) {
+                                                    Icon(Icons.Rounded.Close, contentDescription = "Clear", modifier = Modifier.size(14.dp))
+                                                }
+                                            }
+                                        },
+                                        textStyle = MaterialTheme.typography.bodySmall,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        if (searchQuery.isBlank()) "Type to search" else "${searchMatches.size} matches found",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        items(searchMatches.size) { idx ->
+                                            val m = searchMatches[idx]
+                                            val isAct = idx == currentMatchIndex
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth().clickable { jumpToMatch(idx) },
+                                                shape = RoundedCornerShape(6.dp),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = if (isAct) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                                )
+                                            ) {
+                                                Column(modifier = Modifier.padding(6.dp)) {
+                                                    Text("Page ${m.pageIndex + 1}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                                    Text("...${m.snippet}...", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -6216,7 +6625,7 @@ private fun ReaderView(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Continuous scroll, single page, two-up spread, thumbnail navigation, dark/light/sepia themes, and search highlighting.",
+                                "Continuous scroll, single page, two-up spread, outline navigation, nightlight warmth, dyslexia ruler, and daltonism filters.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
@@ -6247,7 +6656,7 @@ private fun ReaderView(
                     }
                 } else {
                     when (viewMode) {
-                        // MODE A: CONTINUOUS SCROLL (TRUE MODERN PDF VIEWER)
+                        // MODE A: CONTINUOUS SCROLL
                         ReaderViewMode.CONTINUOUS -> {
                             LazyColumn(
                                 state = lazyListState,
@@ -6258,17 +6667,20 @@ private fun ReaderView(
                             ) {
                                 items(pageCount) { idx ->
                                     val dim = pageDimensions.getOrNull(idx) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                    val effRot = getEffectivePageRotation(idx)
                                     val baseAspect = dim.aspectRatio
-                                    val effectiveAspect = if (viewRotation % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
+                                    val effectiveAspect = if (effRot % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
 
-                                    val pageModifier = if (isFitWidth) {
-                                        Modifier.fillMaxWidth(0.92f)
-                                    } else {
-                                        val baseWidth = 680.dp
-                                        Modifier.width(baseWidth * (zoomPercent / 100f))
+                                    val pageModifier = when {
+                                        isFitPage -> Modifier.fillMaxHeight(0.92f).aspectRatio(effectiveAspect)
+                                        isFitWidth -> Modifier.fillMaxWidth(0.94f).aspectRatio(effectiveAspect)
+                                        else -> {
+                                            val baseWidth = 720.dp
+                                            Modifier.width(baseWidth * (zoomPercent / 100f)).aspectRatio(effectiveAspect)
+                                        }
                                     }
 
-                                    LaunchedEffect(idx, viewRotation, file) {
+                                    LaunchedEffect(idx, effRot, file, zoomPercent) {
                                         ensurePageRendered(idx)
                                         if (idx + 1 < pageCount) ensurePageRendered(idx + 1)
                                         if (idx - 1 >= 0) ensurePageRendered(idx - 1)
@@ -6279,7 +6691,9 @@ private fun ReaderView(
                                         verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Surface(
-                                            modifier = pageModifier.aspectRatio(effectiveAspect),
+                                            modifier = pageModifier.semantics {
+                                                contentDescription = "Page ${idx + 1} of $pageCount. ${pageTexts.getOrNull(idx)?.take(120) ?: ""}"
+                                            },
                                             shape = RoundedCornerShape(4.dp),
                                             shadowElevation = 8.dp,
                                             color = themeColors.paperBg,
@@ -6292,7 +6706,7 @@ private fun ReaderView(
                                                     contentDescription = "Page ${idx + 1}",
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Fit,
-                                                    colorFilter = if (invertColors) ColorFilter.colorMatrix(invertColorMatrix) else null
+                                                    colorFilter = dynamicColorFilter
                                                 )
                                             } else {
                                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -6306,7 +6720,7 @@ private fun ReaderView(
                                         Text(
                                             "Page ${idx + 1} of $pageCount",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (themePalette == ReaderThemePalette.DARK) Color(0xFF888899) else Color(0xFF6B7280)
+                                            color = if (themePalette == ReaderThemePalette.DARK || themePalette == ReaderThemePalette.OLED_DARK) Color(0xFF888899) else Color(0xFF6B7280)
                                         )
                                     }
                                 }
@@ -6316,26 +6730,31 @@ private fun ReaderView(
                         // MODE B: SINGLE PAGE FOCUSED
                         ReaderViewMode.SINGLE_PAGE -> {
                             val dim = pageDimensions.getOrNull(currentPageIndex) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                            val effRot = getEffectivePageRotation(currentPageIndex)
                             val baseAspect = dim.aspectRatio
-                            val effectiveAspect = if (viewRotation % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
+                            val effectiveAspect = if (effRot % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
 
-                            LaunchedEffect(currentPageIndex, viewRotation, file) {
+                            LaunchedEffect(currentPageIndex, effRot, file, zoomPercent) {
                                 ensurePageRendered(currentPageIndex)
                                 if (currentPageIndex + 1 < pageCount) ensurePageRendered(currentPageIndex + 1)
                                 if (currentPageIndex - 1 >= 0) ensurePageRendered(currentPageIndex - 1)
                             }
 
-                            Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                                val pageModifier = if (isFitWidth) {
-                                    Modifier.fillMaxWidth(0.92f)
-                                } else {
-                                    val baseWidth = 680.dp
-                                    Modifier.width(baseWidth * (zoomPercent / 100f))
+                            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                                val pageModifier = when {
+                                    isFitPage -> Modifier.fillMaxHeight(0.95f).aspectRatio(effectiveAspect)
+                                    isFitWidth -> Modifier.fillMaxWidth(0.95f).aspectRatio(effectiveAspect)
+                                    else -> {
+                                        val baseWidth = 720.dp
+                                        Modifier.width(baseWidth * (zoomPercent / 100f)).aspectRatio(effectiveAspect)
+                                    }
                                 }
 
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Surface(
-                                        modifier = pageModifier.aspectRatio(effectiveAspect),
+                                        modifier = pageModifier.semantics {
+                                            contentDescription = "Page ${currentPageIndex + 1} of $pageCount. ${pageTexts.getOrNull(currentPageIndex)?.take(120) ?: ""}"
+                                        },
                                         shape = RoundedCornerShape(4.dp),
                                         shadowElevation = 10.dp,
                                         color = themeColors.paperBg,
@@ -6348,7 +6767,7 @@ private fun ReaderView(
                                                 contentDescription = "Page ${currentPageIndex + 1}",
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Fit,
-                                                colorFilter = if (invertColors) ColorFilter.colorMatrix(invertColorMatrix) else null
+                                                colorFilter = dynamicColorFilter
                                             )
                                         } else {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -6359,7 +6778,7 @@ private fun ReaderView(
                                     Text(
                                         "Page ${currentPageIndex + 1} of $pageCount",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (themePalette == ReaderThemePalette.DARK) Color(0xFF888899) else Color(0xFF6B7280)
+                                        color = if (themePalette == ReaderThemePalette.DARK || themePalette == ReaderThemePalette.OLED_DARK) Color(0xFF888899) else Color(0xFF6B7280)
                                     )
                                 }
 
@@ -6389,20 +6808,23 @@ private fun ReaderView(
                             val leftPage = (currentPageIndex / 2) * 2
                             val rightPage = leftPage + 1
 
-                            LaunchedEffect(leftPage, viewRotation, file) {
+                            val leftRot = getEffectivePageRotation(leftPage)
+                            val rightRot = if (rightPage < pageCount) getEffectivePageRotation(rightPage) else 0
+
+                            LaunchedEffect(leftPage, leftRot, file, zoomPercent) {
                                 ensurePageRendered(leftPage)
                                 if (rightPage < pageCount) ensurePageRendered(rightPage)
                             }
 
-                            Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Left page
                                     val leftDim = pageDimensions.getOrNull(leftPage) ?: DesktopPdfEngine.PageDimension(595f, 842f)
-                                    val leftAspect = if (viewRotation % 180 == 0) leftDim.aspectRatio else (1f / leftDim.aspectRatio.coerceAtLeast(0.1f))
+                                    val leftAspect = if (leftRot % 180 == 0) leftDim.aspectRatio else (1f / leftDim.aspectRatio.coerceAtLeast(0.1f))
                                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                                         Surface(
                                             modifier = Modifier.fillMaxWidth().aspectRatio(leftAspect),
@@ -6418,7 +6840,7 @@ private fun ReaderView(
                                                     contentDescription = "Page ${leftPage + 1}",
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Fit,
-                                                    colorFilter = if (invertColors) ColorFilter.colorMatrix(invertColorMatrix) else null
+                                                    colorFilter = dynamicColorFilter
                                                 )
                                             } else {
                                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -6435,7 +6857,7 @@ private fun ReaderView(
                                     // Right page
                                     if (rightPage < pageCount) {
                                         val rightDim = pageDimensions.getOrNull(rightPage) ?: DesktopPdfEngine.PageDimension(595f, 842f)
-                                        val rightAspect = if (viewRotation % 180 == 0) rightDim.aspectRatio else (1f / rightDim.aspectRatio.coerceAtLeast(0.1f))
+                                        val rightAspect = if (rightRot % 180 == 0) rightDim.aspectRatio else (1f / rightDim.aspectRatio.coerceAtLeast(0.1f))
                                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                                             Surface(
                                                 modifier = Modifier.fillMaxWidth().aspectRatio(rightAspect),
@@ -6451,7 +6873,7 @@ private fun ReaderView(
                                                         contentDescription = "Page ${rightPage + 1}",
                                                         modifier = Modifier.fillMaxSize(),
                                                         contentScale = ContentScale.Fit,
-                                                        colorFilter = if (invertColors) ColorFilter.colorMatrix(invertColorMatrix) else null
+                                                        colorFilter = dynamicColorFilter
                                                     )
                                                 } else {
                                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -6462,23 +6884,21 @@ private fun ReaderView(
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text("Page ${rightPage + 1} of $pageCount", style = MaterialTheme.typography.labelSmall, color = themeColors.textColor)
                                         }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
 
                                 if (leftPage > 0) {
                                     FilledIconButton(
-                                        onClick = { jumpToPage(leftPage - 2) },
+                                        onClick = { jumpToPage((leftPage - 2).coerceAtLeast(0)) },
                                         modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp),
                                         colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
                                     ) {
                                         Icon(Icons.Rounded.ChevronLeft, contentDescription = "Previous Spread")
                                     }
                                 }
-                                if (rightPage < pageCount - 1) {
+                                if (rightPage + 1 < pageCount) {
                                     FilledIconButton(
-                                        onClick = { jumpToPage(leftPage + 2) },
+                                        onClick = { jumpToPage(rightPage + 1) },
                                         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp),
                                         colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
                                     ) {
@@ -6488,29 +6908,107 @@ private fun ReaderView(
                             }
                         }
 
-                        // MODE D: REFLOW CLEAN TEXT
+                        // MODE D: REFLOW CLEAN TEXT (E-READER VIEW)
                         ReaderViewMode.REFLOW_TEXT -> {
-                            Surface(
-                                modifier = Modifier.fillMaxSize().padding(24.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (invertColors) Color(0xFF1B1B22) else themeColors.paperBg,
-                                border = BorderStroke(1.dp, themeColors.paperBorder)
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                SelectionContainer {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(32.dp)
-                                            .verticalScroll(rememberScrollState())
-                                    ) {
-                                        Text(
-                                            text = annotatedReflowText,
-                                            fontSize = fontSizeSp.sp,
-                                            lineHeight = (fontSizeSp * 1.6f).sp,
-                                            color = if (invertColors) Color(0xFFECECF1) else themeColors.textColor
-                                        )
+                                Surface(
+                                    modifier = Modifier.widthIn(max = 780.dp).fillMaxHeight(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    shadowElevation = 6.dp,
+                                    color = themeColors.paperBg,
+                                    border = BorderStroke(1.dp, themeColors.paperBorder)
+                                ) {
+                                    Column(modifier = Modifier.fillMaxSize().padding(32.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                file?.name ?: "Document Text",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = themeColors.textColor
+                                            )
+                                            OutlinedButton(
+                                                onClick = {
+                                                    val textToCopy = fullExtractedText ?: ""
+                                                    if (textToCopy.isNotBlank()) {
+                                                        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(textToCopy), null)
+                                                    }
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text("Copy All Text", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        HorizontalDivider(color = themeColors.paperBorder.copy(alpha = 0.4f))
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        SelectionContainer(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = annotatedReflowText,
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontSize = fontSizeSp.sp,
+                                                    lineHeight = (fontSizeSp * 1.6f).sp,
+                                                    color = if (invertColors) Color.White else if (themePalette == ReaderThemePalette.OLED_DARK) Color(0xFFE0E0E0) else themeColors.textColor
+                                                ),
+                                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                                            )
+                                        }
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // READING RULER FOCUS GUIDE (DYSLEXIA SUITE)
+                if (isReadingRulerActive && file != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, (rulerY - 18.dp.roundToPx()).toInt()) }
+                            .height(36.dp)
+                            .background(Color(0xFFFFEE58).copy(alpha = 0.24f))
+                            .border(BorderStroke(1.dp, Color(0xFFFBC02D).copy(alpha = 0.5f)))
+                    )
+                }
+
+                // FLOATING MAGNIFIER LOUPE (INSPECTION LENS)
+                if (isLoupeActive && file != null && renderedPages.containsKey(currentPageIndex)) {
+                    val activeBmp = renderedPages[currentPageIndex]
+                    if (activeBmp != null) {
+                        Surface(
+                            modifier = Modifier
+                                .offset { IntOffset((loupePosition.x - 90.dp.roundToPx()).toInt(), (loupePosition.y - 90.dp.roundToPx()).toInt()) }
+                                .size(180.dp),
+                            shape = CircleShape,
+                            shadowElevation = 14.dp,
+                            border = BorderStroke(3.dp, MaterialTheme.colorScheme.primary),
+                            color = Color.White
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val loupeScale = 2.5f
+                                val srcW = size.width / loupeScale
+                                val srcH = size.height / loupeScale
+                                val normX = (loupePosition.x / size.width.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                                val normY = (loupePosition.y / size.height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                                val srcX = (normX * activeBmp.width - srcW / 2f).coerceIn(0f, (activeBmp.width - srcW).coerceAtLeast(0f))
+                                val srcY = (normY * activeBmp.height - srcH / 2f).coerceIn(0f, (activeBmp.height - srcH).coerceAtLeast(0f))
+                                drawImage(
+                                    image = activeBmp,
+                                    srcOffset = IntOffset(srcX.toInt(), srcY.toInt()),
+                                    srcSize = IntSize(srcW.toInt(), srcH.toInt()),
+                                    dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+                                    colorFilter = dynamicColorFilter
+                                )
                             }
                         }
                     }
@@ -6519,7 +7017,6 @@ private fun ReaderView(
         }
     }
 }
-
 // =================================================================================================
 // 9. [FEATURE: Security Studio] — Encrypt, Decrypt, Threat Sanitizer, Repair, Redaction, Attachments
 // =================================================================================================

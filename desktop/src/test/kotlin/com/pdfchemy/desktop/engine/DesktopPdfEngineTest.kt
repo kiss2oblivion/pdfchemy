@@ -743,6 +743,102 @@ class DesktopPdfEngineTest {
         assertEquals(img0.width, imgRotated.height)
         assertEquals(img0.height, imgRotated.width)
     }
+
+    @Test
+    fun testRotateSinglePage() {
+        val pdf = createTestPdf(pages = 3, text = "Rotation Target")
+        val outPdf = tempFolder.newFile("single_page_rotated.pdf")
+
+        // Rotate page index 1 by +90 degrees
+        val result1 = DesktopPdfEngine.rotateSinglePage(pdf, outPdf, pageIndex = 1, degreesDelta = 90)
+        assertTrue(result1.isSuccess)
+
+        PDDocument.load(outPdf).use { doc ->
+            assertEquals(3, doc.numberOfPages)
+            assertEquals(0, doc.getPage(0).rotation)
+            assertEquals(90, doc.getPage(1).rotation)
+            assertEquals(0, doc.getPage(2).rotation)
+        }
+
+        // Rotate page index 1 by another +90 degrees (delta = 90 -> total 180)
+        val outPdf2 = tempFolder.newFile("single_page_rotated_again.pdf")
+        val result2 = DesktopPdfEngine.rotateSinglePage(outPdf, outPdf2, pageIndex = 1, degreesDelta = 90)
+        assertTrue(result2.isSuccess)
+
+        PDDocument.load(outPdf2).use { doc ->
+            assertEquals(180, doc.getPage(1).rotation)
+        }
+
+        // Test out of bounds index fails gracefully
+        val outPdf3 = tempFolder.newFile("single_page_out_of_bounds.pdf")
+        val resultFail = DesktopPdfEngine.rotateSinglePage(outPdf2, outPdf3, pageIndex = 99, degreesDelta = 90)
+        assertTrue(resultFail.isFailure)
+    }
+
+    @Test
+    fun testExtractBookmarks_EmptyAndPopulated() {
+        // 1. PDF without outline returns empty list
+        val plainPdf = createTestPdf(pages = 2, text = "No Outline")
+        val emptyBookmarks = DesktopPdfEngine.extractBookmarks(plainPdf)
+        assertTrue(emptyBookmarks.isEmpty())
+
+        // 2. PDF with document outline
+        val outlinePdf = tempFolder.newFile("bookmarked_sample.pdf")
+        val doc = PDDocument()
+        val p0 = PDPage()
+        val p1 = PDPage()
+        val p2 = PDPage()
+        doc.addPage(p0)
+        doc.addPage(p1)
+        doc.addPage(p2)
+
+        val outline = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline()
+        doc.documentCatalog.documentOutline = outline
+
+        val ch1 = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem().apply {
+            title = "Chapter 1: Getting Started"
+            val dest = org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination()
+            dest.page = p0
+            destination = dest
+        }
+        outline.addLast(ch1)
+
+        val sec1 = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem().apply {
+            title = "Section 1.1: Foundations"
+            val dest = org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination()
+            dest.page = p1
+            destination = dest
+        }
+        ch1.addLast(sec1)
+
+        val ch2 = org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem().apply {
+            title = "Chapter 2: Advanced Techniques"
+            val dest = org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination()
+            dest.page = p2
+            destination = dest
+        }
+        outline.addLast(ch2)
+
+        doc.save(outlinePdf)
+        doc.close()
+
+        val bookmarks = DesktopPdfEngine.extractBookmarks(outlinePdf)
+        assertEquals(2, bookmarks.size)
+        assertEquals("Chapter 1: Getting Started", bookmarks[0].title)
+        assertEquals(0, bookmarks[0].pageIndex)
+        assertEquals(0, bookmarks[0].depth)
+        assertEquals(1, bookmarks[0].children.size)
+
+        val subItem = bookmarks[0].children[0]
+        assertEquals("Section 1.1: Foundations", subItem.title)
+        assertEquals(1, subItem.pageIndex)
+        assertEquals(1, subItem.depth)
+
+        assertEquals("Chapter 2: Advanced Techniques", bookmarks[1].title)
+        assertEquals(2, bookmarks[1].pageIndex)
+        assertEquals(0, bookmarks[1].depth)
+        assertTrue(bookmarks[1].children.isEmpty())
+    }
 }
 
 
