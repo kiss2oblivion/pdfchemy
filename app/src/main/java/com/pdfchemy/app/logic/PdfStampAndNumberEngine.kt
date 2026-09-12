@@ -67,7 +67,7 @@ object PdfStampAndNumberEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                doc = PDDocument.load(inStream)
+                doc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 if (doc == null) return@withContext false
 
                 val totalPages = doc!!.numberOfPages
@@ -163,7 +163,7 @@ object PdfStampAndNumberEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                doc = PDDocument.load(inStream)
+                doc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 if (doc == null) return@withContext false
 
                 val totalPages = doc!!.numberOfPages
@@ -229,7 +229,7 @@ object PdfStampAndNumberEngine {
         var doc: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
-                doc = PDDocument.load(inStream)
+                doc = PDDocument.load(inStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 if (doc == null) return@withContext false
 
                 val totalPages = doc!!.numberOfPages

@@ -58,7 +58,7 @@ object PdfManipulator {
             var document: PDDocument? = null
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                    document = PDDocument.load(inputStream)
+                    document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     val totalPages = document?.numberOfPages ?: 0
                     if (totalPages == 0) return@use
                     val pagesToKeep = parsePageRange(pageRange, totalPages)
@@ -103,7 +103,7 @@ object PdfManipulator {
             docStream = context.contentResolver.openInputStream(sourceUri)
             if (pfd != null && docStream != null) {
                 renderer = PdfRenderer(pfd)
-                document = PDDocument.load(docStream)
+                document = PDDocument.load(docStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val totalPages = document.numberOfPages
                 if (totalPages == 0) return@withContext emptyList()
 
@@ -192,7 +192,7 @@ object PdfManipulator {
 
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                document = PDDocument.load(inputStream)
+                document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val doc = document ?: return@use
                 val outline = doc.documentCatalog.documentOutline
                 if (outline == null || outline.firstChild == null) return@use
@@ -254,7 +254,7 @@ object PdfManipulator {
             var document: PDDocument? = null
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                    document = PDDocument.load(inputStream)
+                    document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     val doc = document ?: return@use
                     val totalPages = doc.numberOfPages
                     val pagesToDelete = parsePageRange(pageRange, totalPages)
@@ -284,7 +284,7 @@ object PdfManipulator {
             var document: PDDocument? = null
             try {
                 context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                    document = PDDocument.load(inputStream)
+                    document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     val doc = document ?: return@withContext
                     val totalPages = doc.numberOfPages
                     val pagesToRotate = parsePageRange(pageRange, totalPages)
@@ -320,7 +320,7 @@ object PdfManipulator {
         var document: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                document = PDDocument.load(inputStream)
+                document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val doc = document ?: throw Exception("Failed to load PDF document")
                 
                 val accessPermission = AccessPermission()
@@ -349,7 +349,7 @@ object PdfManipulator {
         var document: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                document = PDDocument.load(inputStream, password)
+                document = PDDocument.load(inputStream, password, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val doc = document ?: throw Exception("Failed to load PDF document with provided password")
                 
                 if (doc.isEncrypted) {
@@ -368,7 +368,7 @@ object PdfManipulator {
     suspend fun isPdfPasswordProtected(context: Context, sourceUri: Uri): Boolean = withContext(Dispatchers.IO) {
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                val doc = PDDocument.load(inputStream, "")
+                val doc = PDDocument.load(inputStream, "", com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val isEncrypted = doc.isEncrypted
                 doc.close()
                 isEncrypted

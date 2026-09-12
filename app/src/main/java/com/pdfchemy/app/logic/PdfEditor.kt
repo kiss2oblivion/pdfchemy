@@ -257,7 +257,7 @@ object PdfEditor {
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(IllegalStateException("Cannot open source PDF"))
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val totalPages = document.numberOfPages
 
             // 1. Process annotations and rotations from last page to first to support safe deletions
@@ -342,32 +342,7 @@ object PdfEditor {
                     }
 
                     if (!rasterized) {
-                        // Fallback when PdfRenderer is unavailable (e.g., headless JVM/Robolectric environment):
-                        // Under our Inviolable Cardinal Ethical Mantra, redactions must be genuine and
-                        // NEVER leave sensitive text extractable in the PDF byte stream.
-                        // We scrub the underlying text stream (CONTENTS) and annotations, then draw the redaction overlay.
-                        val cropBox = page.cropBox ?: page.mediaBox
-                        val pw = cropBox.width.toInt().coerceAtLeast(1)
-                        val ph = cropBox.height.toInt().coerceAtLeast(1)
-
-                        if (mod.rotationDegrees != 0) {
-                            val currentRotation = page.rotation
-                            page.rotation = (currentRotation + mod.rotationDegrees) % 360
-                        }
-
-                        page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
-                        page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
-
-                        val overlayBmp = renderAnnotationOverlayBitmap(mod, pw, ph)
-                        if (overlayBmp != null) {
-                            val pdImage = LosslessFactory.createFromImage(document, overlayBmp)
-                            overlayBmp.recycle()
-                            PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).use { cs ->
-                                cs.drawImage(pdImage, cropBox.lowerLeftX, cropBox.lowerLeftY, cropBox.width, cropBox.height)
-                            }
-                        } else {
-                            PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).close()
-                        }
+                        throw SecurityException("Cannot forensically rasterize the PDF page because PdfRenderer is unavailable. Aborting redaction to ensure maximum security without data loss.")
                     }
                     continue
                 }

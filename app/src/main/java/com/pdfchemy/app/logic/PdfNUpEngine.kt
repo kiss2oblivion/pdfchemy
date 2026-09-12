@@ -62,7 +62,7 @@ object PdfNUpEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            srcDoc = PDDocument.load(inputStream)
+            srcDoc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val origPageCount = srcDoc.numberOfPages
             if (origPageCount == 0) {
                 return@withContext Result.failure(IllegalStateException("PDF contains no pages"))

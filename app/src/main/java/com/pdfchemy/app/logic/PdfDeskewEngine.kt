@@ -133,7 +133,7 @@ object PdfDeskewEngine {
             docStream = context.contentResolver.openInputStream(sourceUri)
             if (pfd != null && docStream != null) {
                 renderer = PdfRenderer(pfd)
-                document = PDDocument.load(docStream)
+                document = PDDocument.load(docStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val totalPages = document.numberOfPages
 
                 for (i in 0 until totalPages) {

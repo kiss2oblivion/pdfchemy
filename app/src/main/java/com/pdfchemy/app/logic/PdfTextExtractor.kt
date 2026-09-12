@@ -46,7 +46,7 @@ object PdfTextExtractor {
         var document: PDDocument? = null
         return try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                document = PDDocument.load(inputStream)
+                document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val stripper = PDFTextStripper()
                 stripper.getText(document)
             } ?: ""

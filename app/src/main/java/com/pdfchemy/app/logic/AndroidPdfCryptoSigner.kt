@@ -33,6 +33,7 @@ class AndroidBouncyCastleSignature(
     private val certificate: Certificate
 ) : SignatureInterface {
     override fun sign(content: InputStream): ByteArray {
+        var tempFile: File? = null
         try {
             val certList = listOf(certificate)
             val certStore = org.bouncycastle.util.Store { certList }
@@ -48,12 +49,19 @@ class AndroidBouncyCastleSignature(
             )
             signer.addCertificates(certStore)
 
-            val msg: CMSTypedData = CMSProcessableByteArray(content.readBytes())
+            tempFile = File.createTempFile("pdf_sign_", ".tmp")
+            tempFile.outputStream().use { os ->
+                content.copyTo(os)
+            }
+
+            val msg: CMSTypedData = org.bouncycastle.cms.CMSProcessableFile(tempFile)
             val signedData = signer.generate(msg, false)
 
             return signedData.encoded
         } catch (e: Exception) {
             throw RuntimeException("Error signing PDF", e)
+        } finally {
+            tempFile?.delete()
         }
     }
 }
@@ -97,7 +105,7 @@ object AndroidPdfCryptoSigner {
      * Digitally signs the PDF file using the provided private key and certificate.
      */
     fun signPdf(sourceFile: File, destFile: File, keyPairInfo: KeyPairInfo, reason: String = "Signed by PDFchemy", location: String = "Local Device") {
-        PDDocument.load(sourceFile).use { document ->
+        PDDocument.load(sourceFile, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val signature = PDSignature()
             signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE)
             signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED)

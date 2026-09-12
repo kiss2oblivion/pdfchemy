@@ -97,8 +97,7 @@
 ## 💻 Desktop Edition (`desktop`)
 
 | Tab / Category | Tools & Features | Engine / Implementation | Status |
-| :--- | :--- | :--- | :--- |
-| **Home Dashboard** | Recent documents list, quick drag-and-drop, quick action cards, Manifesto | `DesktopApp.kt`, `RecentDocumentsManager.kt` | ✅ Live |
+| **Home Dashboard** | Recent documents list, quick drag-and-drop, quick action cards, in-app update checks | `DesktopApp.kt`, `RecentDocumentsManager.kt` | ✅ Live |
 | **Compress** | 3 Presets + Custom Quality/DPI, Grayscale toggle, Metadata stripping | `DesktopPdfEngine.compressPdf` | ✅ Live |
 | **Page Studio** | Rotate (left/right), Reorder, Duplicate, Delete, Extract, Impose N-Up (2-Up, 4-Up), Booklet Creator, Margin Cropper, Auto-Deskew | `DesktopPdfEngine.kt` | ✅ Live |
 | **Convert** | • Images to PDF<br>• PDF to High-Res PNG Images<br>• Extract Plain Text (.txt)<br>• OCR Searchable PDF (Tesseract)<br>• PDF to ISO 19005-1b PDF/A<br>• Extract Tables to RFC 4180 CSV<br>• **Office Export:** PDF to Word (.docx), Excel (.xlsx), PowerPoint (.pptx) | `DesktopPdfEngine.kt`, `DesktopOfficeExportEngine.kt` | ✅ Live |

@@ -58,7 +58,7 @@ object PdfSanitizerEngine {
                 ?: return@withContext SanitizerAuditReport(threatsFound = 1, isClean = false, parseFailed = true)
 
             try {
-                doc = PDDocument.load(inputStream, "")
+                doc = PDDocument.load(inputStream, "", com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             } catch (_: InvalidPasswordException) {
                 AppLogger.w("PdfSanitizerEngine: Document is encrypted / password protected")
                 return@withContext SanitizerAuditReport(
@@ -95,6 +95,16 @@ object PdfSanitizerEngine {
             }
             val catalogAa = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
             if (catalogAa is COSDictionary && catalogAa.size() > 0) actionCount++
+
+            val acroForm = doc.documentCatalog.acroForm
+            if (acroForm != null) {
+                val acroAa = acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
+                if (acroAa is COSDictionary && acroAa.size() > 0) actionCount++
+                for (field in acroForm.fieldTree) {
+                    val fieldAa = field.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
+                    if (fieldAa is COSDictionary && fieldAa.size() > 0) actionCount++
+                }
+            }
 
             // 3. Embedded files
             if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("EmbeddedFiles")) != null) attachmentCount++
@@ -197,7 +207,7 @@ object PdfSanitizerEngine {
         try {
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext SanitizerResult(false, 0, 0, 0, false, 0)
-            doc = PDDocument.load(inputStream)
+            doc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             var jsPurged = 0
             var actionsPurged = 0
@@ -223,6 +233,20 @@ object PdfSanitizerEngine {
                 if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
                     doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("AA"))
                     actionsPurged++
+                }
+                
+                val acroForm = doc.documentCatalog.acroForm
+                if (acroForm != null) {
+                    if (acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                        acroForm.cosObject.removeItem(COSName.getPDFName("AA"))
+                        actionsPurged++
+                    }
+                    for (field in acroForm.fieldTree) {
+                        if (field.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                            field.cosObject.removeItem(COSName.getPDFName("AA"))
+                            actionsPurged++
+                        }
+                    }
                 }
             }
 

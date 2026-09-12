@@ -43,7 +43,7 @@ object PdfFlattenEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val acroForm = document.documentCatalog.acroForm
             val fieldCount = acroForm?.fields?.size ?: 0
             val hasSignatures = document.signatureDictionaries.isNotEmpty()
@@ -90,7 +90,7 @@ object PdfFlattenEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val acroForm = document.documentCatalog.acroForm
 
             if (flattenForms && acroForm != null) {
@@ -130,7 +130,7 @@ object PdfFlattenEngine {
                 try {
                     pfd = ParcelFileDescriptor.open(intermediateFile, ParcelFileDescriptor.MODE_READ_ONLY)
                     renderer = PdfRenderer(pfd)
-                    val baseDoc = PDDocument.load(intermediateFile)
+                    val baseDoc = PDDocument.load(intermediateFile, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     val bakedDoc = PDDocument()
 
                     for (i in 0 until renderer.pageCount) {
@@ -170,7 +170,7 @@ object PdfFlattenEngine {
                     document = bakedDoc
                 } catch (e: Exception) {
                     AppLogger.w("PdfFlattenEngine: PdfRenderer unavailable, falling back to direct save: ${e.message}")
-                    document = PDDocument.load(intermediateFile)
+                    document = PDDocument.load(intermediateFile, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 } finally {
                     try { renderer?.close() } catch (_: Exception) {}
                     try { pfd?.close() } catch (_: Exception) {}

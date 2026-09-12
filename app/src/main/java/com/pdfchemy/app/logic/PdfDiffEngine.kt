@@ -62,8 +62,8 @@ object PdfDiffEngine {
                 // Ignore in headless/Robolectric test environments
             }
 
-            context.contentResolver.openInputStream(uri1)?.use { s1 -> doc1 = PDDocument.load(s1) }
-            context.contentResolver.openInputStream(uri2)?.use { s2 -> doc2 = PDDocument.load(s2) }
+            context.contentResolver.openInputStream(uri1)?.use { s1 -> doc1 = PDDocument.load(s1, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()) }
+            context.contentResolver.openInputStream(uri2)?.use { s2 -> doc2 = PDDocument.load(s2, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()) }
 
             val total1 = (renderer1?.pageCount ?: 0).takeIf { it > 0 } ?: (doc1?.numberOfPages ?: 0)
             val total2 = (renderer2?.pageCount ?: 0).takeIf { it > 0 } ?: (doc2?.numberOfPages ?: 0)

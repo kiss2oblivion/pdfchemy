@@ -47,7 +47,7 @@ object OfficeExportEngine {
             val inputStream = contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Cannot open source PDF file."))
 
-            doc = PDDocument.load(inputStream)
+            doc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             if (doc.isEncrypted) {
                 return@withContext Result.failure(Exception("Cannot convert encrypted PDF. Please unlock it first."))
             }
@@ -96,7 +96,7 @@ object OfficeExportEngine {
             val inputStream = contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Cannot open source PDF file."))
 
-            doc = PDDocument.load(inputStream)
+            doc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             if (doc.isEncrypted) {
                 return@withContext Result.failure(Exception("Cannot convert encrypted PDF. Please unlock it first."))
             }
@@ -148,7 +148,7 @@ object OfficeExportEngine {
             val inputStream = contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Cannot open source PDF file."))
 
-            doc = PDDocument.load(inputStream)
+            doc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             if (doc.isEncrypted) {
                 return@withContext Result.failure(Exception("Cannot convert encrypted PDF. Please unlock it first."))
             }
@@ -167,7 +167,7 @@ object OfficeExportEngine {
                 contentResolver.openFileDescriptor(sourceUri, "r")
             }
 
-            val slideImages = mutableListOf<ByteArray>()
+            val slideImages = mutableListOf<File>()
             if (pfd != null) {
                 try {
                     renderer = PdfRenderer(pfd)
@@ -181,9 +181,11 @@ object OfficeExportEngine {
                             canvas.drawColor(Color.WHITE)
                             page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
-                            val baos = ByteArrayOutputStream()
-                            bmp.compress(Bitmap.CompressFormat.JPEG, 85, baos)
-                            slideImages.add(baos.toByteArray())
+                            val tempImgFile = File(context.cacheDir, "slide_${System.currentTimeMillis()}_$i.jpg")
+                            java.io.FileOutputStream(tempImgFile).use { fos ->
+                                bmp.compress(Bitmap.CompressFormat.JPEG, 85, fos)
+                            }
+                            slideImages.add(tempImgFile)
                             bmp.recycle()
                         } finally {
                             page.close()
@@ -219,6 +221,12 @@ object OfficeExportEngine {
             doc?.close()
             renderer?.close()
             pfd?.close()
+            // Clean up temporary slide images
+            try {
+                // Ensure we delete any created temporary files, although slideImages might be out of scope if exception thrown early
+                val cacheDirFiles = context.cacheDir.listFiles { _, name -> name.startsWith("slide_") && name.endsWith(".jpg") }
+                cacheDirFiles?.forEach { it.delete() }
+            } catch (e: Exception) {}
         }
     }
 
@@ -466,7 +474,7 @@ object OfficeExportEngine {
     private fun writePptxArchive(
         outputStream: OutputStream,
         slideTexts: List<List<String>>,
-        slideImages: List<ByteArray>
+        slideImages: List<File>
     ) {
         val zip = ZipOutputStream(outputStream)
         val slideCount = maxOf(1, slideTexts.size)
@@ -537,9 +545,12 @@ object OfficeExportEngine {
             // Save slide image backdrop if present
             val hasImage = i - 1 < slideImages.size
             if (hasImage) {
-                zip.putNextEntry(ZipEntry("ppt/media/image$i.jpeg"))
-                zip.write(slideImages[i - 1])
-                zip.closeEntry()
+                val imgFile = slideImages[i - 1]
+                if (imgFile.exists()) {
+                    zip.putNextEntry(ZipEntry("ppt/media/image$i.jpeg"))
+                    imgFile.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
 
                 // Relationship for slide image
                 zip.putNextEntry(ZipEntry("ppt/slides/_rels/slide$i.xml.rels"))

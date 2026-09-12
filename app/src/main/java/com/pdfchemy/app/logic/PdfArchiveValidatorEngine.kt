@@ -47,7 +47,7 @@ object PdfArchiveValidatorEngine {
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val checks = mutableListOf<ComplianceCheckItem>()
 
             // 1. Encryption Check (PDF/A prohibits encryption)
@@ -185,7 +185,7 @@ object PdfArchiveValidatorEngine {
 
         try {
             inputStream = context.contentResolver.openInputStream(sourceUri) ?: return@withContext false
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             // 1. MarkInfo
             val markInfo = com.tom_roush.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkInfo()

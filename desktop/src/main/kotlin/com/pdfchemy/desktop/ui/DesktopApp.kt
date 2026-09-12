@@ -442,17 +442,9 @@ fun DesktopApp(
                 // Tip Jar Rail Button
                 IconButton(
                     onClick = { showTipJarDialog = true },
-                    modifier = Modifier.padding(bottom = 4.dp)
-                ) {
-                    Icon(Icons.Rounded.Favorite, contentDescription = strings.tipJarTitle, tint = Color(0xFFFF5E5B))
-                }
-
-                // Bottom Manifesto Badge
-                IconButton(
-                    onClick = { showManifestoDialog = true },
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Icon(Icons.Rounded.AllInclusive, contentDescription = "The Manifesto", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Rounded.Favorite, contentDescription = strings.tipJarTitle, tint = Color(0xFFFF5E5B))
                 }
             }
 
@@ -883,14 +875,6 @@ private fun HomeView(
                         Text(strings.checkForUpdates, fontSize = 11.sp)
                     }
                 }
-            }
-            TextButton(
-                onClick = onOpenManifesto,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-            ) {
-                Icon(Icons.Rounded.AllInclusive, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(strings.ourManifesto, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
             }
         }
     }

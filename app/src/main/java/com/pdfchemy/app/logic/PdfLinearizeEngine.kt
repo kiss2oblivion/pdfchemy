@@ -41,7 +41,7 @@ object PdfLinearizeEngine {
 
             inputStream.close()
             inputStream = context.contentResolver.openInputStream(pdfUri)
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
 
             val pageCount = document.numberOfPages
             val size = FileUtils.getFileSize(context, pdfUri)
@@ -79,7 +79,7 @@ object PdfLinearizeEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open source PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             if (document.numberOfPages == 0) {
                 return@withContext Result.failure(IllegalStateException("PDF has no pages"))
             }

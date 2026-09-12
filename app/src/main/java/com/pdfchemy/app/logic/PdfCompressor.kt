@@ -346,7 +346,7 @@ object PdfCompressor {
                 ?: return@withContext Result.failure(Exception("Failed to open file for analysis."))
             
             val doc = try {
-                PDDocument.load(inputStream)
+                PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
             } catch (e: Exception) {
                 return@withContext Result.failure(Exception("Not a valid PDF file."))
             }

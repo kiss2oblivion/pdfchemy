@@ -107,7 +107,7 @@ object PdfCropEngine {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val pageCount = document.numberOfPages
             if (pageCount == 0) {
                 return@withContext Result.failure(IllegalStateException("PDF contains no pages"))

@@ -27,7 +27,7 @@ class PdfMetadataManager {
             inputStream = context.contentResolver.openInputStream(uri)
                 ?: return@withContext Result.failure(Exception("Failed to open file"))
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val info = document.documentInformation
 
             val metadata = PdfMetadata(
@@ -60,7 +60,7 @@ class PdfMetadataManager {
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Failed to open source file"))
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             
             val info = document.documentInformation ?: PDDocumentInformation()
             info.title = newMetadata.title.takeIf { it.isNotBlank() }
@@ -98,7 +98,7 @@ class PdfMetadataManager {
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Failed to open source file"))
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             
             // Clear standard fields
             val info = document.documentInformation
@@ -147,7 +147,7 @@ class PdfMetadataManager {
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(Exception("Failed to open source file"))
 
-            document = PDDocument.load(inputStream)
+            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             
             // Clear standard fields
             val info = document.documentInformation
