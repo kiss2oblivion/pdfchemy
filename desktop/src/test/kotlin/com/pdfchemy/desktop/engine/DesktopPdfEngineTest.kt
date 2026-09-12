@@ -718,6 +718,31 @@ class DesktopPdfEngineTest {
             assertEquals("Compressed shared image should be deduplicated across pages", p0Cos, p1Cos)
         }
     }
+
+    @Test
+    fun testReaderPageDimensionsAndRendering() {
+        val pdf = createTestPdf(pages = 3, text = "Reader Studio Content")
+        val dimensions = DesktopPdfEngine.getPageDimensions(pdf)
+        assertEquals(3, dimensions.size)
+        assertTrue(dimensions[0].widthPt > 0f)
+        assertTrue(dimensions[0].heightPt > 0f)
+        assertTrue(dimensions[0].aspectRatio > 0f)
+
+        val pageTexts = DesktopPdfEngine.extractAllPagesText(pdf)
+        assertEquals(3, pageTexts.size)
+        assertTrue(pageTexts[0].contains("Reader Studio Content"))
+
+        // Render standard page
+        val img0 = DesktopPdfEngine.renderPage(pdf, 0, dpi = 72f, viewRotation = 0)
+        assertNotNull(img0)
+        assertTrue(img0.width > 0 && img0.height > 0)
+
+        // Render rotated page 90 degrees
+        val imgRotated = DesktopPdfEngine.renderPage(pdf, 0, dpi = 72f, viewRotation = 90)
+        assertNotNull(imgRotated)
+        assertEquals(img0.width, imgRotated.height)
+        assertEquals(img0.height, imgRotated.width)
+    }
 }
 
 

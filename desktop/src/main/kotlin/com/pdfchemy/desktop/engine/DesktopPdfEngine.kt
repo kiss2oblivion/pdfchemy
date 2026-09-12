@@ -371,14 +371,83 @@ object DesktopPdfEngine {
         return decoded
     }
 
+    data class PageDimension(val widthPt: Float, val heightPt: Float) {
+        val aspectRatio: Float get() = if (heightPt > 0f) widthPt / heightPt else 0.707f
+    }
+
     /**
-     * Renders a specific PDF page to a BufferedImage at given DPI.
+     * Gets page dimensions and rotations for all pages in a document.
      */
-    fun renderPage(file: File, pageIndex: Int, dpi: Float = 150f): BufferedImage {
-        return PDDocument.load(file).use { document ->
+    fun getPageDimensions(file: File): List<PageDimension> {
+        return try {
+            PDDocument.load(file).use { doc ->
+                (0 until doc.numberOfPages).map { idx ->
+                    val page = doc.getPage(idx)
+                    val box = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
+                    val rotation = page.rotation
+                    if (rotation == 90 || rotation == 270) {
+                        PageDimension(box.height, box.width)
+                    } else {
+                        PageDimension(box.width, box.height)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Extracts text from all pages in a single linear O(N) pass.
+     */
+    fun extractAllPagesText(file: File): List<String> {
+        if (file.name.lowercase().endsWith(".epub")) {
+            return listOf(extractEpubText(file))
+        }
+        return try {
+            PDDocument.load(file).use { doc ->
+                extractAllPagesText(doc)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Renders a specific PDF page to a BufferedImage at given DPI with optional view rotation.
+     */
+    fun renderPage(file: File, pageIndex: Int, dpi: Float = 144f, viewRotation: Int = 0): BufferedImage {
+        val img = PDDocument.load(file).use { document ->
             val renderer = PDFRenderer(document)
             renderer.renderImageWithDPI(pageIndex, dpi)
         }
+        return if (viewRotation % 360 != 0) {
+            rotateImage(img, viewRotation)
+        } else {
+            img
+        }
+    }
+
+    /**
+     * Rotates a BufferedImage by arbitrary multiple of 90 degrees with correct bounding box calculation.
+     */
+    fun rotateImage(src: BufferedImage, degrees: Int): BufferedImage {
+        val normDeg = ((degrees % 360) + 360) % 360
+        if (normDeg == 0) return src
+        val rads = Math.toRadians(normDeg.toDouble())
+        val sin = Math.abs(Math.sin(rads))
+        val cos = Math.abs(Math.cos(rads))
+        val w = Math.floor(src.width * cos + src.height * sin).toInt().coerceAtLeast(1)
+        val h = Math.floor(src.height * cos + src.width * sin).toInt().coerceAtLeast(1)
+        val rotated = BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
+        val g2d = rotated.createGraphics()
+        val at = java.awt.geom.AffineTransform()
+        at.translate((w - src.width) / 2.0, (h - src.height) / 2.0)
+        at.rotate(rads, src.width / 2.0, src.height / 2.0)
+        g2d.transform = at
+        g2d.drawImage(src, 0, 0, null)
+        g2d.dispose()
+        return rotated
     }
 
     /**
