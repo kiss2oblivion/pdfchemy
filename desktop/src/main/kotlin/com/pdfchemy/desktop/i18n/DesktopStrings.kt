@@ -383,6 +383,16 @@ data class DesktopStrings(
     var formBuilderSavedSuccess: String = "Fillable PDF form created successfully: %1\$s"
     var formBuilderHint: String = "Click on document preview to place interactive form field"
     var formBuilderCount: String = "Fields placed: %1\$d"
+
+    // 10. Secure In-App Update & Install
+    var btnInstallUpdateAuto: String = "Install Update Automatically"
+    var updateDownloading: String = "Downloading update (%1\$s / %2\$s)..."
+    var updateVerifying: String = "Verifying cryptographic SHA-256 signature..."
+    var updateLaunching: String = "Launching installer..."
+    var updateInstallFailed: String = "Installation failed: %1\$s"
+    var updateChecksumMismatch: String = "Security Error: SHA-256 integrity verification failed! Update aborted."
+    var btnCancelUpdate: String = "Cancel Download"
+    var updateInstallerReady: String = "Installer downloaded and verified successfully."
 }
 
 /**
