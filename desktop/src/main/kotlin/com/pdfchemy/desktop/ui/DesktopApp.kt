@@ -438,14 +438,6 @@ fun DesktopApp(
                         )
                     }
                 }
-
-                // Tip Jar Rail Button
-                IconButton(
-                    onClick = { showTipJarDialog = true },
-                    modifier = Modifier.padding(bottom = 12.dp)
-                ) {
-                    Icon(Icons.Rounded.Favorite, contentDescription = strings.tipJarTitle, tint = Color(0xFFFF5E5B))
-                }
             }
 
             VerticalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
@@ -784,66 +776,7 @@ private fun HomeView(
             }
         }
 
-        // The Tip Jar / Indie Support Card on Home Dashboard
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-            ),
-            border = BorderStroke(1.dp, Color(0xFFFF5E5B).copy(alpha = 0.35f))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFFF5E5B).copy(alpha = 0.15f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF5E5B), modifier = Modifier.size(24.dp))
-                        }
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            strings.tipJarHomeCardTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            strings.tipJarHomeCardDesc,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Button(
-                    onClick = onOpenTipJar,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFF5E5B),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(strings.btnOpenTipJar, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
 
-        Spacer(modifier = Modifier.weight(1f, fill = false).height(24.dp))
 
         // Subtle, Understated Footer
         Row(
