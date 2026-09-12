@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -91,6 +92,7 @@ fun QuickFillSignScreen(
     var textToPlace by remember { mutableStateOf("John Doe") }
     var showTextDialog by remember { mutableStateOf(false) }
     var showSignDialog by remember { mutableStateOf(false) }
+    var savedSignaturePoints by remember { mutableStateOf<List<DrawingPoint>?>(null) }
 
     // Page modifications map (PageIndex -> PageModification)
     val pageModifications = remember { mutableStateMapOf<Int, PageModification>() }
@@ -172,6 +174,25 @@ fun QuickFillSignScreen(
 
     fun addAnnotationAt(xRatio: Float, yRatio: Float) {
         val currentMod = pageModifications[currentPageIndex] ?: PageModification(pageIndex = currentPageIndex)
+
+        if (selectedTool == QuickFillTool.SIGNATURE) {
+            val sigPoints = savedSignaturePoints
+            if (sigPoints.isNullOrEmpty()) {
+                showSignDialog = true
+            } else {
+                val localizedPoints = scaleSignatureToPage(sigPoints, xRatio, yRatio)
+                val drawing = DrawingPath(
+                    points = localizedPoints,
+                    color = AndroidColor.BLACK,
+                    strokeWidth = 3f
+                )
+                pageModifications[currentPageIndex] = currentMod.copy(
+                    drawings = currentMod.drawings + drawing
+                )
+            }
+            return
+        }
+
         val textItem = when (selectedTool) {
             QuickFillTool.TEXT -> TextAnnotation(
                 text = textToPlace,
@@ -285,9 +306,11 @@ fun QuickFillSignScreen(
                 Button(
                     onClick = {
                         if (signaturePoints.isNotEmpty()) {
+                            savedSignaturePoints = signaturePoints
                             val currentMod = pageModifications[currentPageIndex] ?: PageModification(pageIndex = currentPageIndex)
+                            val localizedPoints = scaleSignatureToPage(signaturePoints, 0.5f, 0.7f)
                             val drawing = DrawingPath(
-                                points = signaturePoints,
+                                points = localizedPoints,
                                 color = AndroidColor.BLACK,
                                 strokeWidth = 3f
                             )
@@ -320,6 +343,24 @@ fun QuickFillSignScreen(
                 },
                 actions = {
                     if (selectedPdfUri != null) {
+                        val currentMod = pageModifications[currentPageIndex]
+                        if (currentMod != null && (currentMod.drawings.isNotEmpty() || currentMod.textAnnotations.isNotEmpty())) {
+                            IconButton(
+                                onClick = {
+                                    if (currentMod.drawings.isNotEmpty()) {
+                                        pageModifications[currentPageIndex] = currentMod.copy(
+                                            drawings = currentMod.drawings.dropLast(1)
+                                        )
+                                    } else if (currentMod.textAnnotations.isNotEmpty()) {
+                                        pageModifications[currentPageIndex] = currentMod.copy(
+                                            textAnnotations = currentMod.textAnnotations.dropLast(1)
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = "Undo")
+                            }
+                        }
                         Button(
                             onClick = {
                                 val suggestedName = FileUtil.generateSuggestedName(selectedPdfUri, "filled")
@@ -531,5 +572,33 @@ fun QuickFillSignScreen(
                 }
             }
         }
+    }
+}
+
+private fun scaleSignatureToPage(
+    points: List<DrawingPoint>,
+    centerX: Float,
+    centerY: Float,
+    widthRatio: Float = 0.25f,
+    heightRatio: Float = 0.08f
+): List<DrawingPoint> {
+    if (points.isEmpty()) return emptyList()
+    val minX = points.minOf { it.x }
+    val maxX = points.maxOf { it.x }
+    val minY = points.minOf { it.y }
+    val maxY = points.maxOf { it.y }
+    val spanX = (maxX - minX).coerceAtLeast(0.001f)
+    val spanY = (maxY - minY).coerceAtLeast(0.001f)
+
+    val left = (centerX - widthRatio / 2f).coerceIn(0f, 1f - widthRatio)
+    val top = (centerY - heightRatio / 2f).coerceIn(0f, 1f - heightRatio)
+
+    return points.map { p ->
+        val normX = (p.x - minX) / spanX
+        val normY = (p.y - minY) / spanY
+        DrawingPoint(
+            x = left + normX * widthRatio,
+            y = top + normY * heightRatio
+        )
     }
 }

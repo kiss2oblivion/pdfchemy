@@ -18,8 +18,10 @@ import com.pdfchemy.app.utils.AppLogger
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
 import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
+import com.tom_roush.pdfbox.util.Matrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -241,7 +243,17 @@ object PdfEditor {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
+        val hasAnyRedactions = modifications.values.any { it.redactions.isNotEmpty() }
+        var pfd: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
         try {
+            if (hasAnyRedactions) {
+                pfd = try { openParcelFileDescriptor(context, sourceUri) } catch (_: Exception) { null }
+                if (pfd != null) {
+                    renderer = try { PdfRenderer(pfd) } catch (_: Exception) { null }
+                }
+            }
+
             inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext Result.failure(IllegalStateException("Cannot open source PDF"))
 
@@ -259,23 +271,131 @@ object PdfEditor {
 
                 val page = document.getPage(pageIdx)
 
+                // A. True Redaction: If page contains active redaction boxes, perform selective
+                // single-page rasterization to permanently obliterate underlying text bytes from the PDF stream.
+                if (mod.redactions.isNotEmpty()) {
+                    var rasterized = false
+                    if (renderer != null && pageIdx in 0 until renderer.pageCount) {
+                        var renderPage: PdfRenderer.Page? = null
+                        var baseBmp: Bitmap? = null
+                        try {
+                            renderPage = renderer.openPage(pageIdx)
+                            val origW = renderPage.width.coerceAtLeast(1)
+                            val origH = renderPage.height.coerceAtLeast(1)
+                            val maxDim = 2400f
+                            val scale = (maxDim / maxOf(origW, origH)).coerceIn(1.5f, 2.5f)
+                            val targetW = (origW * scale).toInt().coerceAtLeast(1)
+                            val targetH = (origH * scale).toInt().coerceAtLeast(1)
+
+                            baseBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
+                            val canvas = Canvas(baseBmp)
+                            canvas.drawColor(android.graphics.Color.WHITE)
+                            renderPage.render(baseBmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+
+                            // Render user drawings, text annotations, stamps, and redactions over base bitmap
+                            val overlayBmp = renderAnnotationOverlayBitmap(mod, targetW, targetH)
+                            if (overlayBmp != null) {
+                                canvas.drawBitmap(overlayBmp, 0f, 0f, null)
+                                overlayBmp.recycle()
+                            }
+
+                            // Apply optional user rotation on the flattened bitmap
+                            var finalBmp = baseBmp
+                            var finalW = origW
+                            var finalH = origH
+                            if (mod.rotationDegrees != 0) {
+                                val matrix = android.graphics.Matrix()
+                                matrix.postRotate(mod.rotationDegrees.toFloat())
+                                val rotated = Bitmap.createBitmap(baseBmp, 0, 0, targetW, targetH, matrix, true)
+                                if (rotated !== baseBmp) {
+                                    baseBmp.recycle()
+                                    finalBmp = rotated
+                                }
+                                if (mod.rotationDegrees == 90 || mod.rotationDegrees == 270) {
+                                    finalW = origH
+                                    finalH = origW
+                                }
+                            }
+
+                            val pdImage = JPEGFactory.createFromImage(document, finalBmp, 0.92f)
+                            if (finalBmp !== baseBmp) {
+                                finalBmp.recycle()
+                            } else {
+                                baseBmp.recycle()
+                            }
+
+                            // Replace page content completely with the sanitized flattened image
+                            page.rotation = 0
+                            page.cropBox = null
+                            page.mediaBox = PDRectangle(finalW.toFloat(), finalH.toFloat())
+                            page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
+
+                            PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).use { cs ->
+                                cs.drawImage(pdImage, 0f, 0f, finalW.toFloat(), finalH.toFloat())
+                            }
+                            rasterized = true
+                        } catch (e: Exception) {
+                            AppLogger.w("PdfEditor: renderer-based redaction flattening failed for page $pageIdx: ${e.message}")
+                        } finally {
+                            try { renderPage?.close() } catch (_: Exception) {}
+                        }
+                    }
+
+                    if (!rasterized) {
+                        // Fallback when PdfRenderer is unavailable (e.g., headless JVM/Robolectric environment):
+                        // Under our Inviolable Cardinal Ethical Mantra, redactions must be genuine and
+                        // NEVER leave sensitive text extractable in the PDF byte stream.
+                        // We scrub the underlying text stream (CONTENTS) and annotations, then draw the redaction overlay.
+                        val cropBox = page.cropBox ?: page.mediaBox
+                        val pw = cropBox.width.toInt().coerceAtLeast(1)
+                        val ph = cropBox.height.toInt().coerceAtLeast(1)
+
+                        if (mod.rotationDegrees != 0) {
+                            val currentRotation = page.rotation
+                            page.rotation = (currentRotation + mod.rotationDegrees) % 360
+                        }
+
+                        page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.CONTENTS)
+                        page.cosObject.removeItem(com.tom_roush.pdfbox.cos.COSName.ANNOTS)
+
+                        val overlayBmp = renderAnnotationOverlayBitmap(mod, pw, ph)
+                        if (overlayBmp != null) {
+                            val pdImage = LosslessFactory.createFromImage(document, overlayBmp)
+                            overlayBmp.recycle()
+                            PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).use { cs ->
+                                cs.drawImage(pdImage, cropBox.lowerLeftX, cropBox.lowerLeftY, cropBox.width, cropBox.height)
+                            }
+                        } else {
+                            PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false, false).close()
+                        }
+                    }
+                    continue
+                }
+
+                // B. Non-destructive modifications for pages WITHOUT redactions (preserves vector text)
                 // Apply rotation
                 if (mod.rotationDegrees != 0) {
                     val currentRotation = page.rotation
                     page.rotation = (currentRotation + mod.rotationDegrees) % 360
                 }
 
-                // Apply annotations overlay if any drawings, texts, stamps, or redactions exist
-                if (mod.drawings.isNotEmpty() || mod.textAnnotations.isNotEmpty() || mod.stamps.isNotEmpty() || mod.redactions.isNotEmpty()) {
+                // Apply annotations overlay if any drawings, texts, or stamps exist
+                if (mod.drawings.isNotEmpty() || mod.textAnnotations.isNotEmpty() || mod.stamps.isNotEmpty()) {
                     val cropBox = page.cropBox ?: page.mediaBox
                     val pageWidthPts = cropBox.width
                     val pageHeightPts = cropBox.height
+                    val lowerLeftX = cropBox.lowerLeftX
+                    val lowerLeftY = cropBox.lowerLeftY
+                    val rot = page.rotation
 
-                    // Render overlay to a crisp 2x resolution bitmap
+                    val dispW = if (rot == 90 || rot == 270) pageHeightPts else pageWidthPts
+                    val dispH = if (rot == 90 || rot == 270) pageWidthPts else pageHeightPts
+
+                    // Render overlay to a crisp 2x resolution bitmap in display orientation
                     val overlayBmp = renderAnnotationOverlayBitmap(
                         mod = mod,
-                        targetWidth = (pageWidthPts * 2).toInt(),
-                        targetHeight = (pageHeightPts * 2).toInt()
+                        targetWidth = (dispW * 2).toInt(),
+                        targetHeight = (dispH * 2).toInt()
                     )
 
                     if (overlayBmp != null) {
@@ -289,7 +409,25 @@ object PdfEditor {
                                 true
                             )
                             contentStream.use { cs ->
-                                cs.drawImage(pdImage, 0f, 0f, pageWidthPts, pageHeightPts)
+                                cs.saveGraphicsState()
+                                when (rot) {
+                                    90 -> {
+                                        cs.transform(Matrix(0f, 1f, -1f, 0f, lowerLeftX + pageWidthPts, lowerLeftY))
+                                        cs.drawImage(pdImage, 0f, 0f, pageHeightPts, pageWidthPts)
+                                    }
+                                    180 -> {
+                                        cs.transform(Matrix(-1f, 0f, 0f, -1f, lowerLeftX + pageWidthPts, lowerLeftY + pageHeightPts))
+                                        cs.drawImage(pdImage, 0f, 0f, pageWidthPts, pageHeightPts)
+                                    }
+                                    270 -> {
+                                        cs.transform(Matrix(0f, -1f, 1f, 0f, lowerLeftX, lowerLeftY + pageHeightPts))
+                                        cs.drawImage(pdImage, 0f, 0f, pageHeightPts, pageWidthPts)
+                                    }
+                                    else -> {
+                                        cs.drawImage(pdImage, lowerLeftX, lowerLeftY, pageWidthPts, pageHeightPts)
+                                    }
+                                }
+                                cs.restoreGraphicsState()
                             }
                         } finally {
                             overlayBmp.recycle()
@@ -311,12 +449,10 @@ object PdfEditor {
             AppLogger.e("PdfEditor: failed to export modified PDF", e)
             Result.failure(e)
         } finally {
-            try {
-                inputStream?.close()
-            } catch (_: Exception) {}
-            try {
-                document?.close()
-            } catch (_: Exception) {}
+            try { renderer?.close() } catch (_: Exception) {}
+            try { pfd?.close() } catch (_: Exception) {}
+            try { inputStream?.close() } catch (_: Exception) {}
+            try { document?.close() } catch (_: Exception) {}
         }
     }
 

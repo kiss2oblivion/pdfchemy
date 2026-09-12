@@ -1,11 +1,19 @@
 package com.pdfchemy.app.logic
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import com.pdfchemy.app.utils.AppLogger
 import com.pdfchemy.app.utils.FileUtils
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPage
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,7 +71,7 @@ object PdfFlattenEngine {
     }
 
     /**
-     * Flattens AcroForm fields, signatures, and/or annotations into immutable vector content streams.
+     * Flattens AcroForm fields, signatures, and/or annotations into immutable vector and high-resolution content streams.
      */
     suspend fun flattenPdf(
         context: Context,
@@ -75,7 +83,8 @@ object PdfFlattenEngine {
         PDFBoxResourceLoader.init(context)
         var inputStream: InputStream? = null
         var document: PDDocument? = null
-        var tempFile: File? = null
+        var intermediateFile: File? = null
+        var finalFile: File? = null
 
         try {
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
@@ -86,35 +95,96 @@ object PdfFlattenEngine {
 
             if (flattenForms && acroForm != null) {
                 try {
+                    if (acroForm.defaultResources == null) {
+                        val dr = com.tom_roush.pdfbox.pdmodel.PDResources()
+                        dr.put(COSName.getPDFName("Helv"), com.tom_roush.pdfbox.pdmodel.font.PDType1Font.HELVETICA)
+                        acroForm.defaultResources = dr
+                    }
                     acroForm.flatten()
                 } catch (e: Exception) {
                     AppLogger.w("AcroForm flatten warning: ${e.message}")
                 }
             }
 
+            // Check which pages have non-widget annotations to flatten
+            val pagesToFlatten = mutableSetOf<Int>()
             if (flattenAnnotations) {
-                for (page in document.pages) {
-                    val annots = page.annotations
-                    if (annots != null) {
-                        // Clear interactive widgets to lock completely
-                        page.annotations = emptyList()
+                for ((idx, page) in document.pages.withIndex()) {
+                    val annots = page.annotations ?: emptyList()
+                    val hasVisualAnnotations = annots.any { it !is PDAnnotationWidget }
+                    if (hasVisualAnnotations) {
+                        pagesToFlatten.add(idx)
                     }
                 }
             }
 
-            tempFile = File(context.cacheDir, "flattened_${System.currentTimeMillis()}.pdf")
-            document.save(tempFile)
-            document.close()
-            document = null
+            if (pagesToFlatten.isNotEmpty()) {
+                // Save intermediate PDF with forms flattened, ready for visual page baking
+                intermediateFile = File(context.cacheDir, "intermediate_flatten_${System.currentTimeMillis()}.pdf")
+                document.save(intermediateFile)
+                document.close()
+                document = null
+
+                var pfd: ParcelFileDescriptor? = null
+                var renderer: PdfRenderer? = null
+                try {
+                    pfd = ParcelFileDescriptor.open(intermediateFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                    renderer = PdfRenderer(pfd)
+                    val baseDoc = PDDocument.load(intermediateFile)
+                    val bakedDoc = PDDocument()
+
+                    for (i in 0 until renderer.pageCount) {
+                        if (pagesToFlatten.contains(i)) {
+                            var renderPage: PdfRenderer.Page? = null
+                            var bmp: Bitmap? = null
+                            try {
+                                renderPage = renderer.openPage(i)
+                                val maxDim = 2048
+                                val scale = minOf(2f, maxDim.toFloat() / maxOf(renderPage.width, renderPage.height).coerceAtLeast(1))
+                                val targetW = (renderPage.width * scale).toInt().coerceAtLeast(1)
+                                val targetH = (renderPage.height * scale).toInt().coerceAtLeast(1)
+                                bmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.RGB_565)
+                                val canvas = android.graphics.Canvas(bmp)
+                                canvas.drawColor(android.graphics.Color.WHITE)
+
+                                renderPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+
+                                val pdfPage = PDPage(PDRectangle(renderPage.width.toFloat(), renderPage.height.toFloat()))
+                                bakedDoc.addPage(pdfPage)
+
+                                val pdImage = JPEGFactory.createFromImage(bakedDoc, bmp, 0.95f)
+                                PDPageContentStream(bakedDoc, pdfPage).use { cs ->
+                                    cs.drawImage(pdImage, 0f, 0f, renderPage.width.toFloat(), renderPage.height.toFloat())
+                                }
+                            } finally {
+                                bmp?.recycle()
+                                renderPage?.close()
+                            }
+                        } else {
+                            if (i < baseDoc.numberOfPages) {
+                                bakedDoc.importPage(baseDoc.getPage(i))
+                            }
+                        }
+                    }
+                    baseDoc.close()
+                    document = bakedDoc
+                } catch (e: Exception) {
+                    AppLogger.w("PdfFlattenEngine: PdfRenderer unavailable, falling back to direct save: ${e.message}")
+                    document = PDDocument.load(intermediateFile)
+                } finally {
+                    try { renderer?.close() } catch (_: Exception) {}
+                    try { pfd?.close() } catch (_: Exception) {}
+                }
+            }
+
+            finalFile = File(context.cacheDir, "flattened_${System.currentTimeMillis()}.pdf")
+            document?.save(finalFile)
 
             context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
-                tempFile.inputStream().use { inp ->
+                finalFile.inputStream().use { inp ->
                     inp.copyTo(out)
                 }
             } ?: throw IllegalStateException("Cannot open destination PDF stream")
-
-            tempFile.delete()
-            tempFile = null
 
             val historyRepo = HistoryRepository(context)
             historyRepo.addHistoryItem(
@@ -130,7 +200,8 @@ object PdfFlattenEngine {
         } finally {
             try { document?.close() } catch (_: Exception) {}
             try { inputStream?.close() } catch (_: Exception) {}
-            tempFile?.delete()
+            intermediateFile?.delete()
+            finalFile?.delete()
         }
     }
 }

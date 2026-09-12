@@ -23,6 +23,22 @@ object DesktopFileDialog {
     }
 
     /**
+     * Opens native file dialog to select a single PDF or EPUB document.
+     */
+    fun openDocument(parent: Frame? = null): File? {
+        val dialog = FileDialog(parent, "Open Document (PDF, EPUB)", FileDialog.LOAD).apply {
+            filenameFilter = FilenameFilter { _, name ->
+                val lower = name.lowercase()
+                lower.endsWith(".pdf") || lower.endsWith(".epub")
+            }
+            isVisible = true
+        }
+        val file = dialog.file ?: return null
+        val dir = dialog.directory ?: return null
+        return File(dir, file)
+    }
+
+    /**
      * Opens native file dialog to select multiple PDFs (e.g. for Merge).
      */
     fun openMultiplePdfs(parent: Frame? = null): List<File> {

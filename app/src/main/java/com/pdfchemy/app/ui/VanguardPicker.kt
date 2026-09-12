@@ -56,8 +56,20 @@ fun rememberVanguardPdfPicker(
 ): VanguardPickerLauncher {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val isVanguardEnabled = remember {
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getBoolean("vanguard_enabled", true)
+    val prefs = remember(context) { context.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE) }
+    var isVanguardEnabled by remember {
+        mutableStateOf(prefs.getBoolean("vanguard_enabled", true))
+    }
+    androidx.compose.runtime.DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "vanguard_enabled") {
+                isVanguardEnabled = prefs.getBoolean("vanguard_enabled", true)
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
     var isScanning by remember { mutableStateOf(false) }
     var scanningFileName by remember { mutableStateOf<String?>(null) }
@@ -226,8 +238,20 @@ fun rememberVanguardMultiplePdfPicker(
 ): VanguardPickerLauncher {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val isVanguardEnabled = remember {
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getBoolean("vanguard_enabled", true)
+    val prefs = remember(context) { context.getSharedPreferences("shrinkpdf_settings", Context.MODE_PRIVATE) }
+    var isVanguardEnabled by remember {
+        mutableStateOf(prefs.getBoolean("vanguard_enabled", true))
+    }
+    androidx.compose.runtime.DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "vanguard_enabled") {
+                isVanguardEnabled = prefs.getBoolean("vanguard_enabled", true)
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
     var isScanning by remember { mutableStateOf(false) }
     var scanningFileName by remember { mutableStateOf<String?>(null) }

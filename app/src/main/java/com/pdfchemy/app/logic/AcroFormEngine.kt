@@ -180,6 +180,7 @@ object AcroFormEngine {
             context.contentResolver.openInputStream(sourceUri)?.use { inStream ->
                 doc = PDDocument.load(inStream)
                 val acroForm = doc?.documentCatalog?.acroForm ?: return@withContext false
+                acroForm.setNeedAppearances(true)
 
                 for ((fqName, value) in fieldValues) {
                     val field = acroForm.getField(fqName)
@@ -215,6 +216,10 @@ object AcroFormEngine {
                     } catch (e: Exception) {
                         com.pdfchemy.app.utils.AppLogger.w("Failed to flatten AcroForm: ${e.message}")
                     }
+                } else {
+                    // For unflattened forms, ensure NeedAppearances is true so viewers render the updated values visibly
+                    acroForm.setNeedAppearances(true)
+                    acroForm.cosObject.setBoolean(COSName.NEED_APPEARANCES, true)
                 }
 
                 context.contentResolver.openOutputStream(destUri)?.use { outStream ->
@@ -265,13 +270,39 @@ object AcroFormEngine {
                     val cropBox = page.cropBox ?: page.mediaBox
                     val pw = cropBox.width
                     val ph = cropBox.height
+                    val rot = ((page.rotation % 360) + 360) % 360
 
-                    val x = cropBox.lowerLeftX + (spec.xRatio.coerceIn(0f, 1f) * pw)
-                    val w = (spec.widthRatio.coerceIn(0.01f, 1f) * pw)
-                    val h = (spec.heightRatio.coerceIn(0.01f, 1f) * ph)
-                    val y = cropBox.lowerLeftY + (ph - (spec.yRatio.coerceIn(0f, 1f) + spec.heightRatio.coerceIn(0.01f, 1f)) * ph)
-
-                    val rect = PDRectangle(x, y, w, h)
+                    // Account for page orientation in display viewport vs unrotated user space
+                    val rect = when (rot) {
+                        90 -> {
+                            val x = cropBox.lowerLeftX + pw - (spec.yRatio.coerceIn(0f, 1f) + spec.heightRatio.coerceIn(0.01f, 1f)) * pw
+                            val y = cropBox.lowerLeftY + spec.xRatio.coerceIn(0f, 1f) * ph
+                            val w = spec.heightRatio.coerceIn(0.01f, 1f) * pw
+                            val h = spec.widthRatio.coerceIn(0.01f, 1f) * ph
+                            PDRectangle(x, y, w, h)
+                        }
+                        180 -> {
+                            val x = cropBox.lowerLeftX + pw - (spec.xRatio.coerceIn(0f, 1f) + spec.widthRatio.coerceIn(0.01f, 1f)) * pw
+                            val y = cropBox.lowerLeftY + spec.yRatio.coerceIn(0f, 1f) * ph
+                            val w = spec.widthRatio.coerceIn(0.01f, 1f) * pw
+                            val h = spec.heightRatio.coerceIn(0.01f, 1f) * ph
+                            PDRectangle(x, y, w, h)
+                        }
+                        270 -> {
+                            val x = cropBox.lowerLeftX + spec.yRatio.coerceIn(0f, 1f) * pw
+                            val y = cropBox.lowerLeftY + ph - (spec.xRatio.coerceIn(0f, 1f) + spec.widthRatio.coerceIn(0.01f, 1f)) * ph
+                            val w = spec.heightRatio.coerceIn(0.01f, 1f) * pw
+                            val h = spec.widthRatio.coerceIn(0.01f, 1f) * ph
+                            PDRectangle(x, y, w, h)
+                        }
+                        else -> {
+                            val x = cropBox.lowerLeftX + (spec.xRatio.coerceIn(0f, 1f) * pw)
+                            val w = (spec.widthRatio.coerceIn(0.01f, 1f) * pw)
+                            val h = (spec.heightRatio.coerceIn(0.01f, 1f) * ph)
+                            val y = cropBox.lowerLeftY + (ph - (spec.yRatio.coerceIn(0f, 1f) + spec.heightRatio.coerceIn(0.01f, 1f)) * ph)
+                            PDRectangle(x, y, w, h)
+                        }
+                    }
 
                     when (spec.type) {
                         FormFieldType.CHECKBOX -> {
@@ -330,6 +361,10 @@ object AcroFormEngine {
                         }
                     }
                 }
+
+                // Explicitly set NeedAppearances right before save so Acrobat/Chrome render appearances
+                acroForm.setNeedAppearances(true)
+                acroForm.cosObject.setBoolean(COSName.NEED_APPEARANCES, true)
 
                 context.contentResolver.openOutputStream(destUri)?.use { outStream ->
                     document.save(outStream)

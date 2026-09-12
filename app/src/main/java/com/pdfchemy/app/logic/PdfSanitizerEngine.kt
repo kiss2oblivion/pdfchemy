@@ -17,6 +17,7 @@ data class SanitizerAuditReport(
     val jsCount: Int = 0,
     val launchActionsCount: Int = 0,
     val attachmentCount: Int = 0,
+    val uriCount: Int = 0,
     val hasMetadata: Boolean = false,
     val isClean: Boolean = true,
     val isEncrypted: Boolean = false,
@@ -79,13 +80,19 @@ object PdfSanitizerEngine {
             var jsCount = 0
             var actionCount = 0
             var attachmentCount = 0
+            var uriCount = 0
 
             // 1. Catalog JavaScript triggers
             if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) jsCount++
             if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) jsCount++
 
             // 2. OpenAction and launch triggers
-            if (doc.documentCatalog.openAction != null) actionCount++
+            val catalogOpenAction = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("OpenAction"))
+            if (catalogOpenAction is COSDictionary) {
+                val s = catalogOpenAction.getNameAsString(COSName.S)
+                if (s == "JavaScript") jsCount++
+                else if (s in listOf("Launch", "SubmitForm", "ImportData")) actionCount++
+            }
             val catalogAa = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
             if (catalogAa is COSDictionary && catalogAa.size() > 0) actionCount++
 
@@ -100,7 +107,8 @@ object PdfSanitizerEngine {
                     if (action is COSDictionary) {
                         val s = action.getNameAsString(COSName.S)
                         if (s == "JavaScript") jsCount++
-                        if (s in listOf("Launch", "SubmitForm", "ImportData", "URI", "Sound", "Movie")) actionCount++
+                        else if (s in listOf("Launch", "SubmitForm", "ImportData", "Sound", "Movie")) actionCount++
+                        else if (s == "URI") uriCount++
                     }
                     if (annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
                 }
@@ -116,6 +124,7 @@ object PdfSanitizerEngine {
                 jsCount = jsCount,
                 launchActionsCount = actionCount,
                 attachmentCount = attachmentCount,
+                uriCount = uriCount,
                 hasMetadata = hasMeta,
                 isClean = totalThreats == 0
             )

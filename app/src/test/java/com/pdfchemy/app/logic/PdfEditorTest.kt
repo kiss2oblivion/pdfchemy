@@ -10,7 +10,9 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import android.graphics.RectF
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
@@ -178,5 +180,83 @@ class PdfEditorTest {
 
         val deletedMod = PageModification(pageIndex = 0, isDeleted = true)
         assertTrue(deletedMod.hasChanges)
+    }
+
+    @Test
+    fun testExportPdfTrueRedactionDestroysUnderlyingText() = runBlocking {
+        val srcFile = File(context.cacheDir, "test_true_redaction_src.pdf")
+        val dstFile = File(context.cacheDir, "test_true_redaction_dst.pdf")
+
+        // 1. Create source PDF with sensitive text on page 0 and normal text on page 1
+        val doc = PDDocument()
+        val page0 = PDPage()
+        doc.addPage(page0)
+        PDPageContentStream(doc, page0).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 18f)
+            cs.newLineAtOffset(100f, 700f)
+            cs.showText("TOP SECRET SSN 999-00-1111 CONFIDENTIAL")
+            cs.endText()
+        }
+
+        val page1 = PDPage()
+        doc.addPage(page1)
+        PDPageContentStream(doc, page1).use { cs ->
+            cs.beginText()
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 18f)
+            cs.newLineAtOffset(100f, 700f)
+            cs.showText("UNCLASSIFIED PUBLIC INFORMATION")
+            cs.endText()
+        }
+        doc.save(srcFile)
+        doc.close()
+
+        // 2. Add RedactionBox over page 0
+        val redactBox = RedactionBox(
+            pageIndex = 0,
+            normalizedRect = RectF(0.05f, 0.05f, 0.95f, 0.35f),
+            overlayLabel = "REDACTED"
+        )
+        val mod0 = PageModification(
+            pageIndex = 0,
+            redactions = listOf(redactBox)
+        )
+
+        val result = PdfEditor.exportModifiedPdf(
+            context = context,
+            sourceUri = Uri.fromFile(srcFile),
+            destUri = Uri.fromFile(dstFile),
+            modifications = mapOf(0 to mod0)
+        )
+        assertTrue("Export with redactions should succeed", result.isSuccess)
+        assertTrue("Destination file should exist", dstFile.exists() && dstFile.length() > 0)
+
+        // 3. Verify underlying text on page 0 is completely obliterated (true redaction)
+        PDDocument.load(dstFile).use { resultDoc ->
+            assertEquals(2, resultDoc.numberOfPages)
+
+            val stripper = PDFTextStripper()
+            stripper.startPage = 1
+            stripper.endPage = 1
+            val page0Text = stripper.getText(resultDoc)
+
+            assertFalse(
+                "Redacted SSN must NOT exist in the page 0 text stream!",
+                page0Text.contains("999-00-1111")
+            )
+            assertFalse(
+                "Redacted TOP SECRET must NOT exist in the page 0 text stream!",
+                page0Text.contains("TOP SECRET")
+            )
+
+            // 4. Verify unredacted page 1 retains its native vector text
+            stripper.startPage = 2
+            stripper.endPage = 2
+            val page1Text = stripper.getText(resultDoc)
+            assertTrue(
+                "Unredacted page 1 must retain its native text!",
+                page1Text.contains("UNCLASSIFIED PUBLIC INFORMATION")
+            )
+        }
     }
 }

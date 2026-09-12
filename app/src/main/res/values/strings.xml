@@ -1108,4 +1108,8 @@
     <string name="vanguard_verifying_title">Vanguard Security Verification</string>
     <string name="vanguard_verifying_desc">Auditing document for scripts and security threats...</string>
     <string name="vanguard_zero_trust_badge">100%% Offline • Zero-Trust</string>
+    <string name="scanned_pdf_title">Scanned Document</string>
+    <string name="scanned_pdf_desc">This document contains scanned images without a selectable text layer.</string>
+    <string name="running_ocr">Running On-Device OCR...</string>
+    <string name="run_on_device_ocr">Extract Text with OCR</string>
 </resources>

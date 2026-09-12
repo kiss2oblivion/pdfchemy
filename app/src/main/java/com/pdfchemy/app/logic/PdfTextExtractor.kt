@@ -91,7 +91,7 @@ object PdfTextExtractor {
         return pagesText
     }
 
-    private suspend fun extractUsingOcr(context: Context, sourceUri: Uri): String {
+    suspend fun extractUsingOcr(context: Context, sourceUri: Uri): String {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val stringBuilder = java.lang.StringBuilder()
 

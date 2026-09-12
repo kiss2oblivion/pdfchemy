@@ -38,6 +38,12 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.pdfchemy.desktop.MainKt"
+        
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("proguard-rules.pro"))
+            obfuscate.set(true)
+            optimize.set(true)
+        }
 
         nativeDistributions {
             targetFormats(
@@ -47,7 +53,7 @@ compose.desktop {
                 TargetFormat.Rpm
             )
             packageName = "PDFchemy"
-            packageVersion = "1.0.2"
+            packageVersion = "1.0.3"
             description = "PDFchemy Tools - Local-First Offline PDF Utility"
             copyright = "© 2026 Andrei Ioan Cucos. All rights reserved."
             vendor = "PDFchemy"

@@ -15,7 +15,7 @@
 | **PDF Compressor** | `CompressScreen.kt` | `PdfCompressor.kt` | ✅ Live | 4 Presets (Extreme, Recommended, High Quality, Custom DPI/Quality), Flate & JBIG2 |
 | **Grayscale Optimizer** | `GrayscaleOptimizerScreen.kt` | `PdfCompressor.kt` | ✅ Live | Converts color PDF pages to monochrome/grayscale to drastically reduce size |
 | **Linearize (Fast Web View)** | `LinearizePdfScreen.kt` | `PdfManipulator.kt` | ✅ Live | Restructures PDF dictionary and stream orders for instant first-page web/mobile streaming |
-| **Flatten PDF** | `FlattenPdfScreen.kt` | `PdfEditor.kt` | ✅ Live | Permanently bakes form fields, comments, and annotations into the base page layer |
+| **Flatten PDF** | `FlattenPdfScreen.kt` | `PdfFlattenEngine.kt` | ✅ Live | Forensic annotation baking: bakes AcroForms via `acroForm.flatten()` and non-widget annotations via high-res `RENDER_MODE_FOR_PRINT` rasterization without destroying user highlights or drawings |
 
 ---
 
@@ -45,8 +45,8 @@
 | **EPUB to PDF Converter** | `EbookConverterScreen.kt` | `EpubConverter.kt` | ✅ Live | Parses standard EPUB ebooks, styles fonts/margins, and exports paginated PDF |
 | **Markdown to PDF Studio** | `MarkdownStudioScreen.kt` | `MarkdownParser.kt` | ✅ Live | Rich Markdown text editor with instant live HTML/PDF rendering |
 | **Text to PDF Converter** | `TextConverterScreen.kt` | `TextConverter.kt` | ✅ Live | Converts `.txt`, logs, and source code into clean paginated documents |
-| **Table Extractor to CSV** | `TableExtractorScreen.kt` | `PdfTableExtractorEngine.kt` | ✅ Live | Spatial 2D column clustering: extracts tables to RFC 4180 CSV / Excel spreadsheets |
-| **Office Export (Word / Excel / PPTX)** | `OfficeExportScreen.kt` | `OfficeExportEngine.kt` | ✅ Live | Pure OpenXML archive generators: exports PDF to `.docx`, `.xlsx`, and `.pptx` (with slide backdrops) |
+| **Table Extractor to CSV** | `TableExtractorScreen.kt` | `PdfTableExtractorEngine.kt` | ✅ Live | Spatial 2D column clustering: page-by-page extraction prevents cross-page Y coordinate collisions; exports to RFC 4180 CSV / Excel spreadsheets |
+| **Office Export (Word / Excel / PPTX)** | `OfficeExportScreen.kt` | `OfficeExportEngine.kt` | ✅ Live | Pure OpenXML archive generators: exports PDF to `.docx`, `.xlsx`, and `.pptx` (with XML 1.0 control character sanitization) |
 | **On-Device OCR** | `OcrScreens.kt` | `PdfOcrEngine.kt` | ✅ Live | 100% offline optical character recognition, creating searchable text layers |
 
 ---
@@ -54,16 +54,16 @@
 ### 4. ✍️ Form Filling & Document Editing
 | Feature | UI Screen | Engine / Logic | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Visual PDF Editor** | `PdfEditorScreen.kt` | `PdfEditor.kt` | ✅ Live | Freehand pen, highlighter, custom text overlays, shape rectangles, signature stamp |
-| **Quick Fill & Sign** | `QuickFillSignScreen.kt` | `PdfEditor.kt` | ✅ Live | Designed for flat/scanned forms: tap anywhere to place Text, Checkmarks (✓), Crosses (✗), Dates, Signatures |
-| **Interactive Form Builder** | `FormBuilderScreen.kt` | `AcroFormEngine.createAcroFormWithFields` | ✅ Live | Converts flat PDFs into genuine fillable forms with interactive text fields, checkboxes, and dropdowns |
-| **AcroForm Interactive Filler** | `AcroFormScreens.kt` | `PdfEditor.kt` | ✅ Live | Inspects and fills standard interactive PDF forms, text boxes, and checkboxes |
-| **Visual Signer** | `SignPdfScreen.kt` | `PdfEditor.kt` | ✅ Live | Draw signatures with vector smoothing, save reusable presets, place anywhere on page |
+| **Visual PDF Editor** | `PdfEditorScreen.kt` | `PdfEditor.kt` | ✅ Live | Freehand pen, highlighter, text overlays, shape rectangles, stamps; true redaction destroys underlying plaintext streams via selective single-page rasterization & stream purging |
+| **Quick Fill & Sign** | `QuickFillSignScreen.kt` | `PdfEditor.kt` | ✅ Live | Designed for flat/scanned forms: tap anywhere to place Text, Checkmarks (✓), Crosses (✗), Dates, localized Signatures (scaled to tap position without full-page blowout), with Undo capability |
+| **Interactive Form Builder** | `FormBuilderScreen.kt` | `AcroFormEngine.createAcroFormWithFields` | ✅ Live | Converts flat PDFs into genuine fillable forms with interactive text fields, checkboxes, and dropdowns; enforces `NeedAppearances = true` across creation and saving so field contents render visibly in Adobe Acrobat, Chrome, Edge, and Apple Preview; full 90°/180°/270° orientation geometry correction prevents coordinate drift on rotated pages |
+| **AcroForm Interactive Filler** | `AcroFormScreens.kt` | `AcroFormEngine.fillAndSaveForm`, `PdfEditor.kt` | ✅ Live | Inspects and fills standard interactive PDF forms, text boxes, and checkboxes; preserves `NeedAppearances = true` for unflattened forms and supports full form flattening with Helvetica font fallback |
+| **Visual Signer** | `SignPdfScreen.kt` | `SignatureEngine.kt`, `PdfEditor.kt` | ✅ Live | Real-time drag-and-drop repositioning, aspect-ratio lock box, LocalDensity pixel-to-dp scaling, selection badge with delete icon, vector smoothing, date stamps, and full coordinate transformation alignment with `cropBox.lowerLeftX/Y` offsets and 90°/180°/270° Matrix rotations |
 | **Watermark Studio** | `WatermarkScreen.kt` | `PdfEditor.kt` | ✅ Live | Custom text/image watermarks with opacity, angle, scaling, and diagonal tiling |
 | **Header & Footer Studio** | `HeaderFooterScreen.kt` | `PdfEditor.kt` | ✅ Live | Embed running headers and footers with custom margins and alignment |
 | **Page Numbering Studio** | `PageNumberScreen.kt` | `PdfEditor.kt` | ✅ Live | Custom page numbers (`Page X of Y`, `X/Y`, `X`), position, font, and start offset |
 | **Bates Numbering** | `BatesNumberScreen.kt` | `PdfEditor.kt` | ✅ Live | Legal numbering (`PREFIX-00001-SUFFIX`), 6 placement positions, custom zero-padding |
-| **Find & Replace Text** | `FindAndReplaceScreen.kt` | `PdfEditor.kt` | ✅ Live | Search text across pages and replace or redact matches |
+| **Find & Replace Text** | `FindAndReplaceScreen.kt` | `PdfFindAndReplaceEngine.replaceAll` | ✅ Live | True text obliteration via selective 2x print rasterization (`AppendMode.OVERWRITE`) on modified pages with transparent WinAnsi-sanitized searchable text layer (full Unicode diacritic & ligature decomposition); purges original content streams and annotations to guarantee zero plaintext leakage; untouched pages remain 100% native vector text |
 | **Image Replacer** | `ImageReplacerScreen.kt` | `PdfEditor.kt` | ✅ Live | Replace embedded raster image objects in PDF streams without touching text |
 
 ---
@@ -73,9 +73,9 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Encrypt / Password Protect** | `EncryptPdfScreen.kt` | `PdfSecurity.kt` | ✅ Live | AES-128 / AES-256 standard PDF encryption with user and owner passwords |
 | **Decrypt / Unlock PDF** | `DecryptPdfScreen.kt` | `PdfSecurity.kt` | ✅ Live | Strips passwords and permissions restrictions permanently |
-| **Permanent Smart Redaction** | `RedactionScreen.kt` | `PdfRedactionEngine.kt` | ✅ Live | Regex PII auto-detection (emails, phone numbers, SSNs) + permanent underlying stream scrubbing |
+| **Permanent Smart Redaction** | `RedactionScreen.kt` | `PdfRedactionEngine.kt` | ✅ Live | Regex PII auto-detection (emails, phone numbers, credit cards, IBAN) with inter-word whitespace preservation via `writeString()` capturing multi-word patterns and spaced sequences; selective page rasterization purges underlying plaintext while untouched pages retain vector text; inverted bounding box normalization prevents negative-width inverted boxes across line wraps |
 | **Deep Threat Sanitizer** | `DocumentSanitizerScreen.kt` | `PdfSanitizerEngine.kt` | ✅ Live | Audits and strips embedded JavaScript triggers, launch actions, URI tracking beacons |
-| **Vanguard Zero-Trust Shield** | Universal across entire app (`VanguardPicker.kt`, `MainActivity.kt`, `PdfEditorScreen.kt`, `ReflowReaderScreen.kt`, `SecurityScreens.kt`, and 30+ standalone tool screens) | `PdfSanitizerEngine.checkVanguardThreat`, `VanguardScanningOverlay`, `rememberVanguardPdfPicker`, `rememberVanguardMultiplePdfPicker` | ✅ Live | Pre-flight zero-trust gatekeeper protecting all document entry points (intents, recent files, and 100% of standalone tool pickers) with sleek, animated, non-dismissible Material 3 verification overlay (pulsing security shield, document name, progress indicator, 100% offline badge); fails closed on encrypted PDFs (with 1-click Unlock PDF routing) and immediately blocks opening of PDFs containing embedded JavaScript, /Launch actions, /OpenAction, /AA auto-run hooks, or attachments |
+| **Vanguard Zero-Trust Shield** | Universal across entire app (`VanguardPicker.kt`, `MainActivity.kt`, `PdfEditorScreen.kt`, `ReflowReaderScreen.kt`, `SecurityScreens.kt`, and 30+ standalone tool screens) | `PdfSanitizerEngine.checkVanguardThreat`, `VanguardScanningOverlay`, `rememberVanguardPdfPicker`, `rememberVanguardMultiplePdfPicker` | ✅ Live | Pre-flight zero-trust gatekeeper with animated non-dismissible Material 3 overlay; differentiated threat detection allows standard web hyperlinks (`/S /URI`) and document destinations while strictly blocking malicious `/Launch`, `/JavaScript`, and auto-run `/OpenAction` executables; unified `shrinkpdf_settings` SharedPreferences with live listeners |
 | **Metadata Sanitizer** | `MetadataSanitizerScreen.kt` | `PdfMetadataSanitizer.kt` | ✅ Live | Inspects and purges author name, software creator, GPS coordinates, editing history |
 | **PDF/A Preflight Validator** | `PdfAValidatorScreen.kt` | `PdfAValidator.kt` | ✅ Live | Audits ISO 19005 compliance (OutputIntents, DeviceRGB/CMYK, font subsets, XMP) |
 | **Typography & Font Inspector** | `FontInspectorScreen.kt` | `FontInspector.kt` | ✅ Live | Lists embedded font programs, TrueType/Type1/Type0, subsets, and character encodings |

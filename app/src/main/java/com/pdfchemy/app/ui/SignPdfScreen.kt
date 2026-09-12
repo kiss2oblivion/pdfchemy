@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -78,6 +80,7 @@ fun SignPdfScreen(
 
     // Placed signatures on the document
     var placedSignatures by remember { mutableStateOf<List<PlacedSignature>>(emptyList()) }
+    var selectedSignatureId by remember { mutableStateOf<String?>(null) }
     var includeDateStamp by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
@@ -268,61 +271,136 @@ fun SignPdfScreen(
                 }
             } else {
                 // Interactive Sign Canvas & Toolbar
-                var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color.White)
-                        .shadow(8.dp, RoundedCornerShape(12.dp))
-                        .onSizeChanged { canvasSize = it },
+                        .shadow(8.dp, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (currentPageBitmap != null) {
-                        Image(
-                            bitmap = currentPageBitmap!!.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
+                        val bmp = currentPageBitmap!!
+                        val pageAspect = bmp.width.toFloat() / bmp.height.toFloat().coerceAtLeast(1f)
+                        var pagePixelSize by remember { mutableStateOf(IntSize.Zero) }
+                        val density = LocalDensity.current
 
-                        // Render Placed Signatures on Current Page
-                        val pageSignatures = placedSignatures.filter { it.pageIndex == currentPageIndex }
-                        for (sig in pageSignatures) {
-                            val bmp = remember(sig) { BitmapFactory.decodeByteArray(sig.bitmapBytes, 0, sig.bitmapBytes.size) }
-                            if (bmp != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .offset {
-                                            IntOffset(
-                                                (sig.xRatio * canvasSize.width).roundToInt(),
-                                                (sig.yRatio * canvasSize.height).roundToInt()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .aspectRatio(pageAspect)
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                                .onSizeChanged { pagePixelSize = it }
+                                .pointerInput(pagePixelSize) {
+                                    detectTapGestures {
+                                        selectedSignatureId = null
+                                    }
+                                }
+                        ) {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Render Placed Signatures on Current Page
+                            val pageSignatures = placedSignatures.filter { it.pageIndex == currentPageIndex }
+                            for (sig in pageSignatures) {
+                                val sigBmp = remember(sig) { BitmapFactory.decodeByteArray(sig.bitmapBytes, 0, sig.bitmapBytes.size) }
+                                if (sigBmp != null && pagePixelSize.width > 0 && pagePixelSize.height > 0) {
+                                    val isSelected = sig.id == selectedSignatureId
+
+                                    val sigW = (sig.widthRatio * pagePixelSize.width).coerceAtLeast(40f)
+                                    val sigH = (sig.heightRatio * pagePixelSize.height).coerceAtLeast(20f)
+                                    val widthDp = with(density) { sigW.toDp() }
+                                    val heightDp = with(density) { sigH.toDp() }
+
+                                    val xPx = (sig.xRatio * pagePixelSize.width).roundToInt()
+                                    val yPx = (sig.yRatio * pagePixelSize.height).roundToInt()
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset { IntOffset(xPx, yPx) }
+                                            .size(widthDp, heightDp)
+                                            .border(
+                                                width = if (isSelected) 2.dp else 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                                shape = RoundedCornerShape(4.dp)
                                             )
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
+                                                RoundedCornerShape(4.dp)
+                                            )
+                                            .pointerInput(sig.id, pagePixelSize) {
+                                                detectTapGestures {
+                                                    selectedSignatureId = sig.id
+                                                }
+                                            }
+                                            .pointerInput(sig.id, pagePixelSize) {
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        selectedSignatureId = sig.id
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        if (pagePixelSize.width > 0 && pagePixelSize.height > 0) {
+                                                            val dx = dragAmount.x / pagePixelSize.width.toFloat()
+                                                            val dy = dragAmount.y / pagePixelSize.height.toFloat()
+                                                            placedSignatures = placedSignatures.map { item ->
+                                                                if (item.id == sig.id) {
+                                                                    val newX = (item.xRatio + dx).coerceIn(0f, 1f - item.widthRatio)
+                                                                    val newY = (item.yRatio + dy).coerceIn(0f, 1f - item.heightRatio)
+                                                                    item.copy(xRatio = newX, yRatio = newY)
+                                                                } else item
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxSize()) {
+                                            Image(
+                                                bitmap = sigBmp.asImageBitmap(),
+                                                contentDescription = null,
+                                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                            if (!sig.dateStamp.isNullOrBlank()) {
+                                                Text(
+                                                    text = "Signed: ${sig.dateStamp}",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.Black,
+                                                    modifier = Modifier.padding(horizontal = 2.dp)
+                                                )
+                                            }
                                         }
-                                        .size(
-                                            (sig.widthRatio * canvasSize.width).dp.coerceAtLeast(80.dp),
-                                            (sig.heightRatio * canvasSize.height).dp.coerceAtLeast(40.dp)
-                                        )
-                                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                                        .background(Color.Transparent)
-                                ) {
-                                    Column(modifier = Modifier.fillMaxSize()) {
-                                        Image(
-                                            bitmap = bmp.asImageBitmap(),
-                                            contentDescription = null,
-                                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                                            contentScale = ContentScale.Fit
-                                        )
-                                        if (!sig.dateStamp.isNullOrBlank()) {
-                                            Text(
-                                                text = "Signed: ${sig.dateStamp}",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.Black,
-                                                modifier = Modifier.padding(horizontal = 2.dp)
-                                            )
+
+                                        // Delete badge if selected
+                                        if (isSelected) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = 6.dp, y = (-6).dp)
+                                                    .size(22.dp)
+                                                    .background(MaterialTheme.colorScheme.error, CircleShape)
+                                                    .clickable {
+                                                        placedSignatures = placedSignatures.filter { it.id != sig.id }
+                                                        if (selectedSignatureId == sig.id) {
+                                                            selectedSignatureId = null
+                                                        }
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Close,
+                                                    contentDescription = "Remove signature",
+                                                    tint = MaterialTheme.colorScheme.onError,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -423,6 +501,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("✓ Check", fontWeight = FontWeight.Bold, color = Color(0xFF16A34A)) },
                             shape = RoundedCornerShape(8.dp)
@@ -445,6 +524,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("✕ Cross", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626)) },
                             shape = RoundedCornerShape(8.dp)
@@ -468,6 +548,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("📅 Date", fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A)) },
                             shape = RoundedCornerShape(8.dp)
@@ -490,6 +571,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("CONFORM CU ORIGINALUL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A)) },
                             shape = RoundedCornerShape(8.dp)
@@ -512,6 +594,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("APPROVED", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A)) },
                             shape = RoundedCornerShape(8.dp)
@@ -534,6 +617,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("CONFIDENTIAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626)) },
                             shape = RoundedCornerShape(8.dp)
@@ -556,6 +640,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("PAID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7C3AED)) },
                             shape = RoundedCornerShape(8.dp)
@@ -578,6 +663,7 @@ fun SignPdfScreen(
                                     bitmapBytes = stream.toByteArray()
                                 )
                                 placedSignatures = placedSignatures + newSig
+                                selectedSignatureId = newSig.id
                             },
                             label = { Text("DRAFT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706)) },
                             shape = RoundedCornerShape(8.dp)
@@ -622,6 +708,7 @@ fun SignPdfScreen(
                                         dateStamp = dateStr
                                     )
                                     placedSignatures = placedSignatures + newSig
+                                    selectedSignatureId = newSig.id
                                 },
                             shape = RoundedCornerShape(10.dp)
                         ) {

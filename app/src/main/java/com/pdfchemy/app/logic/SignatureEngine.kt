@@ -15,6 +15,7 @@ import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
 import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
+import com.tom_roush.pdfbox.util.Matrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -22,6 +23,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 data class PlacedSignature(
+    val id: String = java.util.UUID.randomUUID().toString(),
     val pageIndex: Int,
     val xRatio: Float,
     val yRatio: Float,
@@ -106,17 +108,30 @@ object SignatureEngine {
                         val mediaBox = page.cropBox ?: page.mediaBox
                         val pageWidth = mediaBox.width
                         val pageHeight = mediaBox.height
+                        val lowerLeftX = mediaBox.lowerLeftX
+                        val lowerLeftY = mediaBox.lowerLeftY
+                        val rotation = page.rotation
+
+                        val dispW = if (rotation == 90 || rotation == 270) pageHeight else pageWidth
+                        val dispH = if (rotation == 90 || rotation == 270) pageWidth else pageHeight
 
                         PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
                             for (sig in sigs) {
                                 val sigBmp = BitmapFactory.decodeByteArray(sig.bitmapBytes, 0, sig.bitmapBytes.size)
                                 if (sigBmp != null) {
                                     val pdImage = LosslessFactory.createFromImage(doc, sigBmp)
-                                    val stampX = sig.xRatio * pageWidth
-                                    val stampW = (sig.widthRatio * pageWidth).coerceAtLeast(40f)
-                                    val stampH = (sig.heightRatio * pageHeight).coerceAtLeast(20f)
-                                    // In PDF, Y=0 is bottom
-                                    val stampY = pageHeight - (sig.yRatio * pageHeight) - stampH
+                                    val stampW = (sig.widthRatio * dispW).coerceAtLeast(40f)
+                                    val stampH = (sig.heightRatio * dispH).coerceAtLeast(20f)
+                                    val stampX = sig.xRatio * dispW
+                                    val stampY = dispH - (sig.yRatio * dispH) - stampH
+
+                                    cs.saveGraphicsState()
+                                    when (rotation) {
+                                        90 -> cs.transform(Matrix(0f, 1f, -1f, 0f, lowerLeftX + pageWidth, lowerLeftY))
+                                        180 -> cs.transform(Matrix(-1f, 0f, 0f, -1f, lowerLeftX + pageWidth, lowerLeftY + pageHeight))
+                                        270 -> cs.transform(Matrix(0f, -1f, 1f, 0f, lowerLeftX, lowerLeftY + pageHeight))
+                                        else -> cs.transform(Matrix(1f, 0f, 0f, 1f, lowerLeftX, lowerLeftY))
+                                    }
 
                                     cs.drawImage(pdImage, stampX, stampY, stampW, stampH)
 
@@ -128,6 +143,8 @@ object SignatureEngine {
                                         cs.showText("Signed: ${sig.dateStamp}")
                                         cs.endText()
                                     }
+
+                                    cs.restoreGraphicsState()
                                 }
                             }
                         }
