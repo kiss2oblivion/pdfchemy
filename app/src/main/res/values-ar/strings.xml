@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">إضافة المزيد (%1$d محددة)</string>
 <string name="label_original_size_analyzing">الحجم الأصلي: %1$s (جاري التحليل...)</string>
 <string name="label_original_size_to_compressed">الحجم الأصلي: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">الهدف: %1$.1f MB</string>
+<string name="label_target_mb_batch">الهدف: %%1$.1f MB</string>
 <string name="label_target_unknown">الهدف: غير معروف</string>
 <string name="label_analyzing">جاري التحليل...</string>
 <string name="label_target_mb">الهدف: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">تحويل الصور والكاميرا إلى ملفات PDF نقية بسهولة.</string>
 <string name="onboarding_slide3_title">تنظيم ودمج</string>
 <string name="onboarding_slide3_desc">دمج مستندات متعددة وترتيب الصفحات بالسحب والإفلات.</string>
-<string name="onboarding_slide4_title">100% خصوصية وبدون إنترنت</string>
+<string name="onboarding_slide4_title">100%% خصوصية وبدون إنترنت</string>
 <string name="onboarding_slide4_desc">مستنداتك تبقى على جهازك فقط. بدون رفع سحابي مطلقاً.</string>
 <string name="menu_compress_image">ضغط الصور</string>
 <string name="menu_compress_image_desc">تقليل حجم JPG و PNG و WebP</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">الحجم الإجمالي: %1$s</string>
 <string name="image_compress_options">خيارات ضغط الصور</string>
 <string name="image_compress_quality">جودة الصورة</string>
-<string name="preset_extreme">ضغط أقصى (40%)</string>
-<string name="preset_optimal">تحسين مثالي (65%)</string>
-<string name="preset_crisp">جودة عالية (85%)</string>
-<string name="preset_max">أعلى جودة (100%)</string>
+<string name="preset_extreme">ضغط أقصى (40%%)</string>
+<string name="preset_optimal">تحسين مثالي (65%%)</string>
+<string name="preset_crisp">جودة عالية (85%%)</string>
+<string name="preset_max">أعلى جودة (100%%)</string>
 <string name="image_output_format">صيغة الإخراج</string>
 <string name="image_max_resolution">أقصى دقة</string>
-<string name="res_original">الأصلية (100%)</string>
+<string name="res_original">الأصلية (100%%)</string>
 <string name="image_strip_exif">إزالة بيانات EXIF والموقع</string>
 <string name="image_strip_exif_desc">حذف إحداثيات GPS وبيانات الكاميرا</string>
 <string name="image_btn_compress">ضغط الصورة</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">المضغوط</string>
 <string name="image_batch_completed_title">اكتمل الضغط المتعدد!</string>
 <string name="image_batch_completed_summary">تم ضغط %1$d من %2$d صور بنجاح.\nالأصلي: %3$s → المضغوط: %4$s (توفير %5$d%%).</string>
-<string name="mode_quality_slider">مؤشر الجودة (%)</string>
+<string name="mode_quality_slider">مؤشر الجودة (%%)</string>
 <string name="mode_target_size">الحجم المستهدف (MB)</string>
 <string name="target_size_preset_title">الحجم المستهدف</string>
 <string name="target_custom">مخصص</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">ملف PDF غير مقفل</string>
 <string name="history_pdf_to_images_folder">صور مستخرجة من PDF</string>
 <string name="protect_pdf_headline">قفل PDF بكلمة مرور</string>
-<string name="protect_pdf_subtitle">تشفير AES محلي على جهازك 100%. لا يتم حفظ أو رفع كلمة المرور أبداً.</string>
+<string name="protect_pdf_subtitle">تشفير AES محلي على جهازك 100%%. لا يتم حفظ أو رفع كلمة المرور أبداً.</string>
 <string name="select_pdf_to_protect">اختيار PDF للحماية</string>
 <string name="enter_password_label">تعيين كلمة المرور</string>
 <string name="confirm_password_label">تأكيد كلمة المرور</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">التعرف الضوئي OCR وملفات PDF القابلة للبحث</string>
 <string name="menu_ocr_pdf_desc">تحويل المستندات الممسوحة والصور إلى PDF قابل للبحث والتحديد</string>
 <string name="ocr_pdf_headline">جعل ملفات PDF الممسوحة قابلة للبحث</string>
-<string name="ocr_pdf_subtitle">تعرف ضوئي على النصوص على جهازك 100%. إنشاء طبقة نصية قابلة للبحث والتحديد.</string>
+<string name="ocr_pdf_subtitle">تعرف ضوئي على النصوص على جهازك 100%%. إنشاء طبقة نصية قابلة للبحث والتحديد.</string>
 <string name="select_pdf_for_ocr">اختيار مستند PDF</string>
 <string name="ocr_processing_generic">جاري تحليل والتعرف على النصوص…</string>
 <string name="ocr_processing_progress">معالجة OCR: صفحة %1$d من %2$d…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">مصدّر Office</string>
 <string name="banner_office_exporter_title">تصدير PDF إلى Office</string>
-<string name="banner_office_exporter_desc">حوّل ملفات PDF إلى مستندات Word أو Excel أو PowerPoint قابلة للتعديل وبدون اتصال 100%.</string>
+<string name="banner_office_exporter_desc">حوّل ملفات PDF إلى مستندات Word أو Excel أو PowerPoint قابلة للتعديل وبدون اتصال 100%%.</string>
 <string name="step_select_pdf">1. اختر مستند PDF</string>
 <string name="btn_choose_pdf_file">اختيار مستند PDF</string>
 <string name="tap_to_change_file">اضغط لتغيير الملف</string>
@@ -646,7 +646,7 @@
 <string name="menu_replace_image">استبدال الصور المضمنة</string>
 <string name="menu_replace_image_desc">تبديل الصور والشعارات داخل ملفات PDF الحالية</string>
 <string name="banner_replace_image_title">استبدال مباشر للصور</string>
-<string name="banner_replace_image_desc">استبدل أي صورة مضمنة مع الحفاظ على التخطيط والأبعاد والتصميم بدقة 100%.</string>
+<string name="banner_replace_image_desc">استبدل أي صورة مضمنة مع الحفاظ على التخطيط والأبعاد والتصميم بدقة 100%%.</string>
 <string name="scanning_embedded_images">جاري فحص الصور المضمنة…</string>
 <string name="no_embedded_images_found">لم يتم العثور على أي صور مضمنة في هذا الملف.</string>
 <string name="embedded_images_count">تم العثور على %1$d صور مضمنة</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

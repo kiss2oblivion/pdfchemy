@@ -25,13 +25,13 @@ object PdfTableExtractorEngine {
         val height: Float
     )
 
-    suspend fun extractTablesToCsv(context: Context, sourceUri: Uri, pageIndex: Int? = null): String = withContext(Dispatchers.IO) {
+    suspend fun extractTablesToCsv(context: Context, sourceUri: Uri, pageIndex: Int? = null, safeMode: Boolean = false): String = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                 document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                 val doc = document ?: return@withContext ""
-                extractFromDocument(doc, pageIndex)
+                extractFromDocument(doc, pageIndex, safeMode)
             } ?: ""
         } catch (e: Exception) {
             AppLogger.e("Failed to extract tables to CSV: ${e.message}", e)
@@ -41,9 +41,9 @@ object PdfTableExtractorEngine {
         }
     }
 
-    suspend fun extractTablesToCsvFile(context: Context, sourceUri: Uri, destUri: Uri, pageIndex: Int? = null): Boolean = withContext(Dispatchers.IO) {
+    suspend fun extractTablesToCsvFile(context: Context, sourceUri: Uri, destUri: Uri, pageIndex: Int? = null, safeMode: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         try {
-            val csv = extractTablesToCsv(context, sourceUri, pageIndex)
+            val csv = extractTablesToCsv(context, sourceUri, pageIndex, safeMode)
             if (csv.isNotBlank()) {
                 context.contentResolver.openOutputStream(destUri)?.use { outputStream ->
                     OutputStreamWriter(outputStream, Charsets.UTF_8).use { writer ->
@@ -60,7 +60,7 @@ object PdfTableExtractorEngine {
         }
     }
 
-    fun extractFromDocument(doc: PDDocument, pageIndex: Int? = null): String {
+    fun extractFromDocument(doc: PDDocument, pageIndex: Int? = null, safeMode: Boolean = false): String {
         val totalPages = doc.numberOfPages
         if (totalPages == 0) return ""
 
@@ -82,7 +82,17 @@ object PdfTableExtractorEngine {
         val sb = StringBuilder()
         for (row in allRows) {
             val rowStr = row.joinToString(",") { cell ->
-                val escaped = cell.replace("\"", "\"\"")
+                var finalCell = cell
+                
+                // ASVS 5.0 V1.2.10 Spreadsheet/Formula Injection Mitigation
+                if (safeMode && finalCell.isNotEmpty()) {
+                    val firstChar = finalCell[0]
+                    if (firstChar == '=' || firstChar == '+' || firstChar == '-' || firstChar == '@' || firstChar == '\t' || firstChar == '\r' || firstChar == '\u0000') {
+                        finalCell = "'$finalCell"
+                    }
+                }
+
+                val escaped = finalCell.replace("\"", "\"\"")
                 if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r")) {
                     "\"$escaped\""
                 } else {

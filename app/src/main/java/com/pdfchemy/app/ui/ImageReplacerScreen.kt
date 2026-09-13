@@ -74,8 +74,21 @@ fun ImageReplacerScreen(
         if (uri != null) {
             replacementImageUri = uri
             try {
+                val maxDim = 2048
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 context.contentResolver.openInputStream(uri)?.use { stream ->
-                    replacementBitmap = BitmapFactory.decodeStream(stream)
+                    BitmapFactory.decodeStream(stream, null, options)
+                }
+                var sampleSize = 1
+                while ((options.outWidth / sampleSize) > maxDim || (options.outHeight / sampleSize) > maxDim) {
+                    sampleSize *= 2
+                }
+                val decodeOptions = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize
+                    inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+                }
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    replacementBitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
                 }
             } catch (e: Exception) {
                 replacementBitmap = null

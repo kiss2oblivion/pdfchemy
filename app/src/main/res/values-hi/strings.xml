@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">और फ़ाइलें जोड़ें (%1$d चयनित)</string>
 <string name="label_original_size_analyzing">मूल आकार: %1$s (विश्लेषण जारी...)</string>
 <string name="label_original_size_to_compressed">मूल आकार: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">लक्ष्य: %1$.1f MB</string>
+<string name="label_target_mb_batch">लक्ष्य: %%1$.1f MB</string>
 <string name="label_target_unknown">लक्ष्य: अज्ञात</string>
 <string name="label_analyzing">विश्लेषण हो रहा है...</string>
 <string name="label_target_mb">लक्ष्य: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">फ़ोटो और चित्रों को स्वच्छ PDF में बदलें।</string>
 <string name="onboarding_slide3_title">व्यवस्थित और मर्ज करें</string>
 <string name="onboarding_slide3_desc">कई दस्तावेज़ों को आसानी से मिलाएं और क्रमबद्ध करें।</string>
-<string name="onboarding_slide4_title">100% निजी और ऑफ़लाइन</string>
+<string name="onboarding_slide4_title">100%% निजी और ऑफ़लाइन</string>
 <string name="onboarding_slide4_desc">आपके दस्तावेज़ आपके डिवाइस पर रहते हैं। शून्य क्लाउड अपलोड।</string>
 <string name="menu_compress_image">चित्र कंप्रेस करें</string>
 <string name="menu_compress_image_desc">JPG, PNG, WebP का आकार घटाएं</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">कुल आकार: %1$s</string>
 <string name="image_compress_options">कम्प्रेशन विकल्प</string>
 <string name="image_compress_quality">चित्र गुणवत्ता</string>
-<string name="preset_extreme">अत्यधिक (40%)</string>
-<string name="preset_optimal">इष्टतम (65%)</string>
-<string name="preset_crisp">स्पष्ट (85%)</string>
-<string name="preset_max">अधिकतम (100%)</string>
+<string name="preset_extreme">अत्यधिक (40%%)</string>
+<string name="preset_optimal">इष्टतम (65%%)</string>
+<string name="preset_crisp">स्पष्ट (85%%)</string>
+<string name="preset_max">अधिकतम (100%%)</string>
 <string name="image_output_format">आउटपुट प्रारूप</string>
 <string name="image_max_resolution">अधिकतम रिज़ॉल्यूशन</string>
-<string name="res_original">मूल (100%)</string>
+<string name="res_original">मूल (100%%)</string>
 <string name="image_strip_exif">EXIF और स्थान हटाएं</string>
 <string name="image_strip_exif_desc">GPS टैग और कैमरा मेटाडेटा हटाता है</string>
 <string name="image_btn_compress">चित्र कंप्रेस करें</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">कंप्रेस किया गया</string>
 <string name="image_batch_completed_title">बैच कम्प्रेशन पूरा हुआ!</string>
 <string name="image_batch_completed_summary">%2$d में से %1$d चित्र सफलतापूर्वक कंप्रेस किए गए।\nमूल: %3$s → कंप्रेस किया गया: %4$s (%5$d%% की बचत)।</string>
-<string name="mode_quality_slider">गुणवत्ता स्लाइडर (%)</string>
+<string name="mode_quality_slider">गुणवत्ता स्लाइडर (%%)</string>
 <string name="mode_target_size">लक्षित आकार (MB)</string>
 <string name="target_size_preset_title">लक्षित आकार</string>
 <string name="target_custom">कस्टम</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">अनलॉक की गई PDF</string>
 <string name="history_pdf_to_images_folder">PDF चित्र पेज</string>
 <string name="protect_pdf_headline">पासवर्ड से PDF लॉक करें</string>
-<string name="protect_pdf_subtitle">100% ऑन-डिवाइस AES एन्क्रिप्शन। पासवर्ड कभी अपलोड नहीं होता।</string>
+<string name="protect_pdf_subtitle">100%% ऑन-डिवाइस AES एन्क्रिप्शन। पासवर्ड कभी अपलोड नहीं होता।</string>
 <string name="select_pdf_to_protect">सुरक्षित करने के लिए PDF चुनें</string>
 <string name="enter_password_label">पासवर्ड सेट करें</string>
 <string name="confirm_password_label">पासवर्ड की पुष्टि करें</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR और खोजने योग्य PDF</string>
 <string name="menu_ocr_pdf_desc">स्कैन किए गए दस्तावेज़ों और छवियों को पूरी तरह से खोजने योग्य बनाएं</string>
 <string name="ocr_pdf_headline">स्कैन किए गए PDF को खोजने योग्य बनाएं</string>
-<string name="ocr_pdf_subtitle">100% ऑन-डिवाइस टेक्स्ट पहचान। खोजने योग्य टेक्स्ट लेयर बनाएं।</string>
+<string name="ocr_pdf_subtitle">100%% ऑन-डिवाइस टेक्स्ट पहचान। खोजने योग्य टेक्स्ट लेयर बनाएं।</string>
 <string name="select_pdf_for_ocr">PDF दस्तावेज़ चुनें</string>
 <string name="ocr_processing_generic">टेक्स्ट का विश्लेषण और पहचान की जा रही है…</string>
 <string name="ocr_processing_progress">OCR प्रोसेसिंग: पेज %1$d / %2$d…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Office निर्यातक</string>
 <string name="banner_office_exporter_title">PDF को Office में निर्यात करें</string>
-<string name="banner_office_exporter_desc">अपनी PDF को 100% ऑफ़लाइन संपादन योग्य Word, Excel या PowerPoint फ़ाइलों में बदलें।</string>
+<string name="banner_office_exporter_desc">अपनी PDF को 100%% ऑफ़लाइन संपादन योग्य Word, Excel या PowerPoint फ़ाइलों में बदलें।</string>
 <string name="step_select_pdf">1. PDF दस्तावेज़ चुनें</string>
 <string name="btn_choose_pdf_file">PDF दस्तावेज़ चुनें</string>
 <string name="tap_to_change_file">दूसरी फ़ाइल चुनने के लिए टैप करें</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,15 +952,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">आजीवन घोषणापत्र</string>
-    <string name="settings_manifesto_desc">हमारा वादा: 100% मुफ्त अपडेट, शून्य क्लाउड, लोगों के लिए समर्पित।</string>
+    <string name="settings_manifesto_desc">हमारा वादा: 100%% मुफ्त अपडेट, शून्य क्लाउड, लोगों के लिए समर्पित।</string>
     <string name="manifesto_dialog_title">आजीवन घोषणापत्र</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">हमारी 4 अटूट गारंटी:</string>
-    <string name="manifesto_g1_title">हमेशा के लिए 100% निःशुल्क</string>
+    <string name="manifesto_g1_title">हमेशा के लिए 100%% निःशुल्क</string>
     <string name="manifesto_g1_desc">कोई सदस्यता नहीं, कोई पेवॉल नहीं, कोई कृत्रिम सीमा नहीं और कोई वॉटरमार्क नहीं।</string>
-    <string name="manifesto_g2_title">100% ऑफ़लाइन और निजी</string>
-    <string name="manifesto_g2_desc">कोई भी फ़ाइल इस कंप्यूटर से बाहर नहीं जाती। शून्य टेलीमेट्री। गोपनीय दस्तावेज़ों के लिए 100% सुरक्षित।</string>
+    <string name="manifesto_g2_title">100%% ऑफ़लाइन और निजी</string>
+    <string name="manifesto_g2_desc">कोई भी फ़ाइल इस कंप्यूटर से बाहर नहीं जाती। शून्य टेलीमेट्री। गोपनीय दस्तावेज़ों के लिए 100%% सुरक्षित।</string>
     <string name="manifesto_g3_title">मूल फ़ाइल सुरक्षित</string>
     <string name="manifesto_g3_desc">हम बिना स्पष्ट पुष्टि के आपकी मूल फ़ाइलों को कभी ओवरराइट नहीं करते हैं।</string>
     <string name="manifesto_g4_title">लोगों के लिए निर्मित</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

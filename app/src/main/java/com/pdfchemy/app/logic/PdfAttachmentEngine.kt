@@ -112,10 +112,10 @@ object PdfAttachmentEngine {
             val ef = targetFileSpec?.embeddedFile
                 ?: return@withContext Result.failure(IllegalStateException("Attachment not found"))
 
-            val dataBytes = ef.createInputStream().readBytes()
-
             context.contentResolver.openOutputStream(destUri)?.use { out ->
-                out.write(dataBytes)
+                ef.createInputStream().use { ins ->
+                    ins.copyTo(out)
+                }
             } ?: throw IllegalStateException("Cannot open destination stream")
 
             Result.success(true)
@@ -152,7 +152,6 @@ object PdfAttachmentEngine {
 
             document = PDDocument.load(srcPdfStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
             val fileName = customFileName ?: FileUtils.getFileName(context, fileToEmbedUri) ?: "attachment.dat"
-            val fileBytes = attachStream.readBytes()
 
             val namesDict = document.documentCatalog.names ?: PDDocumentNameDictionary(document.documentCatalog).also {
                 document.documentCatalog.names = it
@@ -167,8 +166,11 @@ object PdfAttachmentEngine {
             val fileSpec = PDComplexFileSpecification()
             fileSpec.file = fileName
 
-            val embeddedFile = PDEmbeddedFile(document, ByteArrayInputStream(fileBytes))
-            embeddedFile.size = fileBytes.size
+            val embeddedFile = PDEmbeddedFile(document, attachStream)
+            val fileSize = FileUtils.getFileSize(context, fileToEmbedUri)
+            if (fileSize > 0) {
+                embeddedFile.size = fileSize.toInt()
+            }
             embeddedFile.creationDate = Calendar.getInstance()
             fileSpec.embeddedFile = embeddedFile
 

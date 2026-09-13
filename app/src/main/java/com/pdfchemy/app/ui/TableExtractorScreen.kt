@@ -59,6 +59,7 @@ fun TableExtractorScreen(
     var extractedCsv by remember { mutableStateOf("") }
     var isExtracting by remember { mutableStateOf(false) }
     var isExporting by remember { mutableStateOf(false) }
+    var isSpreadsheetSafeCsv by remember { mutableStateOf(false) }
 
     fun parseCsvRows(csv: String): List<List<String>> {
         if (csv.isBlank()) return emptyList()
@@ -91,7 +92,7 @@ fun TableExtractorScreen(
         extractedCsv = ""
         scope.launch {
             try {
-                val csv = PdfTableExtractorEngine.extractTablesToCsv(context, uri)
+                val csv = PdfTableExtractorEngine.extractTablesToCsv(context, uri, safeMode = isSpreadsheetSafeCsv)
                 extractedCsv = csv
             } catch (e: Exception) {
                 AppLogger.e("Table extraction failed", e)
@@ -102,9 +103,10 @@ fun TableExtractorScreen(
         }
     }
 
-    LaunchedEffect(initialPdfUri) {
-        if (initialPdfUri != null) {
-            extractTables(initialPdfUri)
+    LaunchedEffect(initialPdfUri, isSpreadsheetSafeCsv) {
+        val uri = initialPdfUri ?: selectedPdfUri
+        if (uri != null) {
+            extractTables(uri)
         }
     }
 
@@ -120,7 +122,7 @@ fun TableExtractorScreen(
             isExporting = true
             scope.launch {
                 try {
-                    val success = PdfTableExtractorEngine.extractTablesToCsvFile(context, srcUri, destUri)
+                    val success = PdfTableExtractorEngine.extractTablesToCsvFile(context, srcUri, destUri, safeMode = isSpreadsheetSafeCsv)
                     if (success) {
                         Toast.makeText(context, context.getString(R.string.table_extractor_success), Toast.LENGTH_SHORT).show()
                     } else {
@@ -200,6 +202,35 @@ fun TableExtractorScreen(
                         Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(fileName, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
+                    }
+                }
+                
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Checkbox(
+                        checked = isSpreadsheetSafeCsv,
+                        onCheckedChange = { 
+                            isSpreadsheetSafeCsv = it
+                        }
+                    )
+                    Text("Spreadsheet-Safe Export", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                }
+                Text(
+                    "CSV files can contain formulas that spreadsheet applications may execute when opened. PDFchemy can preserve extracted values exactly, or sanitize formula-like values for safer spreadsheet use. For structured spreadsheet output, use the native XLSX export.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (isSpreadsheetSafeCsv) {
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Spreadsheet-Safe Export enabled. Formula-like values may be prefixed to prevent spreadsheet applications from evaluating them.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             }

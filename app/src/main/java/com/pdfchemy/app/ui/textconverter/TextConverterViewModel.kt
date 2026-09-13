@@ -64,8 +64,14 @@ class TextConverterViewModel : ViewModel() {
                     val reader = BufferedReader(InputStreamReader(inputStream))
                     val stringBuilder = java.lang.StringBuilder()
                     var line: String?
+                    val maxChars = 2_000_000
                     while (reader.readLine().also { line = it } != null) {
                         stringBuilder.append(line).append("\n")
+                        if (stringBuilder.length > maxChars) {
+                            // truncate large files to avoid OOM
+                            com.pdfchemy.app.utils.AppLogger.w("TextConverterViewModel: Input file exceeded size limit ($maxChars chars)")
+                            break
+                        }
                     }
                     _inputText.value = stringBuilder.toString()
                 }

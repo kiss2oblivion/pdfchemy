@@ -3116,7 +3116,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                         if (picked != null) {
                                             uploadedImageFile = picked
                                             try {
-                                                val bimg = ImageIO.read(picked)
+                                                val bimg = DesktopPdfEngine.readImageSafely(picked)
                                                 if (bimg != null) uploadedImageBitmap = bimg.toComposeImageBitmap()
                                             } catch (_: Exception) {}
                                         }
@@ -3158,7 +3158,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                             if (picked != null) {
                                                 uploadedImageFile = picked
                                                 try {
-                                                    val bimg = ImageIO.read(picked)
+                                                    val bimg = DesktopPdfEngine.readImageSafely(picked)
                                                     if (bimg != null) uploadedImageBitmap = bimg.toComposeImageBitmap()
                                                 } catch (_: Exception) {}
                                             }
@@ -4046,7 +4046,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                                     )
                                                 }
                                                 SignTabMode.UPLOAD -> {
-                                                    ImageIO.read(uploadedImageFile!!)
+                                                    DesktopPdfEngine.readImageSafely(uploadedImageFile!!) ?: throw IllegalStateException("Image too large or invalid")
                                                 }
                                                 SignTabMode.STAMP -> {
                                                     DesktopPdfEngine.createBusinessStamp(
@@ -4479,6 +4479,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
     var selectedImages by remember { mutableStateOf<List<File>>(emptyList()) }
     var extractedCsvText by remember { mutableStateOf<String?>(null) }
     var isExtractingCsv by remember { mutableStateOf(false) }
+    var isSpreadsheetSafeCsv by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -4879,7 +4880,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                         isExtractingCsv = true
                         scope.launch(Dispatchers.IO) {
                             try {
-                                val csv = DesktopPdfEngine.extractTablesToCsv(file)
+                                val csv = DesktopPdfEngine.extractTablesToCsv(file, safeMode = isSpreadsheetSafeCsv)
                                 withContext(Dispatchers.Main) {
                                     isExtractingCsv = false
                                     extractedCsvText = csv
@@ -4905,6 +4906,33 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Icon(Icons.Rounded.GridView, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(if (isExtractingCsv) "Detecting & Extracting Tables..." else "Extract Tables to CSV", fontWeight = FontWeight.Bold)
+                }
+                
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp)) {
+                    Checkbox(
+                        checked = isSpreadsheetSafeCsv,
+                        onCheckedChange = { isSpreadsheetSafeCsv = it }
+                    )
+                    Text("Spreadsheet-Safe Export", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                }
+                Text(
+                    "CSV files can contain formulas that spreadsheet applications may execute when opened. PDFchemy can preserve extracted values exactly, or sanitize formula-like values for safer spreadsheet use. For structured spreadsheet output, use the native XLSX export.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (isSpreadsheetSafeCsv) {
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(6.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Spreadsheet-Safe Export enabled. Formula-like values may be prefixed to prevent spreadsheet applications from evaluating them.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
                 }
 
                 if (!extractedCsvText.isNullOrBlank()) {

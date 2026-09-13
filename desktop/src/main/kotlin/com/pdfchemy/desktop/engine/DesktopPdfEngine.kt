@@ -218,7 +218,7 @@ object DesktopPdfEngine {
      * Inspects document metadata information and XMP streams.
      */
     fun inspectMetadata(file: File): DesktopPdfMetadata {
-        return PDDocument.load(file).use { doc ->
+        return PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val info = doc.documentInformation
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
             DesktopPdfMetadata(
@@ -239,7 +239,7 @@ object DesktopPdfEngine {
      * Completely strips all metadata (DocumentInformation dictionary and catalog XMP metadata).
      */
     fun stripMetadata(inputFile: File, outputFile: File): Boolean {
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             doc.documentInformation = org.apache.pdfbox.pdmodel.PDDocumentInformation()
             doc.documentCatalog.metadata = null
             doc.document.trailer.removeItem(COSName.ID)
@@ -252,7 +252,7 @@ object DesktopPdfEngine {
      * Gets page count of a PDF document.
      */
     fun getPageCount(file: File): Int {
-        return PDDocument.load(file).use { it.numberOfPages }
+        return PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { it.numberOfPages }
     }
 
     /**
@@ -262,8 +262,45 @@ object DesktopPdfEngine {
         if (file.name.lowercase().endsWith(".epub")) {
             return extractEpubText(file)
         }
-        return PDDocument.load(file).use { document ->
+        return PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             PDFTextStripper().getText(document)
+        }
+    }
+
+    fun readImageSafely(file: File, maxDim: Int = 4096): BufferedImage? {
+        val readers = ImageIO.getImageReadersBySuffix(file.extension)
+        if (!readers.hasNext()) return ImageIO.read(file) // Fallback
+
+        val reader = readers.next()
+        reader.input = ImageIO.createImageInputStream(file)
+        try {
+            val width = reader.getWidth(0)
+            val height = reader.getHeight(0)
+            if (width > maxDim || height > maxDim) {
+                println("DesktopPdfEngine: Image ${file.name} exceeded bounds limit ($maxDim)")
+                return null
+            }
+            return reader.read(0)
+        } catch (e: Exception) {
+            return null
+        } finally {
+            reader.dispose()
+        }
+    }
+
+    private fun readZipEntrySafely(zipFile: java.util.zip.ZipFile, entry: java.util.zip.ZipEntry, maxChars: Int = 2_000_000): String {
+        return zipFile.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { reader ->
+            val buffer = CharArray(8192)
+            val sb = java.lang.StringBuilder()
+            var read: Int
+            while (reader.read(buffer).also { read = it } != -1) {
+                sb.append(buffer, 0, read)
+                if (sb.length > maxChars) {
+                    println("DesktopPdfEngine: Entry ${entry.name} exceeded size limit ($maxChars chars)")
+                    break
+                }
+            }
+            sb.toString()
         }
     }
 
@@ -275,7 +312,7 @@ object DesktopPdfEngine {
             var opfPath = "OEBPS/content.opf"
             val containerEntry = zip.getEntry("META-INF/container.xml")
             if (containerEntry != null) {
-                val containerText = zip.getInputStream(containerEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val containerText = readZipEntrySafely(zip, containerEntry)
                 val match = Regex("""full-path\s*=\s*["']([^"']+)["']""").find(containerText)
                 if (match != null) opfPath = match.groupValues[1]
             }
@@ -285,7 +322,7 @@ object DesktopPdfEngine {
             val spineItems = mutableListOf<String>()
 
             if (opfEntry != null) {
-                val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val opfText = readZipEntrySafely(zip, opfEntry)
                 val itemMap = mutableMapOf<String, String>()
                 val itemRegex = Regex("""<(?:opf:)?item\s+([^>]+)>""", RegexOption.IGNORE_CASE)
                 for (m in itemRegex.findAll(opfText)) {
@@ -325,7 +362,7 @@ object DesktopPdfEngine {
 
             for ((idx, path) in spineItems.withIndex()) {
                 val entry = zip.getEntry(path) ?: continue
-                val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val html = readZipEntrySafely(zip, entry)
                 
                 var clean = html.replace(Regex("""<head.*?</head>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
                 clean = clean.replace(Regex("""<style.*?</style>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)), "")
@@ -387,7 +424,7 @@ object DesktopPdfEngine {
      */
     fun getPageDimensions(file: File): List<PageDimension> {
         return try {
-            PDDocument.load(file).use { doc ->
+            PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 (0 until doc.numberOfPages).map { idx ->
                     val page = doc.getPage(idx)
                     val box = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
@@ -412,7 +449,7 @@ object DesktopPdfEngine {
             return listOf(extractEpubText(file))
         }
         return try {
-            PDDocument.load(file).use { doc ->
+            PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 extractAllPagesText(doc)
             }
         } catch (_: Exception) {
@@ -426,7 +463,7 @@ object DesktopPdfEngine {
     fun extractBookmarks(file: File): List<DesktopPdfBookmark> {
         if (!file.exists() || file.name.lowercase().endsWith(".epub")) return emptyList()
         return try {
-            PDDocument.load(file).use { doc ->
+            PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val outline = doc.documentCatalog?.documentOutline ?: return emptyList()
                 fun traverse(item: PDOutlineItem?, depth: Int): List<DesktopPdfBookmark> {
                     val list = mutableListOf<DesktopPdfBookmark>()
@@ -471,7 +508,7 @@ object DesktopPdfEngine {
      */
     fun rotateSinglePage(inputFile: File, outputFile: File, pageIndex: Int, degreesDelta: Int): Result<Boolean> {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 if (pageIndex in 0 until doc.numberOfPages) {
                     val page = doc.getPage(pageIndex)
                     val currentRotation = page.rotation
@@ -491,7 +528,7 @@ object DesktopPdfEngine {
      * Renders a specific PDF page to a BufferedImage at given DPI with optional view rotation.
      */
     fun renderPage(file: File, pageIndex: Int, dpi: Float = 144f, viewRotation: Int = 0): BufferedImage {
-        val img = PDDocument.load(file).use { document ->
+        val img = PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val renderer = PDFRenderer(document)
             renderer.renderImageWithDPI(pageIndex, dpi)
         }
@@ -528,7 +565,7 @@ object DesktopPdfEngine {
      * Renders a quick, downscaled thumbnail for high-performance visual grid rendering.
      */
     fun renderThumbnail(file: File, pageIndex: Int, targetWidth: Int = 260): BufferedImage {
-        return PDDocument.load(file).use { document ->
+        return PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val renderer = PDFRenderer(document)
             val page = document.getPage(pageIndex)
             val cropBox = page.cropBox ?: page.mediaBox ?: PDRectangle.A4
@@ -545,7 +582,7 @@ object DesktopPdfEngine {
         targetWidth: Int = 260,
         onThumbnailRendered: (pageIndex: Int, BufferedImage) -> Unit
     ) {
-        PDDocument.load(file).use { document ->
+        PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val renderer = PDFRenderer(document)
             val count = document.numberOfPages
             for (i in 0 until count) {
@@ -565,7 +602,7 @@ object DesktopPdfEngine {
      * Saves a reordered, rotated, or pruned document from a list of PageItemSpecs.
      */
     fun saveReorderedPdf(inputFile: File, outputFile: File, pageSpecs: List<PageItemSpec>) {
-        PDDocument.load(inputFile).use { sourceDoc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { sourceDoc ->
             val outDoc = PDDocument()
             for (spec in pageSpecs) {
                 if (spec.originalPageIndex in 0 until sourceDoc.numberOfPages) {
@@ -607,7 +644,7 @@ object DesktopPdfEngine {
      */
     fun splitPdf(inputFile: File, outputDir: File, splitEveryNPages: Int = 1): List<File> {
         val createdFiles = mutableListOf<File>()
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val splitter = Splitter()
             splitter.setSplitAtPage(splitEveryNPages)
             val documents = splitter.split(document)
@@ -625,7 +662,7 @@ object DesktopPdfEngine {
      * Rotates specified pages (or all if empty) by the given degrees (90, 180, 270).
      */
     fun rotatePages(inputFile: File, outputFile: File, degrees: Int, pageIndices: Set<Int> = emptySet()) {
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val count = document.numberOfPages
             for (i in 0 until count) {
                 if (pageIndices.isEmpty() || pageIndices.contains(i)) {
@@ -641,7 +678,7 @@ object DesktopPdfEngine {
      * Removes specified page indices (0-based) from document.
      */
     fun deletePages(inputFile: File, outputFile: File, pagesToDelete: Set<Int>) {
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             pagesToDelete.sortedDescending().forEach { index ->
                 if (index in 0 until document.numberOfPages) {
                     document.removePage(index)
@@ -657,8 +694,8 @@ object DesktopPdfEngine {
     /**
      * Encrypts a PDF with user and owner passwords.
      */
-    fun encryptPdf(inputFile: File, outputFile: File, userPass: String, ownerPass: String = userPass, keyLengthBits: Int = 128) {
-        PDDocument.load(inputFile).use { document ->
+    fun encryptPdf(inputFile: File, outputFile: File, userPass: String, ownerPass: String = userPass, keyLengthBits: Int = 256) {
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val ap = AccessPermission()
             val spp = StandardProtectionPolicy(ownerPass, userPass, ap)
             spp.encryptionKeyLength = keyLengthBits
@@ -671,7 +708,7 @@ object DesktopPdfEngine {
      * Decrypts a password-protected PDF.
      */
     fun decryptPdf(inputFile: File, outputFile: File, password: String) {
-        PDDocument.load(inputFile, password).use { document ->
+        PDDocument.load(inputFile, password, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             document.isAllSecurityToBeRemoved = true
             document.save(outputFile)
         }
@@ -788,7 +825,7 @@ object DesktopPdfEngine {
         quality: Float,
         onProgress: (Int, Int) -> Unit
     ): Long {
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val totalPages = document.numberOfPages
             val renderer = PDFRenderer(document)
             val compressedDoc = PDDocument()
@@ -875,7 +912,7 @@ object DesktopPdfEngine {
     ): List<File> {
         outputFolder.mkdirs()
         val extractedFiles = mutableListOf<File>()
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val renderer = PDFRenderer(doc)
             val total = doc.numberOfPages
             for (i in 0 until total) {
@@ -905,11 +942,11 @@ object DesktopPdfEngine {
                 try {
                     PDImageXObject.createFromFileByExtension(imgFile, doc)
                 } catch (_: Exception) {
-                    val bimg = ImageIO.read(imgFile)
+                    val bimg = readImageSafely(imgFile)
                     if (bimg != null) JPEGFactory.createFromImage(doc, bimg, 0.88f) else null
                 }
             } else {
-                val bimg = ImageIO.read(imgFile)
+                val bimg = readImageSafely(imgFile)
                 if (bimg != null) {
                     JPEGFactory.createFromImage(doc, bimg, 0.88f)
                 } else null
@@ -938,6 +975,10 @@ object DesktopPdfEngine {
     // [FEATURE: PDF Recovery & Repair] (FEATURES_REGISTRY Desktop §Security)
     // =========================================================================
     fun repairPdf(inputFile: File, outputFile: File): Boolean {
+        if (inputFile.length() > 150L * 1024 * 1024) {
+            System.err.println("File exceeds 150MB limit for repair.")
+            return false
+        }
         var bytes = inputFile.readBytes()
         if (bytes.isEmpty()) return false
 
@@ -957,7 +998,7 @@ object DesktopPdfEngine {
         }
 
         // 3. Parse with PDFBox parser and save cleanly to generate fresh XRef table
-        PDDocument.load(bytes).use { doc ->
+        PDDocument.load(java.io.ByteArrayInputStream(bytes), MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             doc.save(outputFile)
         }
         return outputFile.exists() && outputFile.length() > 0
@@ -986,7 +1027,7 @@ object DesktopPdfEngine {
         }
 
         var matchCount = 0
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val totalPages = doc.numberOfPages
             val pagesToSanitize = mutableSetOf<Int>()
 
@@ -1143,7 +1184,7 @@ object DesktopPdfEngine {
         yRatio: Float,
         widthRatio: Float = 0.35f
     ): Boolean {
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             if (pageIndex < 0 || pageIndex >= document.numberOfPages) return false
             val page = document.getPage(pageIndex)
             val cropBox = page.cropBox ?: page.mediaBox
@@ -1271,7 +1312,7 @@ object DesktopPdfEngine {
         items: List<TextAnnotationItem>
     ): Boolean {
         if (items.isEmpty()) return false
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             if (pageIndex < 0 || pageIndex >= document.numberOfPages) return false
             val page = document.getPage(pageIndex)
             val cropBox = page.cropBox ?: page.mediaBox
@@ -1320,7 +1361,7 @@ object DesktopPdfEngine {
         fontSize: Float = 10f,
         colorHex: String = "#52525B"
     ): Boolean {
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val total = document.numberOfPages
             val font = PDType1Font.HELVETICA
             val awtColor = try { java.awt.Color.decode(colorHex) } catch (_: Exception) { java.awt.Color.GRAY }
@@ -1370,7 +1411,7 @@ object DesktopPdfEngine {
         colorHex: String = "#DC2626"
     ): Boolean {
         if (watermarkText.isBlank()) return false
-        PDDocument.load(inputFile).use { document ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val total = document.numberOfPages
             val font = PDType1Font.HELVETICA_BOLD
             val awtColor = try { java.awt.Color.decode(colorHex) } catch (_: Exception) { java.awt.Color.RED }
@@ -1426,7 +1467,7 @@ object DesktopPdfEngine {
     fun hasAcroForm(inputFile: File): Boolean {
         if (!inputFile.exists() || inputFile.length() == 0L) return false
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val acroForm = doc.documentCatalog.acroForm
                 acroForm != null && acroForm.fields.isNotEmpty()
             }
@@ -1441,7 +1482,7 @@ object DesktopPdfEngine {
     fun extractAcroFields(inputFile: File): List<DesktopAcroField> {
         if (!inputFile.exists() || inputFile.length() == 0L) return emptyList()
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val acroForm = doc.documentCatalog.acroForm ?: return emptyList()
                 val result = mutableListOf<DesktopAcroField>()
                 for (field in acroForm.fieldTree) {
@@ -1515,7 +1556,7 @@ object DesktopPdfEngine {
     ): Boolean {
         if (!inputFile.exists() || inputFile.length() == 0L) return false
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val acroForm = doc.documentCatalog.acroForm ?: return false
 
                 if (acroForm.defaultResources == null) {
@@ -1578,11 +1619,11 @@ object DesktopPdfEngine {
     // [FEATURE: Document Visual Comparison] (FEATURES_REGISTRY Desktop §Compare Studio)
     // =========================================================================
     fun compareDocuments(fileA: File, fileB: File): PdfDiffSummary {
-        val (pagesA, textPagesA) = PDDocument.load(fileA).use { doc ->
+        val (pagesA, textPagesA) = PDDocument.load(fileA, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             Pair(doc.numberOfPages, extractAllPagesText(doc))
         }
 
-        val (pagesB, textPagesB) = PDDocument.load(fileB).use { doc ->
+        val (pagesB, textPagesB) = PDDocument.load(fileB, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             Pair(doc.numberOfPages, extractAllPagesText(doc))
         }
 
@@ -1640,7 +1681,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun applyBatesStamping(inputFile: File, outputFile: File, config: DesktopBatesConfig): Boolean {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val pageCount = doc.numberOfPages
                 val font = PDType1Font.HELVETICA_BOLD
                 val range = config.pageRange ?: (1..pageCount)
@@ -1700,7 +1741,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun auditDocumentThreats(file: File): DesktopSanitizeResult {
         return try {
-            PDDocument.load(file).use { doc ->
+            PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 var jsCount = 0
                 var actionCount = 0
                 var attachmentCount = 0
@@ -1765,7 +1806,7 @@ object DesktopPdfEngine {
         val tempRedacted = File.createTempFile("pdfchemy_redacted_", ".pdf")
         val pagesToSanitize = mutableSetOf<Int>()
         
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val pagePositions = mutableMapOf<Int, MutableList<org.apache.pdfbox.text.TextPosition>>()
             val stripper = object : PDFTextStripper() {
                 private var currentPageList: MutableList<org.apache.pdfbox.text.TextPosition>? = null
@@ -1846,7 +1887,7 @@ object DesktopPdfEngine {
         
         // Forensic Pass: Rasterize redacted pages to clean images to eliminate underlying text bytes completely
         if (pagesToSanitize.isNotEmpty()) {
-            PDDocument.load(tempRedacted).use { redactedDoc ->
+            PDDocument.load(tempRedacted, MemoryUsageSetting.setupTempFileOnly()).use { redactedDoc ->
                 val renderer = org.apache.pdfbox.rendering.PDFRenderer(redactedDoc)
                 val sanitizedDoc = PDDocument()
                 val dpi = 150f
@@ -1889,7 +1930,7 @@ object DesktopPdfEngine {
         purgePrivateAnnotations: Boolean = false
     ): DesktopSanitizeResult {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 var jsPurged = 0
                 var actionsPurged = 0
                 var attachmentsPurged = 0
@@ -1992,6 +2033,9 @@ object DesktopPdfEngine {
     // ==========================================
 
     fun repairCorruptedPdf(inputFile: File, outputFile: File): DesktopRepairResult {
+        if (inputFile.length() > 150L * 1024 * 1024) {
+            return DesktopRepairResult(false, 0, listOf("File is too large to safely repair in memory (exceeds 150MB limit)."), 0L, 0L)
+        }
         val issues = mutableListOf<String>()
         var bytes = inputFile.readBytes()
         val originalSize = bytes.size.toLong()
@@ -2080,7 +2124,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun convertToPdfA(inputFile: File, outputFile: File): Boolean {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 // 1. Set PDF/A OutputIntent (sRGB IEC61966-2.1)
                 val srgbProfile = ICC_Profile.getInstance(ColorSpace.CS_sRGB).data
                 ByteArrayInputStream(srgbProfile).use { iccStream ->
@@ -2150,7 +2194,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun cropMargins(inputFile: File, outputFile: File, config: DesktopCropConfig): Boolean {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val pageCount = doc.numberOfPages
                 val pagesToCrop = if (config.applyToAllPages) 0 until pageCount else 0..0
 
@@ -2174,7 +2218,7 @@ object DesktopPdfEngine {
 
     fun detectContentCrop(inputFile: File, pageIndex: Int = 0, paddingPt: Float = 18f): DesktopCropConfig {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val pIdx = pageIndex.coerceIn(0, doc.numberOfPages - 1)
                 val page = doc.getPage(pIdx)
                 val mb = page.mediaBox
@@ -2239,8 +2283,8 @@ object DesktopPdfEngine {
     // =========================================================================
     // [FEATURE: Table Extractor to CSV] (FEATURES_REGISTRY Desktop §Convert)
     // =========================================================================
-    fun extractTablesToCsv(inputFile: File, pageIndex: Int? = null): String {
-        return PDDocument.load(inputFile).use { doc ->
+    fun extractTablesToCsv(inputFile: File, pageIndex: Int? = null, safeMode: Boolean = false): String {
+        return PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val stripper = object : PDFTextStripper() {
                 init {
                     sortByPosition = true
@@ -2260,7 +2304,16 @@ object DesktopPdfEngine {
                 val cells = trimmed.split(Regex("(\t| {2,})")).filter { it.isNotBlank() }
                 if (cells.isNotEmpty()) {
                     val csvLine = cells.joinToString(",") { cell ->
-                        val clean = cell.trim()
+                        var clean = cell.trim()
+
+                        // ASVS 5.0 V1.2.10 Spreadsheet/Formula Injection Mitigation
+                        if (safeMode && clean.isNotEmpty()) {
+                            val firstChar = clean[0]
+                            if (firstChar == '=' || firstChar == '+' || firstChar == '-' || firstChar == '@' || firstChar == '\t' || firstChar == '\r' || firstChar == '\u0000') {
+                                clean = "'$clean"
+                            }
+                        }
+
                         if (clean.contains(",") || clean.contains("\"") || clean.contains("\n")) {
                             "\"" + clean.replace("\"", "\"\"") + "\""
                         } else {
@@ -2345,7 +2398,7 @@ object DesktopPdfEngine {
     }
 
     fun deskewDocument(inputFile: File, outputFile: File, targetPages: Set<Int>? = null): Int {
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val renderer = PDFRenderer(doc)
             var deskewedCount = 0
 
@@ -2389,7 +2442,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun generateBooklet(inputFile: File, outputFile: File, drawFoldGuide: Boolean = true): Boolean {
         return try {
-            PDDocument.load(inputFile).use { srcDoc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { srcDoc ->
                 val origPageCount = srcDoc.numberOfPages
                 if (origPageCount == 0) return false
 
@@ -2454,7 +2507,7 @@ object DesktopPdfEngine {
 
     fun generateNUp(inputFile: File, outputFile: File, pagesPerSheet: Int = 2): Boolean {
         return try {
-            PDDocument.load(inputFile).use { srcDoc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { srcDoc ->
                 val totalPages = srcDoc.numberOfPages
                 if (totalPages == 0) return false
 
@@ -2563,7 +2616,7 @@ object DesktopPdfEngine {
         val outputFiles = mutableListOf<File>()
         outputDir.mkdirs()
 
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val totalPages = doc.numberOfPages
             if (totalPages == 0) return emptyList()
 
@@ -2624,7 +2677,7 @@ object DesktopPdfEngine {
         val outputFiles = mutableListOf<File>()
         outputDir.mkdirs()
 
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val outline = doc.documentCatalog.documentOutline
             if (outline == null || outline.firstChild == null) {
                 return emptyList()
@@ -2670,7 +2723,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun listAttachments(inputFile: File): List<DesktopAttachment> {
         val list = mutableListOf<DesktopAttachment>()
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val names = doc.documentCatalog.names
             val embeddedFiles = names?.embeddedFiles
             if (embeddedFiles != null) {
@@ -2691,7 +2744,7 @@ object DesktopPdfEngine {
 
     fun extractAttachment(inputFile: File, attachmentName: String, outputDir: File): File? {
         outputDir.mkdirs()
-        PDDocument.load(inputFile).use { doc ->
+        PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val names = doc.documentCatalog.names
             val embeddedFiles = names?.embeddedFiles ?: return null
             val map = embeddedFiles.names ?: return null
@@ -2707,7 +2760,9 @@ object DesktopPdfEngine {
                             return null
                         }
                         ef.createInputStream().use { ins ->
-                            outFile.writeBytes(ins.readBytes())
+                            outFile.outputStream().use { out ->
+                                ins.copyTo(out)
+                            }
                         }
                         return outFile
                     }
@@ -2719,7 +2774,7 @@ object DesktopPdfEngine {
 
     fun embedAttachment(inputFile: File, attachmentFile: File, outputFile: File): Boolean {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 var names = doc.documentCatalog.names
                 if (names == null) {
                     names = PDDocumentNameDictionary(doc.documentCatalog)
@@ -2801,7 +2856,7 @@ object DesktopPdfEngine {
     // =========================================================================
     fun addAcroFormFields(inputFile: File, outputFile: File, fields: List<DesktopFormFieldSpec>): Result<Boolean> {
         return try {
-            PDDocument.load(inputFile).use { doc ->
+            PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
                 val catalog = doc.documentCatalog
                 var acroForm = catalog.acroForm
                 if (acroForm == null) {
@@ -2946,14 +3001,18 @@ object DesktopSpeechSynthesizer {
         Thread {
             try {
                 if (isWindows) {
+                    val textFile = File.createTempFile("pdfchemy_tts_text_", ".txt").apply {
+                        deleteOnExit()
+                        writeText(clean.take(6000), Charsets.UTF_8)
+                    }
                     val tempScript = File.createTempFile("pdfchemy_tts_", ".ps1").apply {
                         deleteOnExit()
-                        val safeText = clean.replace("`", "``").replace("\"", "`\"").replace("\$", "`$").take(6000)
                         val scriptContent = """
                             Add-Type -AssemblyName System.Speech
+                            ${'$'}text = Get-Content -Path '${textFile.absolutePath.replace("'", "''")}' -Raw -Encoding UTF8
                             ${'$'}synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
                             ${'$'}synth.Rate = $rate
-                            ${'$'}synth.Speak("$safeText")
+                            ${'$'}synth.Speak(${'$'}text)
                         """.trimIndent()
                         writeText(scriptContent, Charsets.UTF_8)
                     }
@@ -2961,9 +3020,10 @@ object DesktopSpeechSynthesizer {
                     currentProcess = pb.start()
                     currentProcess?.waitFor()
                     tempScript.delete()
+                    textFile.delete()
                 } else if (isLinux) {
                     val safeText = clean.take(6000)
-                    val pb = ProcessBuilder("spd-say", "-r", (rate * 15).toString(), safeText)
+                    val pb = ProcessBuilder("spd-say", "-r", (rate * 15).toString(), "--", safeText)
                     currentProcess = pb.start()
                     currentProcess?.waitFor()
                 }

@@ -1,5 +1,6 @@
 package com.pdfchemy.desktop.engine
 
+import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface
@@ -98,7 +99,7 @@ object PdfCryptoSigner {
      * Digitally signs the PDF file using the provided private key and certificate.
      */
     fun signPdf(sourceFile: File, destFile: File, keyPairInfo: KeyPairInfo, reason: String = "Signed by PDFchemy", location: String = "Local Device") {
-        PDDocument.load(sourceFile).use { document ->
+        PDDocument.load(sourceFile, org.apache.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()).use { document ->
             val signature = PDSignature()
             signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE)
             signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED)

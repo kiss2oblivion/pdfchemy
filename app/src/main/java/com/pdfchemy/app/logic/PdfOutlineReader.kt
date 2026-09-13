@@ -2,12 +2,17 @@ package com.pdfchemy.app.logic
 
 import android.content.Context
 import android.net.Uri
+import com.pdfchemy.app.utils.AppLogger
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
 import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineNode
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.StringReader
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 
 data class OutlineBookmark(
     val title: String,
@@ -167,7 +172,7 @@ object PdfOutlineReader {
             var opfPath = "OEBPS/content.opf"
             val containerEntry = zip.getEntry("META-INF/container.xml")
             if (containerEntry != null) {
-                val containerText = zip.getInputStream(containerEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val containerText = readZipEntrySafely(zip, containerEntry)
                 val match = Regex("""full-path\s*=\s*["']([^"']+)["']""").find(containerText)
                 if (match != null) opfPath = match.groupValues[1]
             }
@@ -177,7 +182,7 @@ object PdfOutlineReader {
             val spineItems = mutableListOf<String>()
 
             if (opfEntry != null) {
-                val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val opfText = readZipEntrySafely(zip, opfEntry)
                 val itemMap = mutableMapOf<String, String>()
                 // Flexible regex for opf:item or item
                 val itemRegex = Regex("""<(?:opf:)?item\s+([^>]+)>""", RegexOption.IGNORE_CASE)
@@ -226,7 +231,7 @@ object PdfOutlineReader {
 
             for ((idx, path) in spineItems.withIndex()) {
                 val entry = zip.getEntry(path) ?: continue
-                val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val html = readZipEntrySafely(zip, entry)
                 
                 // Enhanced title extraction
                 val titleMatch = Regex("""<(?:h[1-3]|title)[^>]*>(.*?)</(?:h[1-3]|title)>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(html)
@@ -313,6 +318,22 @@ object PdfOutlineReader {
                 title = pair.first,
                 paragraphs = pair.second
             )
+        }
+    }
+
+    private fun readZipEntrySafely(zipFile: ZipFile, entry: ZipEntry, maxChars: Int = 2_000_000): String {
+        return zipFile.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { reader ->
+            val buffer = CharArray(8192)
+            val sb = java.lang.StringBuilder()
+            var read: Int
+            while (reader.read(buffer).also { read = it } != -1) {
+                sb.append(buffer, 0, read)
+                if (sb.length > maxChars) {
+                    AppLogger.w("PdfOutlineReader: Entry ${entry.name} exceeded size limit ($maxChars chars)")
+                    break
+                }
+            }
+            sb.toString()
         }
     }
 }

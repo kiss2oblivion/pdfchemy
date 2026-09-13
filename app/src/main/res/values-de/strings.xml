@@ -276,7 +276,7 @@
 <string name="btn_add_more_files">Weitere Dateien hinzufügen (%1$d ausgewählt)</string>
 <string name="label_original_size_analyzing">Originalgröße: %1$s (Analysiert...)</string>
 <string name="label_original_size_to_compressed">Originalgröße: %1$s → %2$s</string>
-<string name="label_target_mb_batch">Ziel: %1$.1f MB</string>
+<string name="label_target_mb_batch">Ziel: %%1$.1f MB</string>
 <string name="label_target_unknown">Ziel: Unbekannt</string>
 <string name="label_analyzing">Analysieren...</string>
 <string name="label_target_mb">Ziel: %1$s MB</string>
@@ -371,7 +371,7 @@
 <string name="onboarding_slide3_title">Organisieren &amp; Zusammenführen</string>
 <string name="onboarding_slide3_desc">Kombinieren Sie mehrere Dokumente per Drag-and-Drop, extrahieren Sie Seiten oder teilen Sie PDFs mühelos.</string>
     
-<string name="onboarding_slide4_title">100% Privat &amp; Offline</string>
+<string name="onboarding_slide4_title">100%% Privat &amp; Offline</string>
 <string name="onboarding_slide4_desc">Ihre Dokumente bleiben auf Ihrem Gerät. Keine Cloud-Uploads, keine Registrierungspflicht – absolute Privatsphäre.</string>
     
     <!-- Image Compressor Strings -->
@@ -390,13 +390,13 @@
 <string name="image_batch_total_size">Gesamtgröße: %1$s</string>
 <string name="image_compress_options">Komprimierungsoptionen</string>
 <string name="image_compress_quality">Bildqualität</string>
-<string name="preset_extreme">Extrem (40%)</string>
-<string name="preset_optimal">Optimal (65%)</string>
-<string name="preset_crisp">Scharf (85%)</string>
-<string name="preset_max">Max (100%)</string>
+<string name="preset_extreme">Extrem (40%%)</string>
+<string name="preset_optimal">Optimal (65%%)</string>
+<string name="preset_crisp">Scharf (85%%)</string>
+<string name="preset_max">Max (100%%)</string>
 <string name="image_output_format">Ausgabeformat</string>
 <string name="image_max_resolution">Max. Auflösung</string>
-<string name="res_original">Original (100%)</string>
+<string name="res_original">Original (100%%)</string>
 <string name="image_strip_exif">EXIF- &amp; Standortdaten entfernen</string>
 <string name="image_strip_exif_desc">Entfernt GPS-Tags, Kameradetails &amp; Metadaten</string>
 <string name="image_btn_compress">Bild komprimieren</string>
@@ -407,7 +407,7 @@
 <string name="label_compressed">Komprimiert</string>
 <string name="image_batch_completed_title">Stapelkomprimierung abgeschlossen!</string>
 <string name="image_batch_completed_summary">%1$d von %2$d Bildern erfolgreich komprimiert.\nOriginal: %3$s → Komprimiert: %4$s (%5$d%% gespart).</string>
-<string name="mode_quality_slider">Qualitätsregler (%)</string>
+<string name="mode_quality_slider">Qualitätsregler (%%)</string>
 <string name="mode_target_size">Zielgröße (MB)</string>
 <string name="target_size_preset_title">Zielgröße</string>
 <string name="target_custom">Benutzerdefiniert</string>
@@ -452,7 +452,7 @@
 <string name="history_unlocked_pdf">Entsperrte PDF</string>
 <string name="history_pdf_to_images_folder">PDF-Bildseiten</string>
 <string name="protect_pdf_headline">PDF mit Passwort sperren</string>
-<string name="protect_pdf_subtitle">100% lokale AES-Verschlüsselung auf dem Gerät. Kein Passwort wird hochgeladen.</string>
+<string name="protect_pdf_subtitle">100%% lokale AES-Verschlüsselung auf dem Gerät. Kein Passwort wird hochgeladen.</string>
 <string name="select_pdf_to_protect">PDF zum Schützen auswählen</string>
 <string name="enter_password_label">Passwort festlegen</string>
 <string name="confirm_password_label">Passwort bestätigen</string>
@@ -494,7 +494,7 @@
 <string name="menu_ocr_pdf">OCR &amp; Durchsuchbares PDF</string>
 <string name="menu_ocr_pdf_desc">Gescannte Dokumente und Fotos vollständig durchsuchbar machen</string>
 <string name="ocr_pdf_headline">Gescannte PDF durchsuchbar machen</string>
-<string name="ocr_pdf_subtitle">100% lokale Texterkennung auf dem Gerät. Erstellt eine durchsuchbare Textebene.</string>
+<string name="ocr_pdf_subtitle">100%% lokale Texterkennung auf dem Gerät. Erstellt eine durchsuchbare Textebene.</string>
 <string name="select_pdf_for_ocr">PDF-Dokument auswählen</string>
 <string name="ocr_processing_generic">Text wird analysiert und erkannt…</string>
 <string name="ocr_processing_progress">OCR-Verarbeitung: Seite %1$d von %2$d…</string>
@@ -632,7 +632,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Office-Exporter</string>
 <string name="banner_office_exporter_title">PDF in Office exportieren</string>
-<string name="banner_office_exporter_desc">Konvertieren Sie Ihre PDF in bearbeitbare Word-, Excel- oder PowerPoint-Dateien – 100% offline.</string>
+<string name="banner_office_exporter_desc">Konvertieren Sie Ihre PDF in bearbeitbare Word-, Excel- oder PowerPoint-Dateien – 100%% offline.</string>
 <string name="step_select_pdf">1. PDF-Dokument auswählen</string>
 <string name="btn_choose_pdf_file">PDF-Dokument auswählen</string>
 <string name="tap_to_change_file">Tippen, um andere Datei zu wählen</string>
@@ -656,7 +656,7 @@
 <string name="menu_replace_image">Eingebettetes Bild ersetzen</string>
 <string name="menu_replace_image_desc">Fotos, Logos oder Grafiken in bestehenden PDFs austauschen</string>
 <string name="banner_replace_image_title">Direkter Bild-Austausch</string>
-<string name="banner_replace_image_desc">Ersetzen Sie jedes Bild bei 100% exaktem Erhalt von Layout, Abmessungen und Design.</string>
+<string name="banner_replace_image_desc">Ersetzen Sie jedes Bild bei 100%% exaktem Erhalt von Layout, Abmessungen und Design.</string>
 <string name="scanning_embedded_images">Suche nach eingebetteten Bildern…</string>
 <string name="no_embedded_images_found">Keine eingebetteten Bilder in dieser PDF gefunden.</string>
 <string name="embedded_images_count">%1$d eingebettete Bilder gefunden</string>
@@ -938,7 +938,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -962,15 +962,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">Das Lebenszeit-Manifest</string>
-    <string name="settings_manifesto_desc">Unser Versprechen: 100% kostenlose Updates, keine Cloud, für die Menschen.</string>
+    <string name="settings_manifesto_desc">Unser Versprechen: 100%% kostenlose Updates, keine Cloud, für die Menschen.</string>
     <string name="manifesto_dialog_title">Das Lebenszeit-Manifest</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">Unsere 4 unzerbrechlichen Garantien:</string>
-    <string name="manifesto_g1_title">Für immer 100% kostenlos</string>
+    <string name="manifesto_g1_title">Für immer 100%% kostenlos</string>
     <string name="manifesto_g1_desc">Keine Abos, keine Bezahlschranken, keine künstlichen Limits und keine Wasserzeichen.</string>
-    <string name="manifesto_g2_title">100% Offline &amp; Privat</string>
-    <string name="manifesto_g2_desc">Keine Datei verlässt diesen Computer. Keine Telemetrie. 100% sicher für vertrauliche Dokumente.</string>
+    <string name="manifesto_g2_title">100%% Offline &amp; Privat</string>
+    <string name="manifesto_g2_desc">Keine Datei verlässt diesen Computer. Keine Telemetrie. 100%% sicher für vertrauliche Dokumente.</string>
     <string name="manifesto_g3_title">Original geschützt</string>
     <string name="manifesto_g3_desc">Wir überschreiben Ihre Quelldateien niemals ohne ausdrückliche Bestätigung.</string>
     <string name="manifesto_g4_title">Für die Menschen gebaut</string>
@@ -988,7 +988,7 @@
     <string name="menu_deskew">Auto-Entzerren &amp; Ausrichten</string>
     <string name="menu_deskew_desc">Schiefe Scans korrigieren und gedrehte Seiten verlustfrei ausrichten</string>
     <string name="deskew_title">Auto-Entzerrung &amp; Winkelbegradigung</string>
-    <string name="deskew_detected_angle">Erkannte Neigung: %1$.1f°</string>
+    <string name="deskew_detected_angle">Erkannte Neigung: %%1$.1f°</string>
     <string name="deskew_action_straighten">Begradigen &amp; Speichern</string>
     <string name="deskew_success">Dokument erfolgreich begradigt!</string>
     <string name="deskew_success_desc">Seiten wurden gedreht und ausgerichtet.</string>
@@ -1038,7 +1038,7 @@
     <string name="tts_play">Vorlesen</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stopp</string>
-    <string name="tts_speed">Geschwindigkeit: %1$.2fx</string>
+    <string name="tts_speed">Geschwindigkeit: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Vorheriger</string>
     <string name="tts_next_paragraph">Nächster</string>
     <string name="tts_not_supported">Text-to-Speech wird nicht unterstützt oder Sprachdaten fehlen.</string>
