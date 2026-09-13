@@ -216,7 +216,7 @@
 <string name="title_compress_pdf">PDF Sıkıştır</string>
 <string name="msg_compress_warning_signature">Uyarı: Sıkıştırma işlemi dijital imzayı geçersiz kılabilir.</string>
 <string name="msg_compress_slightly_larger">Çıktı orijinalden biraz daha büyük oldu. Bu PDF zaten yüksek düzeyde optimize edilmiş olabilir.\n\n</string>
-<string name="msg_compress_reduced">%%%1$d küçültüldü (%2$s tasarruf edildi!)\n\n</string>
+<string name="msg_compress_reduced">%%1$d küçültüldü (%2$s tasarruf edildi!)\n\n</string>
 <string name="msg_compress_verdict_no_benefit">Sıkıştırma kazancı yok</string>
 <string name="msg_compress_verdict_excellent">Mükemmel sıkıştırma</string>
 <string name="msg_compress_verdict_good">İyi sıkıştırma</string>
@@ -228,7 +228,7 @@
 <string name="msg_compress_settings_used">Kullanılan Ayarlar:\n</string>
 <string name="msg_compress_target_size">- Hedef Boyut: %1$s MB\n</string>
 <string name="msg_compress_auto_optimized">- Otomatik Optimizasyon: Evet\n</string>
-<string name="msg_compress_quality_preset">- Kalite Ayarı: %%%1$d\n</string>
+<string name="msg_compress_quality_preset">- Kalite Ayarı: %%1$d\n</string>
 <string name="msg_compress_grayscale">- Gri Tonlama: %1$s\n</string>
 <string name="msg_compress_lossless_zip">- Kayıpsız ZIP: %1$s\n</string>
 <string name="msg_compress_metadata_removed">- Meta Veri Kaldırma: %1$s</string>
@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">Daha Fazla Dosya Ekle (%1$d seçildi)</string>
 <string name="label_original_size_analyzing">Orijinal Boyut: %1$s (Analiz ediliyor...)</string>
 <string name="label_original_size_to_compressed">Orijinal Boyut: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">Hedef: %1$.1f MB</string>
+<string name="label_target_mb_batch">Hedef: %%1$.1f MB</string>
 <string name="label_target_unknown">Hedef: Belirsiz</string>
 <string name="label_analyzing">Analiz ediliyor...</string>
 <string name="label_target_mb">Hedef: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">Fotoğrafları ve metinleri anında temiz PDF\'lere dönüştürün.</string>
 <string name="onboarding_slide3_title">Düzenle ve Birleştir</string>
 <string name="onboarding_slide3_desc">Birden çok belgeyi sürükleyip bırakarak kolayca birleştirin ve sıralayın.</string>
-<string name="onboarding_slide4_title">100% Gizli ve Çevrimdışı</string>
+<string name="onboarding_slide4_title">100%% Gizli ve Çevrimdışı</string>
 <string name="onboarding_slide4_desc">Belgeleriniz cihazınızda kalır. Bulut yüklemesi yoktur.</string>
 <string name="menu_compress_image">Görselleri Sıkıştır</string>
 <string name="menu_compress_image_desc">JPG, PNG, WebP boyutunu küçült</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">Toplam boyut: %1$s</string>
 <string name="image_compress_options">Sıkıştırma Seçenekleri</string>
 <string name="image_compress_quality">Görsel Kalitesi</string>
-<string name="preset_extreme">Aşırı (40%)</string>
-<string name="preset_optimal">Optimal (65%)</string>
-<string name="preset_crisp">Yüksek (85%)</string>
-<string name="preset_max">Maksimum (100%)</string>
+<string name="preset_extreme">Aşırı (40%%)</string>
+<string name="preset_optimal">Optimal (65%%)</string>
+<string name="preset_crisp">Yüksek (85%%)</string>
+<string name="preset_max">Maksimum (100%%)</string>
 <string name="image_output_format">Çıktı Formatı</string>
 <string name="image_max_resolution">Maksimum Çözünürlük</string>
-<string name="res_original">Orijinal (100%)</string>
+<string name="res_original">Orijinal (100%%)</string>
 <string name="image_strip_exif">EXIF ve Konum Bilgisini Sil</string>
 <string name="image_strip_exif_desc">GPS ve kamera meta verilerini temizler</string>
 <string name="image_btn_compress">Görseli Sıkıştır</string>
@@ -395,8 +395,8 @@
 <string name="label_original">Orijinal</string>
 <string name="label_compressed">Sıkıştırılmış</string>
 <string name="image_batch_completed_title">Toplu Sıkıştırma Tamamlandı!</string>
-<string name="image_batch_completed_summary">%1$d / %2$d görsel başarıyla sıkıştırıldı.\nOrijinal: %3$s → Sıkıştırılmış: %4$s (%%%5$d tasarruf).</string>
-<string name="mode_quality_slider">Kalite Kaydırıcısı (%)</string>
+<string name="image_batch_completed_summary">%1$d / %2$d görsel başarıyla sıkıştırıldı.\nOrijinal: %3$s → Sıkıştırılmış: %4$s (%%5$d tasarruf).</string>
+<string name="mode_quality_slider">Kalite Kaydırıcısı (%%)</string>
 <string name="mode_target_size">Hedef Boyut (MB)</string>
 <string name="target_size_preset_title">Hedef Boyut</string>
 <string name="target_custom">Özel</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">Kilidi Açılmış PDF</string>
 <string name="history_pdf_to_images_folder">PDF Görsel Sayfaları</string>
 <string name="protect_pdf_headline">PDF\'i Parola ile Kilitle</string>
-<string name="protect_pdf_subtitle">100% cihaz üzerinde AES şifreleme. Parolanız asla kaydedilmez.</string>
+<string name="protect_pdf_subtitle">100%% cihaz üzerinde AES şifreleme. Parolanız asla kaydedilmez.</string>
 <string name="select_pdf_to_protect">Korunacak PDF\'i Seç</string>
 <string name="enter_password_label">Parola Belirle</string>
 <string name="confirm_password_label">Parolayı Onayla</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR ve Aranabilir PDF</string>
 <string name="menu_ocr_pdf_desc">Taranmış belgeleri ve görselleri metin aranabilir PDF\'e dönüştürün</string>
 <string name="ocr_pdf_headline">Taranmış PDF\'i Aranabilir Yap</string>
-<string name="ocr_pdf_subtitle">100% cihaz üzerinde metin tanıma. Seçilebilir ve aranabilir metin katmanı oluşturun.</string>
+<string name="ocr_pdf_subtitle">100%% cihaz üzerinde metin tanıma. Seçilebilir ve aranabilir metin katmanı oluşturun.</string>
 <string name="select_pdf_for_ocr">PDF Belgesi Seç</string>
 <string name="ocr_processing_generic">Metin analiz ediliyor ve tanınıyor…</string>
 <string name="ocr_processing_progress">OCR İşleniyor: Sayfa %1$d / %2$d…</string>
@@ -557,7 +557,7 @@
 <string name="watermark_subtitle">Özel metin, opaklık, açı ve döşeme seçenekleriyle belgeleri koruyun.</string>
 <string name="select_pdf_to_watermark">Filigran Eklenecek PDF\'i Seç</string>
 <string name="label_watermark_text">Filigran Metni</string>
-<string name="label_opacity">Filigran Opaklığı: %%%1$d</string>
+<string name="label_opacity">Filigran Opaklığı: %%1$d</string>
 <string name="label_watermark_angle">Filigran Açısı</string>
 <string name="label_tile_pattern">3x3 Döşeme Matrisi</string>
 <string name="desc_tile_pattern">Filigranı tüm sayfada tekrarla</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Office Dışa Aktarıcı</string>
 <string name="banner_office_exporter_title">PDF\'yi Office\'e Aktar</string>
-<string name="banner_office_exporter_desc">PDF\'lerinizi %100 çevrimdışı düzenlenebilir Word, Excel veya PowerPoint dosyalarına dönüştürün.</string>
+<string name="banner_office_exporter_desc">PDF\'lerinizi %%100 çevrimdışı düzenlenebilir Word, Excel veya PowerPoint dosyalarına dönüştürün.</string>
 <string name="step_select_pdf">1. PDF Belgesi Seçin</string>
 <string name="btn_choose_pdf_file">PDF Belgesi Seç</string>
 <string name="tap_to_change_file">Farklı dosya seçmek için dokunun</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,15 +952,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">Ömür Boyu Manifesto</string>
-    <string name="settings_manifesto_desc">Sözümüz: %100 ücretsiz güncellemeler, sıfır bulut, insanlar için.</string>
+    <string name="settings_manifesto_desc">Sözümüz: %%100 ücretsiz güncellemeler, sıfır bulut, insanlar için.</string>
     <string name="manifesto_dialog_title">Ömür Boyu Manifesto</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">4 Bozulmaz Garantimiz:</string>
-    <string name="manifesto_g1_title">Sonsuza Kadar %100 Ücretsiz</string>
+    <string name="manifesto_g1_title">Sonsuza Kadar %%100 Ücretsiz</string>
     <string name="manifesto_g1_desc">Sıfır abonelik, sıfır ödeme duvarı, sıfır yapay sınır ve sıfır filigran zorlaması.</string>
-    <string name="manifesto_g2_title">%100 Çevrimdışı ve Gizli</string>
-    <string name="manifesto_g2_desc">Hiçbir dosya bu bilgisayardan ayrılmaz. Sıfır telemetri. Gizli belgeler için %100 güvenli.</string>
+    <string name="manifesto_g2_title">%%100 Çevrimdışı ve Gizli</string>
+    <string name="manifesto_g2_desc">Hiçbir dosya bu bilgisayardan ayrılmaz. Sıfır telemetri. Gizli belgeler için %%100 güvenli.</string>
     <string name="manifesto_g3_title">Orijinal Güvende</string>
     <string name="manifesto_g3_desc">Açık onayınız olmadan kaynak dosyalarınızın üzerine asla yazmayız.</string>
     <string name="manifesto_g4_title">İnsanlar İçin Yapıldı</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

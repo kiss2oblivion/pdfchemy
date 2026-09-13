@@ -193,7 +193,7 @@ object PdfArchiveValidatorEngine {
             document.documentCatalog.markInfo = markInfo
 
             // 2. ISO 19005-1b XMP packet
-            val xmpXml = """<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+            val xmpXml = """<?xpacket begin="""" + "\uFEFF" + """" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
   <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
     <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">

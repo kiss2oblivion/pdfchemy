@@ -274,7 +274,7 @@
 <string name="btn_add_more_files">Aggiungi altri file (%1$d selezionati)</string>
 <string name="label_original_size_analyzing">Dimensione originale: %1$s (Analisi in corso...)</string>
 <string name="label_original_size_to_compressed">Dimensioni originali: %1$s → %2$s</string>
-<string name="label_target_mb_batch">Obiettivo: %1$.1f MB</string>
+<string name="label_target_mb_batch">Obiettivo: %%1$.1f MB</string>
 <string name="label_target_unknown">Obiettivo: sconosciuto</string>
 <string name="label_analyzing">Analizzando...</string>
 <string name="label_target_mb">Destinazione: %1$s MB</string>
@@ -369,7 +369,7 @@
 <string name="onboarding_slide3_title">Organizza e unisci</string>
 <string name="onboarding_slide3_desc">Unisci più documenti trascinandoli, estrai pagine o dividi PDF con la massima semplicità.</string>
     
-<string name="onboarding_slide4_title">100% privato e offline</string>
+<string name="onboarding_slide4_title">100%% privato e offline</string>
 <string name="onboarding_slide4_desc">I tuoi documenti restano sul tuo dispositivo. Zero caricamenti sul cloud, nessun account richiesto: privacy totale.</string>
     
     <!-- Image Compressor Strings -->
@@ -388,13 +388,13 @@
 <string name="image_batch_total_size">Dimensione totale: %1$s</string>
 <string name="image_compress_options">Opzioni di compressione</string>
 <string name="image_compress_quality">Qualità immagine</string>
-<string name="preset_extreme">Estrema (40%)</string>
-<string name="preset_optimal">Ottimale (65%)</string>
-<string name="preset_crisp">Nitida (85%)</string>
-<string name="preset_max">Max (100%)</string>
+<string name="preset_extreme">Estrema (40%%)</string>
+<string name="preset_optimal">Ottimale (65%%)</string>
+<string name="preset_crisp">Nitida (85%%)</string>
+<string name="preset_max">Max (100%%)</string>
 <string name="image_output_format">Formato di output</string>
 <string name="image_max_resolution">Risoluzione massima</string>
-<string name="res_original">Originale (100%)</string>
+<string name="res_original">Originale (100%%)</string>
 <string name="image_strip_exif">Rimuovi dati EXIF e posizione</string>
 <string name="image_strip_exif_desc">Rimuove tag GPS, dati fotocamera e metadati</string>
 <string name="image_btn_compress">Comprimi immagine</string>
@@ -405,7 +405,7 @@
 <string name="label_compressed">Compresso</string>
 <string name="image_batch_completed_title">Compressione batch completata!</string>
 <string name="image_batch_completed_summary">Compresse con successo %1$d di %2$d immagini.\nOriginale: %3$s → Compresso: %4$s (%5$d%% risparmiato).</string>
-<string name="mode_quality_slider">Cursore Qualità (%)</string>
+<string name="mode_quality_slider">Cursore Qualità (%%)</string>
 <string name="mode_target_size">Dimensione Obiettivo (MB)</string>
 <string name="target_size_preset_title">Dimensione Obiettivo</string>
 <string name="target_custom">Personalizzata</string>
@@ -450,7 +450,7 @@
 <string name="history_unlocked_pdf">PDF Sbloccato</string>
 <string name="history_pdf_to_images_folder">Pagine Immagine PDF</string>
 <string name="protect_pdf_headline">Blocca PDF con Password</string>
-<string name="protect_pdf_subtitle">Crittografia AES 100% sul dispositivo. La password non viene mai trasmessa online.</string>
+<string name="protect_pdf_subtitle">Crittografia AES 100%% sul dispositivo. La password non viene mai trasmessa online.</string>
 <string name="select_pdf_to_protect">Seleziona PDF da Proteggere</string>
 <string name="enter_password_label">Imposta Password</string>
 <string name="confirm_password_label">Conferma Password</string>
@@ -492,7 +492,7 @@
 <string name="menu_ocr_pdf">OCR e PDF Ricercabile</string>
 <string name="menu_ocr_pdf_desc">Rendi scatti e documenti scansionati completamente ricercabili</string>
 <string name="ocr_pdf_headline">Rendi PDF Scansionato Ricercabile</string>
-<string name="ocr_pdf_subtitle">Riconoscimento testo 100% sul dispositivo. Genera un livello di testo ricercabile.</string>
+<string name="ocr_pdf_subtitle">Riconoscimento testo 100%% sul dispositivo. Genera un livello di testo ricercabile.</string>
 <string name="select_pdf_for_ocr">Seleziona Documento PDF</string>
 <string name="ocr_processing_generic">Analisi e riconoscimento del testo in corso…</string>
 <string name="ocr_processing_progress">Elaborazione OCR: Pagina %1$d di %2$d…</string>
@@ -630,7 +630,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Esportatore Office</string>
 <string name="banner_office_exporter_title">Esporta PDF in Office</string>
-<string name="banner_office_exporter_desc">Converti il tuo PDF in file modificabili Word, Excel o PowerPoint 100% offline.</string>
+<string name="banner_office_exporter_desc">Converti il tuo PDF in file modificabili Word, Excel o PowerPoint 100%% offline.</string>
 <string name="step_select_pdf">1. Seleziona documento PDF</string>
 <string name="btn_choose_pdf_file">Scegli documento PDF</string>
 <string name="tap_to_change_file">Tocca per cambiare file</string>
@@ -934,7 +934,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -958,15 +958,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">Il Manifesto a Vita</string>
-    <string name="settings_manifesto_desc">La nostra promessa: aggiornamenti 100% gratuiti, zero cloud, per le persone.</string>
+    <string name="settings_manifesto_desc">La nostra promessa: aggiornamenti 100%% gratuiti, zero cloud, per le persone.</string>
     <string name="manifesto_dialog_title">Il Manifesto a Vita</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">Le Nostre 4 Garanzie Incrollabili:</string>
-    <string name="manifesto_g1_title">100% Gratis per Sempre</string>
+    <string name="manifesto_g1_title">100%% Gratis per Sempre</string>
     <string name="manifesto_g1_desc">Nessun abbonamento, nessun paywall, nessun limite artificiale e nessun watermark.</string>
-    <string name="manifesto_g2_title">100% Offline e Privato</string>
-    <string name="manifesto_g2_desc">Nessun file lascia mai questo computer. Zero telemetria. Sicuro al 100% per documenti riservati.</string>
+    <string name="manifesto_g2_title">100%% Offline e Privato</string>
+    <string name="manifesto_g2_desc">Nessun file lascia mai questo computer. Zero telemetria. Sicuro al 100%% per documenti riservati.</string>
     <string name="manifesto_g3_title">Originale Protetto</string>
     <string name="manifesto_g3_desc">Non sovrascriviamo mai i tuoi file originali senza conferma esplicita.</string>
     <string name="manifesto_g4_title">Creato Per la Gente</string>
@@ -984,7 +984,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1034,7 +1034,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

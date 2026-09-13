@@ -276,7 +276,7 @@
 <string name="btn_add_more_files">Adăugați mai multe fișiere (%1$d selectat)</string>
 <string name="label_original_size_analyzing">Dimensiune originală: %1$s (se analizează...)</string>
 <string name="label_original_size_to_compressed">Dimensiune originală: %1$s → %2$s</string>
-<string name="label_target_mb_batch">Țintă: %1$,1f MB</string>
+<string name="label_target_mb_batch">Țintă: %%1$,1f MB</string>
 <string name="label_target_unknown">Țintă: necunoscută</string>
 <string name="label_analyzing">Se analizează...</string>
 <string name="label_target_mb">Țintă: %1$s MB</string>
@@ -371,7 +371,7 @@
 <string name="onboarding_slide3_title">Organizați și îmbinați</string>
 <string name="onboarding_slide3_desc">Combinați mai multe documente prin glisare și fixare, extrageți pagini sau împărțiți fișiere PDF cu ușurință.</string>
     
-<string name="onboarding_slide4_title">100% privat și offline</string>
+<string name="onboarding_slide4_title">100%% privat și offline</string>
 <string name="onboarding_slide4_desc">Documentele dvs. rămân pe dispozitivul dvs. Fără încărcări în cloud, fără cont obligatoriu: confidențialitate deplină.</string>
     
     <!-- Image Compressor Strings -->
@@ -390,13 +390,13 @@
 <string name="image_batch_total_size">Dimensiune totală: %1$s</string>
 <string name="image_compress_options">Opțiuni de comprimare</string>
 <string name="image_compress_quality">Calitatea imaginii</string>
-<string name="preset_extreme">Extrem (40%)</string>
-<string name="preset_optimal">Optim (65%)</string>
-<string name="preset_crisp">Clar (85%)</string>
-<string name="preset_max">Max (100%)</string>
+<string name="preset_extreme">Extrem (40%%)</string>
+<string name="preset_optimal">Optim (65%%)</string>
+<string name="preset_crisp">Clar (85%%)</string>
+<string name="preset_max">Max (100%%)</string>
 <string name="image_output_format">Format de ieșire</string>
 <string name="image_max_resolution">Rezoluție maximă</string>
-<string name="res_original">Original (100%)</string>
+<string name="res_original">Original (100%%)</string>
 <string name="image_strip_exif">Eliminați datele EXIF și locația</string>
 <string name="image_strip_exif_desc">Șterge etichetele GPS, detaliile camerei și metadatele</string>
 <string name="image_btn_compress">Comprimă imaginea</string>
@@ -407,7 +407,7 @@
 <string name="label_compressed">Comprimat</string>
 <string name="image_batch_completed_title">Comprimare în masă finalizată!</string>
 <string name="image_batch_completed_summary">S-au comprimat cu succes %1$d din %2$d imagini.\nOriginal: %3$s → Comprimat: %4$s (%5$d%% economisit).</string>
-<string name="mode_quality_slider">Glisor de Calitate (%)</string>
+<string name="mode_quality_slider">Glisor de Calitate (%%)</string>
 <string name="mode_target_size">Dimensiune Țintă (MB)</string>
 <string name="target_size_preset_title">Dimensiune Țintă</string>
 <string name="target_custom">Personalizat</string>
@@ -452,7 +452,7 @@
 <string name="history_unlocked_pdf">PDF Deblocat</string>
 <string name="history_pdf_to_images_folder">Pagini Imagini PDF</string>
 <string name="protect_pdf_headline">Blochează PDF cu Parolă</string>
-<string name="protect_pdf_subtitle">Criptare AES 100% pe dispozitiv. Parola nu este trimisă niciodată pe internet.</string>
+<string name="protect_pdf_subtitle">Criptare AES 100%% pe dispozitiv. Parola nu este trimisă niciodată pe internet.</string>
 <string name="select_pdf_to_protect">Selectează PDF pentru Protejare</string>
 <string name="enter_password_label">Setează Parola</string>
 <string name="confirm_password_label">Confirmă Parola</string>
@@ -494,7 +494,7 @@
 <string name="menu_ocr_pdf">OCR și PDF Căutabil</string>
 <string name="menu_ocr_pdf_desc">Transformă documentele scanate și fotografiile în fișiere complet căutabile</string>
 <string name="ocr_pdf_headline">Fă PDF-ul Scanat Căutabil</string>
-<string name="ocr_pdf_subtitle">Recunoaștere text 100% pe dispozitiv. Generează un strat de text selectabil.</string>
+<string name="ocr_pdf_subtitle">Recunoaștere text 100%% pe dispozitiv. Generează un strat de text selectabil.</string>
 <string name="select_pdf_for_ocr">Selectează Document PDF</string>
 <string name="ocr_processing_generic">Se analizează și se recunoaște textul…</string>
 <string name="ocr_processing_progress">Procesare OCR: Pagina %1$d din %2$d…</string>
@@ -632,7 +632,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Exportator Office</string>
 <string name="banner_office_exporter_title">Exportă PDF în Office</string>
-<string name="banner_office_exporter_desc">Convertește PDF-ul în fișiere editabile Word, Excel sau PowerPoint 100% offline.</string>
+<string name="banner_office_exporter_desc">Convertește PDF-ul în fișiere editabile Word, Excel sau PowerPoint 100%% offline.</string>
 <string name="step_select_pdf">1. Selectează documentul PDF</string>
 <string name="btn_choose_pdf_file">Alege documentul PDF</string>
 <string name="tap_to_change_file">Apasă pentru a schimba fișierul</string>
@@ -938,7 +938,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -967,10 +967,10 @@
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">Cele 4 Garanții de Neclintit:</string>
-    <string name="manifesto_g1_title">100% Gratuit pentru Totdeauna</string>
+    <string name="manifesto_g1_title">100%% Gratuit pentru Totdeauna</string>
     <string name="manifesto_g1_desc">Fără abonamente, fără taxe ascunse, fără limite artificiale și fără filigrane impuse.</string>
-    <string name="manifesto_g2_title">100% Offline și Privat</string>
-    <string name="manifesto_g2_desc">Niciun fișier nu părăsește computerul. Zero telemetrie. 100% sigur pentru documente confidențiale.</string>
+    <string name="manifesto_g2_title">100%% Offline și Privat</string>
+    <string name="manifesto_g2_desc">Niciun fișier nu părăsește computerul. Zero telemetrie. 100%% sigur pentru documente confidențiale.</string>
     <string name="manifesto_g3_title">Original Protejat</string>
     <string name="manifesto_g3_desc">Nu suprascriem și nu distrugem niciodată fișierele sursă fără confirmare explicită.</string>
     <string name="manifesto_g4_title">Construit Pentru Oameni</string>
@@ -988,7 +988,7 @@
     <string name="menu_deskew">Auto-Îndreptare &amp; Deskew</string>
     <string name="menu_deskew_desc">Corectează scanările strâmbe și aliniază paginile rotite fără pierderi</string>
     <string name="deskew_title">Auto-Îndreptare &amp; Corecție Unghi</string>
-    <string name="deskew_detected_angle">Înclinație detectată: %1$.1f°</string>
+    <string name="deskew_detected_angle">Înclinație detectată: %%1$.1f°</string>
     <string name="deskew_action_straighten">Îndreaptă &amp; Salvează</string>
     <string name="deskew_success">Document îndreptat cu succes!</string>
     <string name="deskew_success_desc">Paginile au fost rotite și aliniate.</string>
@@ -1038,7 +1038,7 @@
     <string name="tts_play">Citește cu Voce Tare</string>
     <string name="tts_pause">Pauză</string>
     <string name="tts_stop">Oprește</string>
-    <string name="tts_speed">Viteză: %1$.2fx</string>
+    <string name="tts_speed">Viteză: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Anterior</string>
     <string name="tts_next_paragraph">Următor</string>
     <string name="tts_not_supported">Sinteza vocală nu este suportată sau datele lingvistice lipsesc.</string>

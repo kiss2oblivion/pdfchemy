@@ -892,7 +892,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             var errorCount = 0
             try {
                 context.contentResolver.openInputStream(pdfUri)?.use { inputStream ->
-                    val document = PDDocument.load(inputStream)
+                    val document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
                     for (pageIndex in 0 until document.numberOfPages) {
                         val page = document.getPage(pageIndex)
                         val resources = page.resources

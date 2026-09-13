@@ -2,6 +2,7 @@ package com.pdfchemy.desktop.engine
 
 import net.sourceforge.tess4j.Tesseract
 import net.sourceforge.tess4j.Word
+import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -55,9 +56,9 @@ object PdfOcrEngine {
             tesseract.setDatapath(tessDataPath.absolutePath)
             tesseract.setLanguage("eng")
 
-            inputDoc = PDDocument.load(inputFile)
-            val pdfRenderer = PDFRenderer(inputDoc)
-            val pageCount = inputDoc.numberOfPages
+            inputDoc = PDDocument.load(inputFile, MemoryUsageSetting.setupTempFileOnly())
+            val pdfRenderer = PDFRenderer(inputDoc!!)
+            val pageCount = inputDoc!!.numberOfPages
             
             if (pageCount == 0) return false
             outputDoc = PDDocument()
@@ -68,7 +69,7 @@ object PdfOcrEngine {
                 // Render at 300 DPI for good OCR accuracy
                 val dpi = 300f
                 val scale = dpi / 72f
-                val originalPage = inputDoc.getPage(i)
+                val originalPage = inputDoc!!.getPage(i)
                 val pageWidth = originalPage.mediaBox.width
                 val pageHeight = originalPage.mediaBox.height
                 

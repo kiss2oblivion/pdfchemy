@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">เพิ่มไฟล์ (เลือกแล้ว %1$d ไฟล์)</string>
 <string name="label_original_size_analyzing">ขนาดเดิม: %1$s (กำลังวิเคราะห์...)</string>
 <string name="label_original_size_to_compressed">ขนาดเดิม: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">เป้าหมาย: %1$.1f MB</string>
+<string name="label_target_mb_batch">เป้าหมาย: %%1$.1f MB</string>
 <string name="label_target_unknown">เป้าหมาย: ไม่ระบุ</string>
 <string name="label_analyzing">กำลังวิเคราะห์...</string>
 <string name="label_target_mb">เป้าหมาย: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">เปลี่ยนภาพถ่ายจากกล้องและข้อความเป็น PDF ได้ในแตะเดียว</string>
 <string name="onboarding_slide3_title">จัดระเบียบและรวมไฟล์</string>
 <string name="onboarding_slide3_desc">รวมหลายเอกสารและจัดเรียงหน้าได้ง่ายๆ ด้วยการลากวาง</string>
-<string name="onboarding_slide4_title">100% ปลอดภัยและออฟไลน์</string>
+<string name="onboarding_slide4_title">100%% ปลอดภัยและออฟไลน์</string>
 <string name="onboarding_slide4_desc">เอกสารอยู่บนเครื่องของคุณเท่านั้น ไม่มีการอัปโหลดขึ้นคลาวด์</string>
 <string name="menu_compress_image">บีบอัดรูปภาพ</string>
 <string name="menu_compress_image_desc">ลดขนาด JPG, PNG, WebP</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">ขนาดรวม: %1$s</string>
 <string name="image_compress_options">ตัวเลือกการบีบอัดรูปภาพ</string>
 <string name="image_compress_quality">คุณภาพของภาพ</string>
-<string name="preset_extreme">บีบอัดสูงสุด (40%)</string>
-<string name="preset_optimal">เหมาะสม (65%)</string>
-<string name="preset_crisp">คมชัดสูง (85%)</string>
-<string name="preset_max">คุณภาพสูงสุด (100%)</string>
+<string name="preset_extreme">บีบอัดสูงสุด (40%%)</string>
+<string name="preset_optimal">เหมาะสม (65%%)</string>
+<string name="preset_crisp">คมชัดสูง (85%%)</string>
+<string name="preset_max">คุณภาพสูงสุด (100%%)</string>
 <string name="image_output_format">รูปแบบผลลัพธ์</string>
 <string name="image_max_resolution">ความละเอียดสูงสุด</string>
-<string name="res_original">ต้นฉบับ (100%)</string>
+<string name="res_original">ต้นฉบับ (100%%)</string>
 <string name="image_strip_exif">ลบข้อมูล EXIF และตำแหน่ง</string>
 <string name="image_strip_exif_desc">ลบพิกัด GPS และข้อมูลกล้อง</string>
 <string name="image_btn_compress">บีบอัดรูปภาพ</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">หลังบีบอัด</string>
 <string name="image_batch_completed_title">การบีบอัดเป็นชุดเสร็จสิ้น!</string>
 <string name="image_batch_completed_summary">บีบอัดสำเร็จ %1$d จาก %2$d รูปภาพ\nต้นฉบับ: %3$s → หลังบีบอัด: %4$s (ประหยัด %5$d%%)</string>
-<string name="mode_quality_slider">แถบเลื่อนคุณภาพ (%)</string>
+<string name="mode_quality_slider">แถบเลื่อนคุณภาพ (%%)</string>
 <string name="mode_target_size">ขนาดเป้าหมาย (MB)</string>
 <string name="target_size_preset_title">ขนาดเป้าหมาย</string>
 <string name="target_custom">กำหนดเอง</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">PDF ที่ปลดล็อกแล้ว</string>
 <string name="history_pdf_to_images_folder">ภาพที่แปลงจาก PDF</string>
 <string name="protect_pdf_headline">ล็อก PDF ด้วยรหัสผ่าน</string>
-<string name="protect_pdf_subtitle">เข้ารหัส AES บนอุปกรณ์ 100% ไม่มีการบันทึกรหัสผ่าน</string>
+<string name="protect_pdf_subtitle">เข้ารหัส AES บนอุปกรณ์ 100%% ไม่มีการบันทึกรหัสผ่าน</string>
 <string name="select_pdf_to_protect">เลือก PDF ที่ต้องการป้องกัน</string>
 <string name="enter_password_label">ตั้งรหัสผ่าน</string>
 <string name="confirm_password_label">ยืนยันรหัสผ่าน</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR และ PDF ที่ค้นหาข้อความได้</string>
 <string name="menu_ocr_pdf_desc">เปลี่ยนเอกสารสแกนและรูปภาพให้ค้นหาคำในไฟล์ได้</string>
 <string name="ocr_pdf_headline">สร้าง PDF สแกนให้ค้นหาคำได้</string>
-<string name="ocr_pdf_subtitle">ระบบรู้จำตัวอักษรบนเครื่อง 100% สร้างเลเยอร์ข้อความสำหรับค้นหาและคัดลอก</string>
+<string name="ocr_pdf_subtitle">ระบบรู้จำตัวอักษรบนเครื่อง 100%% สร้างเลเยอร์ข้อความสำหรับค้นหาและคัดลอก</string>
 <string name="select_pdf_for_ocr">เลือกเอกสาร PDF</string>
 <string name="ocr_processing_generic">กำลังวิเคราะห์และรู้จำตัวอักษร…</string>
 <string name="ocr_processing_progress">กำลังประมวลผล OCR: หน้า %1$d จาก %2$d…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">ตัวส่งออก Office</string>
 <string name="banner_office_exporter_title">ส่งออก PDF เป็น Office</string>
-<string name="banner_office_exporter_desc">แปลง PDF ของคุณเป็นไฟล์ Word, Excel หรือ PowerPoint ที่แก้ไขได้แบบออฟไลน์ 100%</string>
+<string name="banner_office_exporter_desc">แปลง PDF ของคุณเป็นไฟล์ Word, Excel หรือ PowerPoint ที่แก้ไขได้แบบออฟไลน์ 100%%</string>
 <string name="step_select_pdf">1. เลือกเอกสาร PDF</string>
 <string name="btn_choose_pdf_file">เลือกเอกสาร PDF</string>
 <string name="tap_to_change_file">แตะเพื่อเปลี่ยนไฟล์</string>
@@ -646,7 +646,7 @@
 <string name="menu_replace_image">แทนที่รูปภาพใน PDF</string>
 <string name="menu_replace_image_desc">สลับเปลี่ยนรูปภาพ โลโก้ หรือแผนภาพในไฟล์ PDF เดิม</string>
 <string name="banner_replace_image_title">แทนที่รูปภาพโดยตรง</string>
-<string name="banner_replace_image_desc">แทนที่รูปภาพใดๆ โดยคงขนาด เค้าโครง และรูปแบบเดิมไว้ครบถ้วน 100%</string>
+<string name="banner_replace_image_desc">แทนที่รูปภาพใดๆ โดยคงขนาด เค้าโครง และรูปแบบเดิมไว้ครบถ้วน 100%%</string>
 <string name="scanning_embedded_images">กำลังค้นหารูปภาพในไฟล์…</string>
 <string name="no_embedded_images_found">ไม่พบรูปภาพในไฟล์ PDF นี้</string>
 <string name="embedded_images_count">พบ %1$d รูปภาพในเอกสาร</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,15 +952,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">คำแถลงเจตนารมณ์ตลอดชีพ</string>
-    <string name="settings_manifesto_desc">คำสัญญาของเรา: อัปเดตฟรี 100% ไม่มีคลาวด์ สร้างขึ้นเพื่อผู้ใช้ทุกคน</string>
+    <string name="settings_manifesto_desc">คำสัญญาของเรา: อัปเดตฟรี 100%% ไม่มีคลาวด์ สร้างขึ้นเพื่อผู้ใช้ทุกคน</string>
     <string name="manifesto_dialog_title">คำแถลงเจตนารมณ์ตลอดชีพ</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">การรับประกัน 4 ประการที่ไม่เปลี่ยนแปลง:</string>
-    <string name="manifesto_g1_title">ฟรี 100% ตลอดไป</string>
+    <string name="manifesto_g1_title">ฟรี 100%% ตลอดไป</string>
     <string name="manifesto_g1_desc">ไม่มีระบบสมัครสมาชิก ไม่มีค่าใช้จ่ายแอบแฝง ไม่จำกัดจำนวนหน้า และไม่มีการใส่ลายน้ำกวนใจ</string>
-    <string name="manifesto_g2_title">ออฟไลน์ 100% และเป็นส่วนตัว</string>
-    <string name="manifesto_g2_desc">ไฟล์ทั้งหมดจะไม่หลุดออกจากคอมพิวเตอร์ของคุณเด็ดขาด ปราศจากการติดตาม ปลอดภัย 100% สำหรับเอกสารลับ</string>
+    <string name="manifesto_g2_title">ออฟไลน์ 100%% และเป็นส่วนตัว</string>
+    <string name="manifesto_g2_desc">ไฟล์ทั้งหมดจะไม่หลุดออกจากคอมพิวเตอร์ของคุณเด็ดขาด ปราศจากการติดตาม ปลอดภัย 100%% สำหรับเอกสารลับ</string>
     <string name="manifesto_g3_title">ไฟล์ต้นฉบับปลอดภัย</string>
     <string name="manifesto_g3_desc">เราจะไม่เขียนทับหรือทำลายไฟล์ต้นฉบับของคุณโดยไม่ได้รับการยืนยันอย่างชัดเจน</string>
     <string name="manifesto_g4_title">สร้างขึ้นเพื่อทุกคน</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

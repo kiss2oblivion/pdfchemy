@@ -315,7 +315,7 @@ object PdfManipulator {
         destUri: Uri,
         userPassword: String,
         ownerPassword: String = userPassword,
-        keyLength: Int = 128
+        keyLength: Int = 256
     ) = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
         try {

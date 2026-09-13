@@ -31,6 +31,11 @@ object PdfRepairEngine {
     ): Result<RepairDiagnostic> = withContext(Dispatchers.IO) {
         var inputStream: InputStream? = null
         try {
+            val fileSize = FileUtils.getFileSize(context, pdfUri)
+            if (fileSize > 100 * 1024 * 1024) {
+                return@withContext Result.failure(IllegalStateException("File is too large to repair (exceeds 100MB limit)"))
+            }
+
             inputStream = context.contentResolver.openInputStream(pdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 
@@ -103,6 +108,11 @@ object PdfRepairEngine {
         var document: PDDocument? = null
 
         try {
+            val fileSize = FileUtils.getFileSize(context, sourcePdfUri)
+            if (fileSize > 100 * 1024 * 1024) {
+                return@withContext Result.failure(IllegalStateException("File is too large to repair (exceeds 100MB limit)"))
+            }
+
             inputStream = context.contentResolver.openInputStream(sourcePdfUri)
                 ?: throw IllegalStateException("Cannot open input PDF")
 

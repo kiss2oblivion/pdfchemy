@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">파일 추가 (%1$d개 선택됨)</string>
 <string name="label_original_size_analyzing">원본 크기: %1$s (분석 중...)</string>
 <string name="label_original_size_to_compressed">원본 크기: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">목표: %1$.1f MB</string>
+<string name="label_target_mb_batch">목표: %%1$.1f MB</string>
 <string name="label_target_unknown">목표: 알 수 없음</string>
 <string name="label_analyzing">분석 중...</string>
 <string name="label_target_mb">목표: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">카메라 사진을 깔끔한 PDF로 만들거나 텍스트를 손쉽게 변환하세요.</string>
 <string name="onboarding_slide3_title">구성 및 병합</string>
 <string name="onboarding_slide3_desc">드래그 앤 드롭으로 여러 문서를 간편하게 합치고 정렬하세요.</string>
-<string name="onboarding_slide4_title">100% 안전한 완전 오프라인</string>
+<string name="onboarding_slide4_title">100%% 안전한 완전 오프라인</string>
 <string name="onboarding_slide4_desc">문서는 기기 내에만 머뭅니다. 클라우드 전송이 전혀 없어 안전합니다.</string>
 <string name="menu_compress_image">이미지 압축</string>
 <string name="menu_compress_image_desc">JPG, PNG, WebP 용량 줄이기</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">총 크기: %1$s</string>
 <string name="image_compress_options">압축 옵션</string>
 <string name="image_compress_quality">화질</string>
-<string name="preset_extreme">최대 압축 (40%)</string>
-<string name="preset_optimal">표준 최적화 (65%)</string>
-<string name="preset_crisp">고화질 (85%)</string>
-<string name="preset_max">최고 화질 (100%)</string>
+<string name="preset_extreme">최대 압축 (40%%)</string>
+<string name="preset_optimal">표준 최적화 (65%%)</string>
+<string name="preset_crisp">고화질 (85%%)</string>
+<string name="preset_max">최고 화질 (100%%)</string>
 <string name="image_output_format">출력 형식</string>
 <string name="image_max_resolution">최대 해상도</string>
-<string name="res_original">원본 (100%)</string>
+<string name="res_original">원본 (100%%)</string>
 <string name="image_strip_exif">EXIF 및 위치 정보 삭제</string>
 <string name="image_strip_exif_desc">GPS 및 카메라 메타데이터 삭제</string>
 <string name="image_btn_compress">이미지 압축</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">압축 후</string>
 <string name="image_batch_completed_title">일괄 압축 완료!</string>
 <string name="image_batch_completed_summary">%2$d개 중 %1$d개 이미지를 압축했습니다.\n원본: %3$s → 압축 후: %4$s (%5$d%% 절약).</string>
-<string name="mode_quality_slider">화질 슬라이더 (%)</string>
+<string name="mode_quality_slider">화질 슬라이더 (%%)</string>
 <string name="mode_target_size">목표 크기 (MB)</string>
 <string name="target_size_preset_title">목표 크기</string>
 <string name="target_custom">사용자 지정</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">잠금 해제된 PDF</string>
 <string name="history_pdf_to_images_folder">PDF 추출 이미지 폴더</string>
 <string name="protect_pdf_headline">비밀번호로 PDF 잠금</string>
-<string name="protect_pdf_subtitle">100% 온디바이스 AES 암호화. 비밀번호는 안전하게 처리됩니다.</string>
+<string name="protect_pdf_subtitle">100%% 온디바이스 AES 암호화. 비밀번호는 안전하게 처리됩니다.</string>
 <string name="select_pdf_to_protect">보호할 PDF 선택</string>
 <string name="enter_password_label">비밀번호 설정</string>
 <string name="confirm_password_label">비밀번호 확인</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR 및 검색 가능 PDF</string>
 <string name="menu_ocr_pdf_desc">스캔 문서와 이미지를 텍스트 검색 가능한 PDF로 변환</string>
 <string name="ocr_pdf_headline">스캔 PDF를 텍스트 검색 가능하게 변환</string>
-<string name="ocr_pdf_subtitle">100% 기기 내 텍스트 인식. 검색 가능한 투명 텍스트 레이어 생성.</string>
+<string name="ocr_pdf_subtitle">100%% 기기 내 텍스트 인식. 검색 가능한 투명 텍스트 레이어 생성.</string>
 <string name="select_pdf_for_ocr">PDF 문서 선택</string>
 <string name="ocr_processing_generic">텍스트 분석 및 인식 중…</string>
 <string name="ocr_processing_progress">OCR 처리 중: %1$d / %2$d 페이지…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Office 내보내기</string>
 <string name="banner_office_exporter_title">PDF를 Office로 내보내기</string>
-<string name="banner_office_exporter_desc">100% 오프라인으로 PDF를 편집 가능한 Word, Excel, PowerPoint 파일로 변환합니다.</string>
+<string name="banner_office_exporter_desc">100%% 오프라인으로 PDF를 편집 가능한 Word, Excel, PowerPoint 파일로 변환합니다.</string>
 <string name="step_select_pdf">1. PDF 문서 선택</string>
 <string name="btn_choose_pdf_file">PDF 문서 선택</string>
 <string name="tap_to_change_file">다른 파일 선택하려면 탭</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,15 +952,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">평생 선언문</string>
-    <string name="settings_manifesto_desc">우리의 약속: 100% 무료 업데이트, 클라우드 없음, 사람들을 위해 제작.</string>
+    <string name="settings_manifesto_desc">우리의 약속: 100%% 무료 업데이트, 클라우드 없음, 사람들을 위해 제작.</string>
     <string name="manifesto_dialog_title">평생 선언문</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">4가지 불변의 보증:</string>
-    <string name="manifesto_g1_title">영구 100% 무료</string>
+    <string name="manifesto_g1_title">영구 100%% 무료</string>
     <string name="manifesto_g1_desc">구독 없음, 유료 결제 유도 없음, 인위적인 페이지 제한 없음, 워터마크 없음.</string>
-    <string name="manifesto_g2_title">100% 오프라인 및 개인 정보 보호</string>
-    <string name="manifesto_g2_desc">어떤 파일도 이 컴퓨터를 벗어나지 않습니다. 원격 측정 없음. 기밀 문서에 100% 안전.</string>
+    <string name="manifesto_g2_title">100%% 오프라인 및 개인 정보 보호</string>
+    <string name="manifesto_g2_desc">어떤 파일도 이 컴퓨터를 벗어나지 않습니다. 원격 측정 없음. 기밀 문서에 100%% 안전.</string>
     <string name="manifesto_g3_title">원본 안전 보장</string>
     <string name="manifesto_g3_desc">명시적인 확인 없이 원본 파일을 덮어쓰거나 훼손하지 않습니다.</string>
     <string name="manifesto_g4_title">사용자를 위한 앱</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

@@ -16,7 +16,6 @@ import java.util.UUID
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-
 object PdfToEpubEngine {
 
     /**
@@ -269,7 +268,7 @@ $ncxNavPoints
             var opfPath = "OEBPS/content.opf"
             val containerEntry = zip.getEntry("META-INF/container.xml")
             if (containerEntry != null) {
-                val containerText = zip.getInputStream(containerEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val containerText = readZipEntrySafely(zip, containerEntry)
                 val rootfileRegex = Regex("""full-path\s*=\s*["']([^"']+)["']""")
                 val match = rootfileRegex.find(containerText)
                 if (match != null) {
@@ -280,7 +279,7 @@ $ncxNavPoints
             // 2. Read OPF
             val opfEntry = zip.getEntry(opfPath) ?: throw IllegalStateException("EPUB metadata (content.opf) not found")
             val opfDir = if (opfPath.contains('/')) opfPath.substringBeforeLast('/') + "/" else ""
-            val opfText = zip.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val opfText = readZipEntrySafely(zip, opfEntry)
 
             // Extract Title
             val titleMatch = Regex("""<dc:title[^>]*>([^<]+)</dc:title>""", RegexOption.IGNORE_CASE).find(opfText)
@@ -334,7 +333,7 @@ $ncxNavPoints
             for ((chapIdx, path) in spineItems.withIndex()) {
                 onProgress(chapIdx + 1, totalChapters)
                 val entry = zip.getEntry(path) ?: continue
-                val html = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val html = readZipEntrySafely(zip, entry)
                 val text = cleanHtmlToPlainText(html)
                 if (text.isNotBlank()) {
                     allParagraphs.addAll(text.split("\n\n").filter { it.isNotBlank() })
@@ -407,6 +406,22 @@ $ncxNavPoints
             try { zip?.close() } catch (_: Throwable) {}
             try { document.close() } catch (_: Exception) {}
             tempFile?.delete()
+        }
+    }
+
+    private fun readZipEntrySafely(zip: java.util.zip.ZipFile, entry: java.util.zip.ZipEntry, maxChars: Int = 2_000_000): String {
+        return zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { reader ->
+            val buffer = CharArray(8192)
+            val sb = java.lang.StringBuilder()
+            var read: Int
+            while (reader.read(buffer).also { read = it } != -1) {
+                sb.append(buffer, 0, read)
+                if (sb.length > maxChars) {
+                    AppLogger.w("PdfToEpubEngine: Entry ${entry.name} exceeded size limit ($maxChars chars)")
+                    break
+                }
+            }
+            sb.toString()
         }
     }
 

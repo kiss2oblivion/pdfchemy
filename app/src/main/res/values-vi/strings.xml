@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">Thêm tệp (Đã chọn %1$d)</string>
 <string name="label_original_size_analyzing">Kích thước gốc: %1$s (Đang phân tích...)</string>
 <string name="label_original_size_to_compressed">Kích thước gốc: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">Mục tiêu: %1$.1f MB</string>
+<string name="label_target_mb_batch">Mục tiêu: %%1$.1f MB</string>
 <string name="label_target_unknown">Mục tiêu: Chưa xác định</string>
 <string name="label_analyzing">Đang phân tích...</string>
 <string name="label_target_mb">Mục tiêu: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">Biến ảnh chụp và văn bản thô thành tài liệu PDF đẹp mắt.</string>
 <string name="onboarding_slide3_title">Sắp xếp &amp; Gộp</string>
 <string name="onboarding_slide3_desc">Kết hợp nhiều tệp và đổi thứ tự trang bằng thao tác kéo thả.</string>
-<string name="onboarding_slide4_title">100% Riêng tư &amp; Ngoại tuyến</string>
+<string name="onboarding_slide4_title">100%% Riêng tư &amp; Ngoại tuyến</string>
 <string name="onboarding_slide4_desc">Tài liệu lưu trên máy bạn. Hoàn toàn không tải lên đám mây.</string>
 <string name="menu_compress_image">Nén hình ảnh</string>
 <string name="menu_compress_image_desc">Giảm dung lượng JPG, PNG, WebP</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">Tổng dung lượng: %1$s</string>
 <string name="image_compress_options">Tùy chọn nén ảnh</string>
 <string name="image_compress_quality">Chất lượng hình ảnh</string>
-<string name="preset_extreme">Nén tối đa (40%)</string>
-<string name="preset_optimal">Cân đối (65%)</string>
-<string name="preset_crisp">Sắc nét (85%)</string>
-<string name="preset_max">Chất lượng cao nhất (100%)</string>
+<string name="preset_extreme">Nén tối đa (40%%)</string>
+<string name="preset_optimal">Cân đối (65%%)</string>
+<string name="preset_crisp">Sắc nét (85%%)</string>
+<string name="preset_max">Chất lượng cao nhất (100%%)</string>
 <string name="image_output_format">Định dạng xuất</string>
 <string name="image_max_resolution">Độ phân giải tối đa</string>
-<string name="res_original">Gốc (100%)</string>
+<string name="res_original">Gốc (100%%)</string>
 <string name="image_strip_exif">Xóa EXIF &amp; Vị trí</string>
 <string name="image_strip_exif_desc">Xóa tọa độ GPS và thông số máy ảnh</string>
 <string name="image_btn_compress">Nén hình ảnh</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">Sau khi nén</string>
 <string name="image_batch_completed_title">Nén hàng loạt hoàn tất!</string>
 <string name="image_batch_completed_summary">Đã nén thành công %1$d / %2$d ảnh.\nGốc: %3$s → Sau khi nén: %4$s (Tiết kiệm %5$d%%).</string>
-<string name="mode_quality_slider">Thanh trượt chất lượng (%)</string>
+<string name="mode_quality_slider">Thanh trượt chất lượng (%%)</string>
 <string name="mode_target_size">Dung lượng mục tiêu (MB)</string>
 <string name="target_size_preset_title">Dung lượng mục tiêu</string>
 <string name="target_custom">Tùy chỉnh</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">PDF đã mở khóa</string>
 <string name="history_pdf_to_images_folder">Thư mục ảnh từ PDF</string>
 <string name="protect_pdf_headline">Khóa PDF bằng mật khẩu</string>
-<string name="protect_pdf_subtitle">Mã hóa AES 100% trên thiết bị. Mật khẩu không bao giờ được tải lên mạng.</string>
+<string name="protect_pdf_subtitle">Mã hóa AES 100%% trên thiết bị. Mật khẩu không bao giờ được tải lên mạng.</string>
 <string name="select_pdf_to_protect">Chọn PDF cần bảo vệ</string>
 <string name="enter_password_label">Đặt mật khẩu</string>
 <string name="confirm_password_label">Xác nhận mật khẩu</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR &amp; Tạo PDF tìm kiếm được</string>
 <string name="menu_ocr_pdf_desc">Biến tài liệu quét và hình ảnh thành PDF có thể tìm kiếm chữ</string>
 <string name="ocr_pdf_headline">Tạo PDF tìm kiếm văn bản từ bản quét</string>
-<string name="ocr_pdf_subtitle">Nhận dạng chữ 100% trên máy. Tạo lớp văn bản để tìm kiếm và bôi đen sao chép.</string>
+<string name="ocr_pdf_subtitle">Nhận dạng chữ 100%% trên máy. Tạo lớp văn bản để tìm kiếm và bôi đen sao chép.</string>
 <string name="select_pdf_for_ocr">Chọn tài liệu PDF</string>
 <string name="ocr_processing_generic">Đang phân tích và nhận dạng chữ…</string>
 <string name="ocr_processing_progress">Đang xử lý OCR: Trang %1$d / %2$d…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Bộ xuất Office</string>
 <string name="banner_office_exporter_title">Xuất PDF sang Office</string>
-<string name="banner_office_exporter_desc">Chuyển đổi PDF của bạn thành tệp Word, Excel hoặc PowerPoint có thể chỉnh sửa 100% ngoại tuyến.</string>
+<string name="banner_office_exporter_desc">Chuyển đổi PDF của bạn thành tệp Word, Excel hoặc PowerPoint có thể chỉnh sửa 100%% ngoại tuyến.</string>
 <string name="step_select_pdf">1. Chọn tài liệu PDF</string>
 <string name="btn_choose_pdf_file">Chọn tài liệu PDF</string>
 <string name="tap_to_change_file">Chạm để chọn tệp khác</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,14 +952,14 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">Tuyên ngôn Trọn đời</string>
-    <string name="settings_manifesto_desc">Cam kết của chúng tôi: cập nhật 100% miễn phí, không đám mây, vì cộng đồng.</string>
+    <string name="settings_manifesto_desc">Cam kết của chúng tôi: cập nhật 100%% miễn phí, không đám mây, vì cộng đồng.</string>
     <string name="manifesto_dialog_title">Tuyên ngôn Trọn đời</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">4 Cam kết Bất di bất dịch:</string>
-    <string name="manifesto_g1_title">100% Miễn phí Vĩnh viễn</string>
+    <string name="manifesto_g1_title">100%% Miễn phí Vĩnh viễn</string>
     <string name="manifesto_g1_desc">Không thuê bao, không thu phí, không giới hạn trang vô lý và không chèn hình mờ.</string>
-    <string name="manifesto_g2_title">100% Ngoại tuyến &amp; Riêng tư</string>
+    <string name="manifesto_g2_title">100%% Ngoại tuyến &amp; Riêng tư</string>
     <string name="manifesto_g2_desc">Tệp không bao giờ rời khỏi máy tính này. Không theo dõi. An toàn tuyệt đối cho tài liệu mật.</string>
     <string name="manifesto_g3_title">Bảo vệ tệp gốc an toàn</string>
     <string name="manifesto_g3_desc">Chúng tôi không bao giờ ghi đè hoặc làm hỏng tệp nguồn nếu không có sự xác nhận rõ ràng.</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

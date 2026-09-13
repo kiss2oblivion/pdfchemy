@@ -47,8 +47,9 @@ object SignatureEngine {
 
     suspend fun saveSignature(context: Context, name: String, bitmap: Bitmap): Boolean = withContext(Dispatchers.IO) {
         try {
+            val sanitizedName = name.replace(Regex("[^a-zA-Z0-9_\\-]"), "_")
             val dir = getSignaturesDir(context)
-            val file = File(dir, "${name}.png")
+            val file = File(dir, "${sanitizedName}.png")
             FileOutputStream(file).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
@@ -78,8 +79,9 @@ object SignatureEngine {
 
     suspend fun deleteSignature(context: Context, name: String): Boolean = withContext(Dispatchers.IO) {
         try {
+            val sanitizedName = name.replace(Regex("[^a-zA-Z0-9_\\-]"), "_")
             val dir = getSignaturesDir(context)
-            val file = File(dir, "${name}.png")
+            val file = File(dir, "${sanitizedName}.png")
             if (file.exists()) file.delete() else false
         } catch (e: Exception) {
             AppLogger.e("Failed to delete signature: ${e.message}", e)

@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">ファイルを追加 (%1$d 件選択中)</string>
 <string name="label_original_size_analyzing">元のサイズ: %1$s (解析中...)</string>
 <string name="label_original_size_to_compressed">元のサイズ: %1$s  →  %2$s</string>
-<string name="label_target_mb_batch">目標: %1$.1f MB</string>
+<string name="label_target_mb_batch">目標: %%1$.1f MB</string>
 <string name="label_target_unknown">目標: 未設定</string>
 <string name="label_analyzing">解析中...</string>
 <string name="label_target_mb">目標: %1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">カメラ写真や画像を瞬時にきれいなPDFに変換。</string>
 <string name="onboarding_slide3_title">整理＆結合</string>
 <string name="onboarding_slide3_desc">ドラッグ＆ドロップで複数書類をかんたん結合・並べ替え。</string>
-<string name="onboarding_slide4_title">100% 安全・完全オフライン</string>
+<string name="onboarding_slide4_title">100%% 安全・完全オフライン</string>
 <string name="onboarding_slide4_desc">ファイルはすべて端末内で処理。クラウド送信ゼロで安心。</string>
 <string name="menu_compress_image">画像を圧縮</string>
 <string name="menu_compress_image_desc">JPG、PNG、WebPを縮小</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">合計サイズ: %1$s</string>
 <string name="image_compress_options">圧縮オプション</string>
 <string name="image_compress_quality">画質</string>
-<string name="preset_extreme">最大圧縮 (40%)</string>
-<string name="preset_optimal">標準最適化 (65%)</string>
-<string name="preset_crisp">高画質 (85%)</string>
-<string name="preset_max">最高画質 (100%)</string>
+<string name="preset_extreme">最大圧縮 (40%%)</string>
+<string name="preset_optimal">標準最適化 (65%%)</string>
+<string name="preset_crisp">高画質 (85%%)</string>
+<string name="preset_max">最高画質 (100%%)</string>
 <string name="image_output_format">出力形式</string>
 <string name="image_max_resolution">最大解像度</string>
-<string name="res_original">原本 (100%)</string>
+<string name="res_original">原本 (100%%)</string>
 <string name="image_strip_exif">EXIF・位置情報を消去</string>
 <string name="image_strip_exif_desc">GPSや撮影機材情報を削除</string>
 <string name="image_btn_compress">画像を圧縮</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">圧縮後</string>
 <string name="image_batch_completed_title">一括圧縮完了！</string>
 <string name="image_batch_completed_summary">%2$d 枚中 %1$d 枚の画像を圧縮しました。\n原本: %3$s → 圧縮後: %4$s (%5$d%% 節約)。</string>
-<string name="mode_quality_slider">画質スライダー (%)</string>
+<string name="mode_quality_slider">画質スライダー (%%)</string>
 <string name="mode_target_size">目標サイズ (MB)</string>
 <string name="target_size_preset_title">目標サイズ</string>
 <string name="target_custom">カスタム</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,7 +952,7 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">生涯マニフェスト</string>
-    <string name="settings_manifesto_desc">私たちの約束: 100%無料アップデート、クラウドなし、人々のためのツール。</string>
+    <string name="settings_manifesto_desc">私たちの約束: 100%%無料アップデート、クラウドなし、人々のためのツール。</string>
     <string name="manifesto_dialog_title">生涯マニフェスト</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
@@ -960,7 +960,7 @@
     <string name="manifesto_g1_title">永久に完全無料</string>
     <string name="manifesto_g1_desc">サブスクなし、課金なし、不条理なページ制限なし、透かしロゴの強制挿入も一切なし。</string>
     <string name="manifesto_g2_title">完全オフライン＆高水準のプライバシー</string>
-    <string name="manifesto_g2_desc">ファイルがPC外へ送信されることは一切ありません。追跡ゼロ。機密文書の取り扱いも100%安全。</string>
+    <string name="manifesto_g2_desc">ファイルがPC外へ送信されることは一切ありません。追跡ゼロ。機密文書の取り扱いも100%%安全。</string>
     <string name="manifesto_g3_title">オリジナルファイルの安全保護</string>
     <string name="manifesto_g3_desc">明確な確認なしにお客様の元ファイルを上書きまたは破壊することは絶対にありません。</string>
     <string name="manifesto_g4_title">ユーザーのための開発</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>

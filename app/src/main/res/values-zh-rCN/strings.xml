@@ -267,7 +267,7 @@
 <string name="btn_add_more_files">添加更多文件 (已选 %1$d 个)</string>
 <string name="label_original_size_analyzing">原始大小：%1$s (正在分析...)</string>
 <string name="label_original_size_to_compressed">原始：%1$s  →  %2$s</string>
-<string name="label_target_mb_batch">目标：%1$.1f MB</string>
+<string name="label_target_mb_batch">目标：%%1$.1f MB</string>
 <string name="label_target_unknown">目标：未设定</string>
 <string name="label_analyzing">正在分析...</string>
 <string name="label_target_mb">目标：%1$s MB</string>
@@ -362,7 +362,7 @@
 <string name="onboarding_slide2_desc">将相机拍摄的照片或文字瞬间转换为高质量 PDF 文档。</string>
 <string name="onboarding_slide3_title">整理与合并</string>
 <string name="onboarding_slide3_desc">通过直观的拖拽操作合并多份文件、提取或重排页面。</string>
-<string name="onboarding_slide4_title">100% 隐私与纯离线</string>
+<string name="onboarding_slide4_title">100%% 隐私与纯离线</string>
 <string name="onboarding_slide4_desc">您的所有文档完全留在设备上，零云端上传，零隐私泄露。</string>
 <string name="menu_compress_image">压缩图片</string>
 <string name="menu_compress_image_desc">缩减 JPG、PNG、WebP 大小</string>
@@ -379,13 +379,13 @@
 <string name="image_batch_total_size">总大小：%1$s</string>
 <string name="image_compress_options">图片压缩选项</string>
 <string name="image_compress_quality">画质质量</string>
-<string name="preset_extreme">极限体积 (40%)</string>
-<string name="preset_optimal">标准优化 (65%)</string>
-<string name="preset_crisp">清晰高质 (85%)</string>
-<string name="preset_max">最高品质 (100%)</string>
+<string name="preset_extreme">极限体积 (40%%)</string>
+<string name="preset_optimal">标准优化 (65%%)</string>
+<string name="preset_crisp">清晰高质 (85%%)</string>
+<string name="preset_max">最高品质 (100%%)</string>
 <string name="image_output_format">输出格式</string>
 <string name="image_max_resolution">最大分辨率</string>
-<string name="res_original">原始尺寸 (100%)</string>
+<string name="res_original">原始尺寸 (100%%)</string>
 <string name="image_strip_exif">清除 EXIF 与位置信息</string>
 <string name="image_strip_exif_desc">移除 GPS 坐标与相机拍摄参数</string>
 <string name="image_btn_compress">压缩图片</string>
@@ -396,7 +396,7 @@
 <string name="label_compressed">压缩后</string>
 <string name="image_batch_completed_title">批量压缩已完成！</string>
 <string name="image_batch_completed_summary">成功压缩 %1$d / %2$d 张图片。\n原始：%3$s → 压缩后：%4$s (节省了 %5$d%%)。</string>
-<string name="mode_quality_slider">画质滑块 (%)</string>
+<string name="mode_quality_slider">画质滑块 (%%)</string>
 <string name="mode_target_size">目标大小 (MB)</string>
 <string name="target_size_preset_title">目标大小</string>
 <string name="target_custom">自定义</string>
@@ -442,7 +442,7 @@
 <string name="history_unlocked_pdf">已解密 PDF</string>
 <string name="history_pdf_to_images_folder">PDF 导出图片文件夹</string>
 <string name="protect_pdf_headline">使用密码锁定 PDF</string>
-<string name="protect_pdf_subtitle">100% 离线 AES 硬件级加密。密码绝不上传网络。</string>
+<string name="protect_pdf_subtitle">100%% 离线 AES 硬件级加密。密码绝不上传网络。</string>
 <string name="select_pdf_to_protect">选择要加密的 PDF</string>
 <string name="enter_password_label">设置密码</string>
 <string name="confirm_password_label">确认密码</string>
@@ -484,7 +484,7 @@
 <string name="menu_ocr_pdf">OCR 与可搜索 PDF</string>
 <string name="menu_ocr_pdf_desc">将扫描文档和图片转换为支持文字搜索与选择的 PDF</string>
 <string name="ocr_pdf_headline">让扫描 PDF 支持全文搜索</string>
-<string name="ocr_pdf_subtitle">100% 离线文字识别。为文件嵌入隐形文本层以支持划词和搜索。</string>
+<string name="ocr_pdf_subtitle">100%% 离线文字识别。为文件嵌入隐形文本层以支持划词和搜索。</string>
 <string name="select_pdf_for_ocr">选择 PDF 文档</string>
 <string name="ocr_processing_generic">正在分析并识别文字…</string>
 <string name="ocr_processing_progress">OCR 识别中：第 %1$d / %2$d 页…</string>
@@ -622,7 +622,7 @@
     <!-- Office Exporter Strings -->
 <string name="title_office_exporter">Office 导出工具</string>
 <string name="banner_office_exporter_title">导出 PDF 至 Office</string>
-<string name="banner_office_exporter_desc">100% 离线将 PDF 转换为可编辑的 Word、Excel 或 PowerPoint 文件。</string>
+<string name="banner_office_exporter_desc">100%% 离线将 PDF 转换为可编辑的 Word、Excel 或 PowerPoint 文件。</string>
 <string name="step_select_pdf">1. 选择 PDF 文档</string>
 <string name="btn_choose_pdf_file">选择 PDF 文档</string>
 <string name="tap_to_change_file">点击选择其他文件</string>
@@ -646,7 +646,7 @@
 <string name="menu_replace_image">替换嵌入图片</string>
 <string name="menu_replace_image_desc">直接替换已有PDF内部的照片、标志或图表</string>
 <string name="banner_replace_image_title">直接图片替换</string>
-<string name="banner_replace_image_desc">替换任何嵌入图片，同时100%保留原始排版、尺寸和样式。</string>
+<string name="banner_replace_image_desc">替换任何嵌入图片，同时100%%保留原始排版、尺寸和样式。</string>
 <string name="scanning_embedded_images">正在扫描嵌入图片…</string>
 <string name="no_embedded_images_found">此PDF中未找到嵌入图片。</string>
 <string name="embedded_images_count">找到 %1$d 张嵌入图片</string>
@@ -928,7 +928,7 @@
 <string name="pdfa_headline">PDF/A Archival Compliance</string>
 <string name="pdfa_subtitle">Audit fonts, OutputIntents, and metadata for ISO standards</string>
 <string name="select_pdf_for_pdfa">Select PDF to Validate</string>
-<string name="status_archival_ready">Archival Ready (100% Compliant)</string>
+<string name="status_archival_ready">Archival Ready (100%% Compliant)</string>
 <string name="status_compliance_issues_found">Non-Compliant (Issues Detected)</string>
 <string name="menu_font_inspector">Typography &amp; Font Inspector</string>
 <string name="menu_font_inspector_desc">Inspect embedded fonts, subtypes, and encodings</string>
@@ -952,15 +952,15 @@
 
     <!-- The Lifetime Manifesto -->
     <string name="settings_manifesto_title">终身维护宣言</string>
-    <string name="settings_manifesto_desc">我们的承诺：100%永久免费更新，零云端上传，为用户而生。</string>
+    <string name="settings_manifesto_desc">我们的承诺：100%%永久免费更新，零云端上传，为用户而生。</string>
     <string name="manifesto_dialog_title">终身维护宣言</string>
     <string name="manifesto_quote">\</string>
     <string name="manifesto_author">— Andrei Ioan Cucoș (John), Developer</string>
     <string name="manifesto_guarantees_title">我们的4项坚实承诺：</string>
-    <string name="manifesto_g1_title">永久 100% 免费</string>
+    <string name="manifesto_g1_title">永久 100%% 免费</string>
     <string name="manifesto_g1_desc">零订阅、零付费墙、零人为文件限制、绝无水印破坏。</string>
-    <string name="manifesto_g2_title">100% 离线与私密</string>
-    <string name="manifesto_g2_desc">文件绝不离开此计算机。零分析与遥测。绝密与商业文档 100% 安全。</string>
+    <string name="manifesto_g2_title">100%% 离线与私密</string>
+    <string name="manifesto_g2_desc">文件绝不离开此计算机。零分析与遥测。绝密与商业文档 100%% 安全。</string>
     <string name="manifesto_g3_title">保障源文件安全</string>
     <string name="manifesto_g3_desc">未经明确确认，我们绝不会覆盖或破坏您的原始文件。</string>
     <string name="manifesto_g4_title">为大众而生</string>
@@ -978,7 +978,7 @@
     <string name="menu_deskew">Auto-Deskew &amp; Straighten</string>
     <string name="menu_deskew_desc">Correct crooked scans and align rotated pages losslessly</string>
     <string name="deskew_title">Auto-Deskew &amp; Angle Straightener</string>
-    <string name="deskew_detected_angle">Detected Tilt: %1$.1f°</string>
+    <string name="deskew_detected_angle">Detected Tilt: %%1$.1f°</string>
     <string name="deskew_action_straighten">Straighten &amp; Save</string>
     <string name="deskew_success">Document Straightened Successfully!</string>
     <string name="deskew_success_desc">Pages have been rotated and aligned.</string>
@@ -1028,7 +1028,7 @@
     <string name="tts_play">Read Aloud</string>
     <string name="tts_pause">Pause</string>
     <string name="tts_stop">Stop</string>
-    <string name="tts_speed">Speed: %1$.2fx</string>
+    <string name="tts_speed">Speed: %%1$.2fx</string>
     <string name="tts_prev_paragraph">Previous</string>
     <string name="tts_next_paragraph">Next</string>
     <string name="tts_not_supported">Text-to-speech is not supported or language data is missing.</string>
