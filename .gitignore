@@ -13,3 +13,66 @@
 local.properties
 *.hprof
 .agents/
+
+# Compiled binaries & object files (C++, Java)
+*.exe
+*.obj
+*.class
+
+# JVM crash dumps & replay logs
+hs_err_pid*.log
+desktop/hs_err_pid*.log
+replay_pid*.log
+desktop/replay_pid*.log
+
+# Scratch C++ experiments (Phase 14 sandbox dev)
+/c.cpp
+/scratch.cpp
+/print_args.cpp
+/show_cmdline.cpp
+/sid_test.cpp
+/vol_test.cpp
+/test_ac*.cpp
+/test_args.cpp
+/test_cp*.cpp
+/test_str.cpp
+/test_user32.cpp
+desktop/test_lpac.cpp
+
+# Scratch Java/Python/batch files
+/Main.java
+/Main2.java
+/dummy_java.bat
+/dummy_java.py
+/fix_jail.py
+/test_java_len.py
+/test.bat
+
+# Scratch directory
+/scratch/
+
+# Development logs & debug output
+/arkham-launcher.log
+/arkham-launcher.obj
+/bates_log*.txt
+/new_bates_log.txt
+/hostsurvival.log
+/launcher_args.txt
+/test_output.txt
+/test05_output.txt
+/test_all*.txt
+/test.txt
+desktop/debug_test.log
+desktop/worker_stderr.log
+desktop/worker_thread_dump.txt
+
+# Compiled launcher binaries (source is tracked, binaries are not)
+desktop/src/main/cpp/*.exe
+desktop/src/main/cpp/*.obj
+
+# Scratch hello stub
+desktop/src/main/cpp/hello.cpp
+
+# Abandoned Kotlin/Native launcher experiment
+/arkham-launcher/
+/test_lpac.obj

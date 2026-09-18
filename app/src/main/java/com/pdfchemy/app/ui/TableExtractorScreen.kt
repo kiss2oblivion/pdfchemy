@@ -153,7 +153,8 @@ fun TableExtractorScreen(
                         IconButton(onClick = {
                             scope.launch {
                                 try {
-                                    val tempFile = File(context.cacheDir, "extracted_tables_${System.currentTimeMillis()}.csv")
+                                    val exportsDir = File(context.cacheDir, "exports").apply { mkdirs() }
+                                    val tempFile = File(exportsDir, "extracted_tables_${System.currentTimeMillis()}.csv")
                                     FileOutputStream(tempFile).use { it.write(extractedCsv.toByteArray(Charsets.UTF_8)) }
                                     val contentUri = androidx.core.content.FileProvider.getUriForFile(
                                         context,

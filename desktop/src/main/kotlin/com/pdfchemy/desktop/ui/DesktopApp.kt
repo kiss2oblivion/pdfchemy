@@ -61,6 +61,7 @@ import com.pdfchemy.desktop.engine.DesktopPdfEngine
 import com.pdfchemy.desktop.engine.DesktopPdfMetadata
 import com.pdfchemy.desktop.engine.DesktopUpdateManager
 import com.pdfchemy.desktop.engine.PageItemSpec
+import com.pdfchemy.desktop.engine.PageDimension
 import com.pdfchemy.desktop.engine.ReleaseInfo
 import com.pdfchemy.desktop.engine.AcroFieldType
 import com.pdfchemy.desktop.engine.DesktopAcroField
@@ -4907,7 +4908,7 @@ private fun ConvertView(file: File?, onFileChange: (File) -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(if (isExtractingCsv) "Detecting & Extracting Tables..." else "Extract Tables to CSV", fontWeight = FontWeight.Bold)
                 }
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp)) {
                     Checkbox(
                         checked = isSpreadsheetSafeCsv,
@@ -5719,7 +5720,7 @@ private fun ReaderView(
 ) {
     val strings = DesktopLocalization.strings
     var pageCount by remember(file) { mutableIntStateOf(0) }
-    var pageDimensions by remember(file) { mutableStateOf<List<DesktopPdfEngine.PageDimension>>(emptyList()) }
+    var pageDimensions by remember(file) { mutableStateOf<List<PageDimension>>(emptyList()) }
     var currentPageIndex by remember(file) { mutableIntStateOf(initialPageIndex ?: 0) }
     var viewMode by remember { mutableStateOf(if (file?.name?.lowercase()?.endsWith(".epub") == true) ReaderViewMode.REFLOW_TEXT else ReaderViewMode.CONTINUOUS) }
     var themePalette by remember { mutableStateOf(ReaderThemePalette.DARK) }
@@ -6576,7 +6577,7 @@ private fun ReaderView(
                                     items(pageCount) { pIdx ->
                                         val isSelected = pIdx == currentPageIndex
                                         val thumb = thumbnails[pIdx]
-                                        val dim = pageDimensions.getOrNull(pIdx) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                        val dim = pageDimensions.getOrNull(pIdx) ?: PageDimension(595f, 842f)
                                         val effRot = getEffectivePageRotation(pIdx)
                                         val aspect = if (effRot % 180 == 0) dim.aspectRatio else (1f / dim.aspectRatio.coerceAtLeast(0.1f))
 
@@ -6799,7 +6800,7 @@ private fun ReaderView(
                                 verticalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
                                 items(pageCount) { idx ->
-                                    val dim = pageDimensions.getOrNull(idx) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                    val dim = pageDimensions.getOrNull(idx) ?: PageDimension(595f, 842f)
                                     val effRot = getEffectivePageRotation(idx)
                                     val baseAspect = dim.aspectRatio
                                     val effectiveAspect = if (effRot % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
@@ -6862,7 +6863,7 @@ private fun ReaderView(
 
                         // MODE B: SINGLE PAGE FOCUSED
                         ReaderViewMode.SINGLE_PAGE -> {
-                            val dim = pageDimensions.getOrNull(currentPageIndex) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                            val dim = pageDimensions.getOrNull(currentPageIndex) ?: PageDimension(595f, 842f)
                             val effRot = getEffectivePageRotation(currentPageIndex)
                             val baseAspect = dim.aspectRatio
                             val effectiveAspect = if (effRot % 180 == 0) baseAspect else (1f / baseAspect.coerceAtLeast(0.1f))
@@ -6956,7 +6957,7 @@ private fun ReaderView(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Left page
-                                    val leftDim = pageDimensions.getOrNull(leftPage) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                    val leftDim = pageDimensions.getOrNull(leftPage) ?: PageDimension(595f, 842f)
                                     val leftAspect = if (leftRot % 180 == 0) leftDim.aspectRatio else (1f / leftDim.aspectRatio.coerceAtLeast(0.1f))
                                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                                         Surface(
@@ -6989,7 +6990,7 @@ private fun ReaderView(
 
                                     // Right page
                                     if (rightPage < pageCount) {
-                                        val rightDim = pageDimensions.getOrNull(rightPage) ?: DesktopPdfEngine.PageDimension(595f, 842f)
+                                        val rightDim = pageDimensions.getOrNull(rightPage) ?: PageDimension(595f, 842f)
                                         val rightAspect = if (rightRot % 180 == 0) rightDim.aspectRatio else (1f / rightDim.aspectRatio.coerceAtLeast(0.1f))
                                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                                             Surface(
@@ -7161,7 +7162,7 @@ private fun SecurityView(file: File?, onFileChange: (File) -> Unit) {
     var redactQuery by remember { mutableStateOf("") }
     var overlayText by remember { mutableStateOf("REDACTED") }
     var forensicSanitize by remember { mutableStateOf(true) }
-    
+
     // Smart PII Redact State
     var smartRedactPatterns by remember { mutableStateOf<Set<RedactPattern>>(emptySet()) }
 
@@ -8718,6 +8719,7 @@ private fun UpdateAvailableDialog(
 
     fun startAutomatedInstall() {
         val asset = bestAsset ?: return
+
         isUpdating = true
         isCancelled = false
         updateStage = "DOWNLOADING"
@@ -8727,8 +8729,8 @@ private fun UpdateAvailableDialog(
         progressBytesTotal = asset.size
 
         scope.launch {
-            // 1. Download asset to isolated secure temporary file
-            val downloadResult = DesktopUpdateManager.downloadAssetFile(
+            val verifyResult = DesktopUpdateManager.secureDownloadAndVerify(
+                release = release,
                 asset = asset,
                 onProgress = { downloaded, total ->
                     progressBytesDownloaded = downloaded
@@ -8740,7 +8742,7 @@ private fun UpdateAvailableDialog(
                 isCancelled = { isCancelled }
             )
 
-            val downloadedFile = downloadResult.getOrElse { err ->
+            val finalFile = verifyResult.getOrElse { err ->
                 withContext(Dispatchers.Main) {
                     isUpdating = false
                     updateStage = "ERROR"
@@ -8749,37 +8751,10 @@ private fun UpdateAvailableDialog(
                 return@launch
             }
 
-            // 2. Cryptographic SHA-256 integrity verification
-            updateStage = "VERIFYING"
-            var verified = false
-
-            if (!release.sha256SumsUrl.isNullOrBlank()) {
-                val checksumMapRes = DesktopUpdateManager.fetchSha256Checksums(release.sha256SumsUrl)
-                val checksumMap = checksumMapRes.getOrNull()
-                val expectedHash = checksumMap?.get(asset.name)
-                if (expectedHash != null) {
-                    verified = DesktopUpdateManager.verifyFileSha256(downloadedFile, expectedHash)
-                } else {
-                    // Fallback: If filename not in SHA256SUMS.txt, verify file is not empty
-                    verified = downloadedFile.exists() && downloadedFile.length() > 0
-                }
-            } else {
-                verified = downloadedFile.exists() && downloadedFile.length() > 0
-            }
-
-            if (!verified) {
-                withContext(Dispatchers.Main) {
-                    isUpdating = false
-                    updateStage = "ERROR"
-                    errorMessage = strings.updateChecksumMismatch
-                }
-                return@launch
-            }
-
-            // 3. Launch installer securely and cleanly terminate running application
+            // 4. Launch installer securely and cleanly terminate running application
             updateStage = "LAUNCHING"
             withContext(Dispatchers.Main) {
-                val launchResult = DesktopUpdateManager.launchInstaller(downloadedFile)
+                val launchResult = DesktopUpdateManager.launchInstaller(finalFile)
                 if (launchResult.isSuccess) {
                     // Safe termination of current JVM to allow installer to replace binaries
                     kotlin.system.exitProcess(0)
