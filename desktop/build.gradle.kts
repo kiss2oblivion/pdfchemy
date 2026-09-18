@@ -31,6 +31,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
+    
+    // JSON Parsing for Update Manifests
+    implementation("com.google.code.gson:gson:2.14.0")
 
     testImplementation("junit:junit:4.13.2")
 }
@@ -53,7 +56,7 @@ compose.desktop {
                 TargetFormat.Rpm
             )
             packageName = "PDFchemy"
-            packageVersion = "1.0.5"
+            packageVersion = "1.0.6"
             description = "PDFchemy Tools - Local-First Offline PDF Utility"
             copyright = "© 2026 Andrei Ioan Cucos. All rights reserved."
             vendor = "PDFchemy"

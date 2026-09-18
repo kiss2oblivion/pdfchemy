@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-windows:
@@ -117,11 +119,14 @@ jobs:
           name: linux-dist
           path: release-assets/
 
-      - name: Generate Consolidated Checksums
+      - name: Generate Consolidated Checksums & Manifest
         run: |
           cd release-assets
           rm -f SHA256SUMS*.txt
-          sha256sum * > SHA256SUMS.txt
+          echo "# VERSION=${{ github.ref_name }}" > SHA256SUMS.txt
+          echo "# PLATFORM=Desktop" >> SHA256SUMS.txt
+          echo "# ARCH=Universal" >> SHA256SUMS.txt
+          sha256sum * >> SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create GitHub Release
@@ -145,3 +150,23 @@ jobs:
             
             ### Verification
             Verify all downloads against `SHA256SUMS.txt`.
+
+      - name: Attest Build Provenance (Immutable Release)
+        uses: actions/attest-build-provenance@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          subject-path: 'release-assets/*'
+
+      - name: Archive Older Releases (Make Private)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch all public releases except the one we just published
+          tags=$(gh release list --exclude-drafts --json tagName -q ".[].tagName" | grep -v "^${{ github.ref_name }}$" || true)
+          for tag in $tags; do
+            if [ -n "$tag" ]; then
+              echo "Marking older release $tag as draft (private)..."
+              gh release edit "$tag" --draft
+            fi
+          done
