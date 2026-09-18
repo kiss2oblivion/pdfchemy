@@ -6,32 +6,15 @@
 
 package com.pdfchemy.desktop.engine
 
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.text.PDFTextStripper
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-data class SearchMatchSnippet(
-    val pageNumber: Int, // 1-indexed
-    val lineSnippet: String,
-    val matchStart: Int = 0,
-    val matchEnd: Int = 0
-)
 
-data class FileSearchResult(
-    val file: File,
-    val totalMatches: Int,
-    val snippets: List<SearchMatchSnippet>
-)
 
-data class DirectorySearchProgress(
-    val filesScanned: Int,
-    val totalFiles: Int,
-    val results: List<FileSearchResult>,
-    val isComplete: Boolean,
-    val isCancelled: Boolean = false
-)
+
+
+
 
 object DesktopDirectorySearchEngine {
 
@@ -122,78 +105,58 @@ object DesktopDirectorySearchEngine {
         cancelFlag: AtomicBoolean
     ): FileSearchResult? {
         try {
-            PDDocument.load(file).use { doc ->
-                val totalPages = doc.numberOfPages
-                if (totalPages == 0) return null
+            val pagesText = DesktopPdfEngine.extractAllPagesText(file)
+            if (pagesText.isEmpty()) return null
 
-                val snippets = mutableListOf<SearchMatchSnippet>()
-                var matchCount = 0
-                var currentWriter = java.io.StringWriter()
+            val snippets = mutableListOf<SearchMatchSnippet>()
+            var matchCount = 0
 
-                val stripper = object : PDFTextStripper() {
-                    override fun startPage(page: org.apache.pdfbox.pdmodel.PDPage) {
-                        if (cancelFlag.get()) {
-                            throw InterruptedException("Search cancelled")
-                        }
-                        currentWriter = java.io.StringWriter()
-                        output = currentWriter
+            pagesText.forEachIndexed { index, pageText ->
+                if (cancelFlag.get()) {
+                    throw InterruptedException("Search cancelled")
+                }
+                if (pageText.isBlank()) return@forEachIndexed
+
+                val p = index + 1
+                val lines = pageText.lines()
+                for (line in lines) {
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.isEmpty()) continue
+
+                    val idx = if (matchCase) {
+                        trimmedLine.indexOf(query)
+                    } else {
+                        trimmedLine.indexOf(query, ignoreCase = true)
                     }
 
-                    override fun endPage(page: org.apache.pdfbox.pdmodel.PDPage) {
-                        output.flush()
-                        val pageText = currentWriter.toString()
-                        if (pageText.isBlank()) return
+                    if (idx >= 0) {
+                        matchCount++
+                        if (snippets.size < 12) {
+                            val start = (idx - 30).coerceAtLeast(0)
+                            val end = (idx + query.length + 30).coerceAtMost(trimmedLine.length)
+                            val snippetText = (if (start > 0) "..." else "") +
+                                    trimmedLine.substring(start, end).trim() +
+                                    (if (end < trimmedLine.length) "..." else "")
 
-                        val p = currentPageNo
-                        val lines = pageText.lines()
-                        for (line in lines) {
-                            val trimmedLine = line.trim()
-                            if (trimmedLine.isEmpty()) continue
-
-                            val idx = if (matchCase) {
-                                trimmedLine.indexOf(query)
-                            } else {
-                                trimmedLine.indexOf(query, ignoreCase = true)
-                            }
-
-                            if (idx >= 0) {
-                                matchCount++
-                                if (snippets.size < 12) {
-                                    val start = (idx - 30).coerceAtLeast(0)
-                                    val end = (idx + query.length + 30).coerceAtMost(trimmedLine.length)
-                                    val snippetText = (if (start > 0) "..." else "") +
-                                            trimmedLine.substring(start, end).trim() +
-                                            (if (end < trimmedLine.length) "..." else "")
-
-                                    snippets.add(
-                                        SearchMatchSnippet(
-                                            pageNumber = p,
-                                            lineSnippet = snippetText,
-                                            matchStart = idx,
-                                            matchEnd = idx + query.length
-                                        )
-                                    )
-                                }
-                            }
+                            snippets.add(
+                                SearchMatchSnippet(
+                                    pageNumber = p,
+                                    lineSnippet = snippetText,
+                                    matchStart = idx,
+                                    matchEnd = idx + query.length
+                                )
+                            )
                         }
                     }
                 }
+            }
 
-                stripper.startPage = 1
-                stripper.endPage = totalPages
-                try {
-                    stripper.writeText(doc, java.io.StringWriter())
-                } catch (e: InterruptedException) {
-                    return null
-                } catch (_: Exception) {}
-
-                if (matchCount > 0) {
-                    return FileSearchResult(
-                        file = file,
-                        totalMatches = matchCount,
-                        snippets = snippets
-                    )
-                }
+            if (matchCount > 0) {
+                return FileSearchResult(
+                    file = file,
+                    totalMatches = matchCount,
+                    snippets = snippets
+                )
             }
         } catch (_: Exception) {}
         return null

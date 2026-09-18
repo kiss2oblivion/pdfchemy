@@ -1,4 +1,6 @@
-package com.pdfchemy.desktop.engine
+package com.pdfchemy.desktop.jail
+
+import com.pdfchemy.desktop.engine.*
 
 import org.apache.pdfbox.io.MemoryUsageSetting
 import org.apache.pdfbox.pdmodel.PDDocument

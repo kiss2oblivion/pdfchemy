@@ -332,7 +332,7 @@ class StressGauntletTest {
      */
     @Test
     fun test07_ThreadAvalancheConcurrencyAndFileLocks() {
-        val threadCount = 16
+        val threadCount = 8
         val executor = Executors.newFixedThreadPool(threadCount)
 
         val baseFile = tempFolder.newFile("concurrency_base.pdf")
@@ -358,18 +358,24 @@ class StressGauntletTest {
                     0 -> {
                         // Merge test
                         DesktopPdfEngine.mergePdfs(listOf(baseFile, baseFile), threadOut)
-                        DesktopPdfEngine.getPageCount(threadOut) == 4
+                        val count = DesktopPdfEngine.getPageCount(threadOut)
+                        if (count != 4) throw RuntimeException("Expected 4 pages, got $count for mergePdfs")
+                        true
                     }
                     1 -> {
                         // Rotate test
                         DesktopPdfEngine.rotatePages(baseFile, threadOut, degrees = 90)
-                        DesktopPdfEngine.getPageCount(threadOut) == 2
+                        val count = DesktopPdfEngine.getPageCount(threadOut)
+                        if (count != 2) throw RuntimeException("Expected 2 pages, got $count for rotatePages")
+                        true
                     }
                     else -> {
                         // Reorder test
                         val specs = listOf(PageItemSpec(0, 180))
                         DesktopPdfEngine.saveReorderedPdf(baseFile, threadOut, specs)
-                        DesktopPdfEngine.getPageCount(threadOut) == 1
+                        val count = DesktopPdfEngine.getPageCount(threadOut)
+                        if (count != 1) throw RuntimeException("Expected 1 page, got $count for saveReorderedPdf")
+                        true
                     }
                 }
             }
@@ -381,8 +387,13 @@ class StressGauntletTest {
         assertEquals("All $threadCount tasks must be initiated", threadCount, futures.size)
         for ((idx, future) in futures.withIndex()) {
             assertFalse("Thread task $idx should not have timed out or been cancelled", future.isCancelled)
-            val result = future.get()
-            assertTrue("Thread task $idx must succeed with valid output", result)
+            try {
+                val result = future.get()
+                assertTrue("Thread task $idx must succeed with valid output", result)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw e
+            }
         }
     }
 

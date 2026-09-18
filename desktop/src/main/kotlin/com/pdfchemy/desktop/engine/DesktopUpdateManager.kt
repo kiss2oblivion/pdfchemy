@@ -9,14 +9,27 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.Signature
+import java.security.spec.X509EncodedKeySpec
+import java.util.Base64
 import java.util.Locale
 import java.util.prefs.Preferences
+import com.google.gson.JsonParser
+import com.google.gson.JsonObject
 
 data class ReleaseAsset(
     val name: String,
     val downloadUrl: String,
     val size: Long
+)
+
+data class SignedManifest(
+    val version: String?,
+    val platform: String?,
+    val architecture: String?,
+    val hashes: Map<String, String>
 )
 
 data class ReleaseInfo(
@@ -37,6 +50,9 @@ object DesktopUpdateManager {
 
     private const val PREF_KEY_LAST_CHECK = "last_update_check_time"
     private const val PREF_KEY_DISMISSED_TAG = "dismissed_update_tag"
+
+    // PDFchemy Ed25519 Public Key for Release Verification
+    private const val UPDATE_PUBLIC_KEY_BASE64 = "MCowBQYDK2VwAyEAqOjXwE4lHJuQHQ+hE7n9pXwjaNFiKwleZZElkA+IBUI="
 
     private val prefs: Preferences by lazy {
         Preferences.userNodeForPackage(DesktopUpdateManager::class.java)
@@ -114,13 +130,14 @@ object DesktopUpdateManager {
             }
 
             val reader = BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8))
-            val json = reader.use { it.readText() }
+            val jsonStr = reader.use { it.readText() }
+            val json = JsonParser.parseString(jsonStr).asJsonObject
 
-            val tagName = extractJsonField(json, "tag_name") ?: "v$currentVersion"
-            val name = extractJsonField(json, "name") ?: "PDFchemy $tagName"
-            val htmlUrl = extractJsonField(json, "html_url") ?: "$GITHUB_RELEASES_WEB/tag/$tagName"
-            val publishedAt = extractJsonField(json, "published_at")?.take(10) ?: ""
-            val body = extractJsonBody(json) ?: ""
+            val tagName = if (json.has("tag_name") && !json.get("tag_name").isJsonNull) json.get("tag_name").asString else "v$currentVersion"
+            val name = if (json.has("name") && !json.get("name").isJsonNull) json.get("name").asString else "PDFchemy $tagName"
+            val htmlUrl = if (json.has("html_url") && !json.get("html_url").isJsonNull) json.get("html_url").asString else "$GITHUB_RELEASES_WEB/tag/$tagName"
+            val publishedAt = if (json.has("published_at") && !json.get("published_at").isJsonNull) json.get("published_at").asString.take(10) else ""
+            val body = if (json.has("body") && !json.get("body").isJsonNull) json.get("body").asString else ""
 
             val parsedAssets = parseAssets(json)
             val sha256Url = parsedAssets.firstOrNull { it.name.equals("SHA256SUMS.txt", ignoreCase = true) }?.downloadUrl
@@ -177,57 +194,63 @@ object DesktopUpdateManager {
         }
     }
 
-    /**
-     * Downloads and parses official SHA256SUMS.txt from the release.
-     * Maps filename -> expected SHA-256 hex string (lowercase).
-     */
-    suspend fun fetchSha256Checksums(sha256Url: String, timeoutMs: Int = 10000): Result<Map<String, String>> = withContext(Dispatchers.IO) {
+    // Replaced by UpdateHttpClient
+
+    suspend fun fetchSha256Checksums(
+        sha256Url: String,
+        timeoutMs: Int = 10000,
+        httpClient: UpdateHttpClient = DefaultUpdateHttpClient,
+        publicKeyBase64: String = UPDATE_PUBLIC_KEY_BASE64
+    ): Result<SignedManifest> = withContext(Dispatchers.IO) {
         try {
-            var currentUrl = sha256Url
-            var redirects = 0
-            var text = ""
+            val text = httpClient.getText(sha256Url, timeoutMs)
+            val sigText = httpClient.getText("$sha256Url.sig", timeoutMs).trim()
 
-            while (redirects < 5) {
-                val uri = URI(currentUrl)
-                validateSecureGitHubUri(uri)
+            // Verify Ed25519 signature
+            val pubKeyBytes = Base64.getDecoder().decode(publicKeyBase64)
+            val keySpec = X509EncodedKeySpec(pubKeyBytes)
+            val keyFactory = KeyFactory.getInstance("Ed25519")
+            val publicKey = keyFactory.generatePublic(keySpec)
 
-                val conn = uri.toURL().openConnection() as HttpURLConnection
-                conn.instanceFollowRedirects = false
-                conn.connectTimeout = timeoutMs
-                conn.readTimeout = timeoutMs
-                conn.setRequestProperty("User-Agent", "PDFchemy-Desktop/$CURRENT_VERSION")
+            val sigBytes = Base64.getDecoder().decode(sigText)
+            val signature = Signature.getInstance("Ed25519")
+            signature.initVerify(publicKey)
+            signature.update(text.toByteArray(Charsets.UTF_8))
 
-                val code = conn.responseCode
-                if (code in 300..399) {
-                    val location = conn.getHeaderField("Location")
-                        ?: return@withContext Result.failure(IllegalStateException("Redirect without Location header"))
-                    currentUrl = location
-                    redirects++
-                    continue
-                }
-
-                if (code !in 200..299) {
-                    return@withContext Result.failure(IllegalStateException("Failed to download SHA256SUMS.txt: HTTP $code"))
-                }
-
-                text = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-                break
+            if (!signature.verify(sigBytes)) {
+                return@withContext Result.failure(SecurityException("CRITICAL: Invalid Ed25519 signature for SHA256SUMS.txt"))
             }
 
+            var parsedVersion: String? = null
+            var parsedPlatform: String? = null
+            var parsedArch: String? = null
             val map = mutableMapOf<String, String>()
+
             text.lineSequence().forEach { line ->
                 val trimmed = line.trim()
                 if (trimmed.isNotBlank()) {
-                    // Standard format: <hash>  <filename> or <hash> *<filename>
-                    val parts = trimmed.split(Regex("\\s+"), limit = 2)
-                    if (parts.size == 2) {
-                        val hash = parts[0].trim().lowercase(Locale.ROOT)
-                        val fname = parts[1].trim().removePrefix("*").trim()
-                        map[fname] = hash
+                    if (trimmed.startsWith("#")) {
+                        // Attempt to parse metadata from comments
+                        val commentContent = trimmed.removePrefix("#").trim()
+                        if (commentContent.startsWith("VERSION=", ignoreCase = true)) {
+                            parsedVersion = commentContent.substringAfter("=").trim()
+                        } else if (commentContent.startsWith("PLATFORM=", ignoreCase = true)) {
+                            parsedPlatform = commentContent.substringAfter("=").trim()
+                        } else if (commentContent.startsWith("ARCH=", ignoreCase = true)) {
+                            parsedArch = commentContent.substringAfter("=").trim()
+                        }
+                    } else {
+                        // Standard format: <hash>  <filename> or <hash> *<filename>
+                        val parts = trimmed.split(Regex("\\s+"), limit = 2)
+                        if (parts.size == 2) {
+                            val hash = parts[0].trim().lowercase(Locale.ROOT)
+                            val fname = parts[1].trim().removePrefix("*").trim()
+                            map[fname] = hash
+                        }
                     }
                 }
             }
-            Result.success(map)
+            Result.success(SignedManifest(parsedVersion, parsedPlatform, parsedArch, map))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -239,7 +262,8 @@ object DesktopUpdateManager {
     suspend fun downloadAssetFile(
         asset: ReleaseAsset,
         onProgress: (bytesDownloaded: Long, totalBytes: Long) -> Unit,
-        isCancelled: () -> Boolean
+        isCancelled: () -> Boolean,
+        httpClient: UpdateHttpClient = DefaultUpdateHttpClient
     ): Result<File> = withContext(Dispatchers.IO) {
         var tempFile: File? = null
         try {
@@ -255,61 +279,100 @@ object DesktopUpdateManager {
             tempFile = File.createTempFile("pdfchemy_update_", extension)
             tempFile.deleteOnExit()
 
-            var currentUrl = asset.downloadUrl
-            var redirects = 0
+            val maxBytes = 250L * 1024 * 1024
+            val result = httpClient.download(
+                url = asset.downloadUrl,
+                destination = tempFile,
+                maxBytes = maxBytes,
+                onProgress = onProgress,
+                isCancelled = isCancelled
+            )
 
-            while (redirects < 5) {
-                if (isCancelled()) throw CancellationException("Update download was cancelled by user.")
-
-                val uri = URI(currentUrl)
-                validateSecureGitHubUri(uri)
-
-                val conn = uri.toURL().openConnection() as HttpURLConnection
-                conn.instanceFollowRedirects = false
-                conn.connectTimeout = 15000
-                conn.readTimeout = 20000
-                conn.setRequestProperty("User-Agent", "PDFchemy-Desktop/$CURRENT_VERSION")
-
-                val code = conn.responseCode
-                if (code in 300..399) {
-                    val location = conn.getHeaderField("Location")
-                        ?: return@withContext Result.failure(IllegalStateException("Redirect without Location header"))
-                    currentUrl = location
-                    redirects++
-                    continue
-                }
-
-                if (code !in 200..299) {
-                    return@withContext Result.failure(IllegalStateException("Download failed with HTTP $code"))
-                }
-
-                val contentLength = conn.contentLengthLong.let { if (it > 0) it else asset.size }
-                var downloadedBytes = 0L
-
-                conn.inputStream.use { input ->
-                    FileOutputStream(tempFile).use { output ->
-                        val buffer = ByteArray(64 * 1024) // 64 KB chunk
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            if (isCancelled()) {
-                                throw CancellationException("Update download was cancelled by user.")
-                            }
-                            output.write(buffer, 0, bytesRead)
-                            downloadedBytes += bytesRead
-                            onProgress(downloadedBytes, contentLength)
-                        }
-                        output.flush()
-                    }
-                }
-                break
+            if (result.isFailure) {
+                try { tempFile.delete() } catch (_: Exception) {}
+                return@withContext Result.failure(result.exceptionOrNull() ?: Exception("Download failed"))
             }
 
-            val finalFile = tempFile ?: return@withContext Result.failure(IllegalStateException("File creation failed"))
-            Result.success(finalFile)
+            Result.success(tempFile)
         } catch (e: Exception) {
             try {
                 tempFile?.delete()
             } catch (_: Exception) {}
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Orchestrates the secure download, manifest verification, hash checking, and atomic staging.
+     * Returns the finalized secure File ready for launchInstaller, or fails with an Exception.
+     */
+    suspend fun secureDownloadAndVerify(
+        release: ReleaseInfo,
+        asset: ReleaseAsset,
+        onProgress: (bytesDownloaded: Long, totalBytes: Long) -> Unit,
+        isCancelled: () -> Boolean,
+        httpClient: UpdateHttpClient = DefaultUpdateHttpClient,
+        publicKeyBase64: String = UPDATE_PUBLIC_KEY_BASE64,
+        fileMover: (File, File) -> Unit = { src, dest ->
+            java.nio.file.Files.move(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        }
+    ): Result<File> = withContext(Dispatchers.IO) {
+        if (!release.isNewer) {
+            return@withContext Result.failure(SecurityException("Downgrade attempt blocked by security policy."))
+        }
+
+        val downloadResult = downloadAssetFile(asset, onProgress, isCancelled, httpClient)
+        val downloadedFile = downloadResult.getOrElse {
+            return@withContext Result.failure(it)
+        }
+
+        var verified = false
+        if (!release.sha256SumsUrl.isNullOrBlank()) {
+            val manifestRes = fetchSha256Checksums(release.sha256SumsUrl, httpClient = httpClient, publicKeyBase64 = publicKeyBase64)
+            if (manifestRes.isSuccess) {
+                val manifest = manifestRes.getOrNull()
+
+                val expectedPlatform = "Desktop"
+                val expectedArch = "Universal"
+
+                if (manifest == null || manifest.version != release.tagName || manifest.platform != expectedPlatform || manifest.architecture != expectedArch) {
+                    System.err.println("CRITICAL: Manifest identity mismatch.")
+                } else {
+                    val expectedHash = manifest.hashes[asset.name]
+                    if (expectedHash != null) {
+                        verified = verifyFileSha256(downloadedFile, expectedHash)
+                    } else {
+                        System.err.println("CRITICAL: Asset ${asset.name} not found in SHA256SUMS.txt")
+                    }
+                }
+            } else {
+                System.err.println("CRITICAL: Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}")
+            }
+        } else {
+            System.err.println("CRITICAL: Release is missing SHA256SUMS.txt")
+        }
+
+        if (!verified) {
+            try { downloadedFile.delete() } catch (_: Exception) {}
+            return@withContext Result.failure(SecurityException("Update verification failed (checksum or manifest mismatch)."))
+        }
+
+        // Atomically move to final secure execution path and restrict permissions
+        val finalFile = File(System.getProperty("java.io.tmpdir"), "pdfchemy_installer_verified_${asset.name}")
+        try {
+            if (finalFile.exists()) finalFile.delete()
+            fileMover(downloadedFile, finalFile)
+            // Set executable/readable for the owner only, read-only
+            finalFile.setExecutable(true, true)
+            finalFile.setReadable(true, true)
+            finalFile.setWritable(false, false)
+            Result.success(finalFile)
+        } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+            System.err.println("CRITICAL: Atomic move unsupported on this filesystem. Aborting update for security.")
+            try { downloadedFile.delete() } catch (_: Exception) {}
+            Result.failure(SecurityException("Critical Error: Atomic file move is not supported on this filesystem."))
+        } catch (e: Exception) {
+            try { downloadedFile.delete() } catch (_: Exception) {}
             Result.failure(e)
         }
     }
@@ -352,28 +415,28 @@ object DesktopUpdateManager {
 
             val processBuilder = when {
                 name.endsWith(".msi") -> {
-                    // Windows MSI installer via msiexec
-                    ProcessBuilder("msiexec.exe", "/i", canonicalPath)
+                    // Windows MSI installer via absolute msiexec
+                    val systemRoot = System.getenv("SystemRoot") ?: "C:\\Windows"
+                    ProcessBuilder("$systemRoot\\System32\\msiexec.exe", "/i", canonicalPath)
                 }
                 name.endsWith(".exe") -> {
                     // Windows executable installer
                     ProcessBuilder(canonicalPath)
                 }
-                name.endsWith(".deb") -> {
-                    // Linux DEB package: open with default GUI package manager (e.g. Ubuntu Software, GDebi)
-                    ProcessBuilder("xdg-open", canonicalPath)
-                }
-                name.endsWith(".rpm") -> {
-                    // Linux RPM package: open with default GUI installer
+                name.endsWith(".deb") || name.endsWith(".rpm") -> {
+                    // Linux packages: pass to xdg-open for UI delegation to package manager
                     ProcessBuilder("xdg-open", canonicalPath)
                 }
                 name.endsWith(".jar") -> {
                     // Standalone executable JAR
-                    ProcessBuilder("java", "-jar", canonicalPath)
+                    val javaHome = System.getProperty("java.home")
+                    val javaBin = if (javaHome != null) "$javaHome${File.separator}bin${File.separator}java" else "java"
+                    ProcessBuilder(javaBin, "-jar", canonicalPath)
                 }
                 else -> {
                     if (osName.contains("win")) {
-                        ProcessBuilder("explorer.exe", canonicalPath)
+                        val systemRoot = System.getenv("SystemRoot") ?: "C:\\Windows"
+                        ProcessBuilder("$systemRoot\\explorer.exe", canonicalPath)
                     } else {
                         ProcessBuilder("xdg-open", canonicalPath)
                     }
@@ -387,99 +450,22 @@ object DesktopUpdateManager {
         }
     }
 
-    private fun parseAssets(json: String): List<ReleaseAsset> {
+    private fun parseAssets(jsonObj: JsonObject): List<ReleaseAsset> {
         val assets = mutableListOf<ReleaseAsset>()
-        val assetsKey = "\"assets\""
-        val startIdx = json.indexOf(assetsKey)
-        if (startIdx == -1) return assets
-
-        val arrayStart = json.indexOf('[', startIdx)
-        if (arrayStart == -1) return assets
-
-        var depth = 0
-        var arrayEnd = -1
-        for (i in arrayStart until json.length) {
-            when (json[i]) {
-                '[' -> depth++
-                ']' -> {
-                    depth--
-                    if (depth == 0) {
-                        arrayEnd = i
-                        break
-                    }
-                }
-            }
-        }
-        if (arrayEnd == -1) return assets
-
-        val assetsJson = json.substring(arrayStart + 1, arrayEnd)
-        // Split by individual JSON objects
-        var objDepth = 0
-        var objStart = -1
-        for (i in assetsJson.indices) {
-            val ch = assetsJson[i]
-            if (ch == '{') {
-                if (objDepth == 0) objStart = i
-                objDepth++
-            } else if (ch == '}') {
-                objDepth--
-                if (objDepth == 0 && objStart != -1) {
-                    val obj = assetsJson.substring(objStart, i + 1)
-                    val name = extractJsonField(obj, "name")
-                    val downloadUrl = extractJsonField(obj, "browser_download_url")
-                    val size = extractJsonLong(obj, "size") ?: 0L
-                    if (!name.isNullOrBlank() && !downloadUrl.isNullOrBlank()) {
+        if (jsonObj.has("assets") && jsonObj.get("assets").isJsonArray) {
+            val arr = jsonObj.getAsJsonArray("assets")
+            for (elem in arr) {
+                if (elem.isJsonObject) {
+                    val obj = elem.asJsonObject
+                    val name = if (obj.has("name") && !obj.get("name").isJsonNull) obj.get("name").asString else ""
+                    val downloadUrl = if (obj.has("browser_download_url") && !obj.get("browser_download_url").isJsonNull) obj.get("browser_download_url").asString else ""
+                    val size = if (obj.has("size") && !obj.get("size").isJsonNull) obj.get("size").asLong else 0L
+                    if (name.isNotBlank() && downloadUrl.isNotBlank()) {
                         assets.add(ReleaseAsset(name = name, downloadUrl = downloadUrl, size = size))
                     }
-                    objStart = -1
                 }
             }
         }
         return assets
-    }
-
-    private fun extractJsonField(json: String, key: String): String? {
-        val pattern = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"")
-        return pattern.find(json)?.groupValues?.getOrNull(1)
-    }
-
-    private fun extractJsonLong(json: String, key: String): Long? {
-        val pattern = Regex("\"$key\"\\s*:\\s*([0-9]+)")
-        return pattern.find(json)?.groupValues?.getOrNull(1)?.toLongOrNull()
-    }
-
-    private fun extractJsonBody(json: String): String? {
-        val keyIdx = json.indexOf("\"body\"")
-        if (keyIdx == -1) return null
-        val colonIdx = json.indexOf(':', keyIdx)
-        if (colonIdx == -1) return null
-        val startQuote = json.indexOf('"', colonIdx)
-        if (startQuote == -1) return null
-
-        val sb = StringBuilder()
-        var escaped = false
-        var i = startQuote + 1
-        while (i < json.length) {
-            val c = json[i]
-            if (escaped) {
-                when (c) {
-                    'n' -> sb.append('\n')
-                    'r' -> sb.append('\r')
-                    't' -> sb.append('\t')
-                    '"' -> sb.append('"')
-                    '\\' -> sb.append('\\')
-                    else -> sb.append(c)
-                }
-                escaped = false
-            } else if (c == '\\') {
-                escaped = true
-            } else if (c == '"') {
-                break
-            } else {
-                sb.append(c)
-            }
-            i++
-        }
-        return sb.toString()
     }
 }

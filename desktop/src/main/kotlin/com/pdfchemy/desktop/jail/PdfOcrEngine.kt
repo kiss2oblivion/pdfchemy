@@ -1,4 +1,6 @@
-package com.pdfchemy.desktop.engine
+package com.pdfchemy.desktop.jail
+
+import com.pdfchemy.desktop.engine.*
 
 import net.sourceforge.tess4j.Tesseract
 import net.sourceforge.tess4j.Word

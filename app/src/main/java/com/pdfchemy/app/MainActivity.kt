@@ -2279,7 +2279,8 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                                 viewModel = viewModel,
                                 onPickSingle = { 
                                     if (isScreenshotRun) {
-                                        val file = java.io.File(context.cacheDir, "Annual_Report_2026.pdf")
+                                        val exportsDir = java.io.File(context.cacheDir, "exports").apply { mkdirs() }
+                                        val file = java.io.File(exportsDir, "Annual_Report_2026.pdf")
                                         if (!file.exists()) {
                                             context.assets.open("Annual_Report_2026.pdf").use { input ->
                                                 file.outputStream().use { output ->
@@ -2344,7 +2345,8 @@ fun CompressPdfScreen(viewModel: MainViewModel, initialTab: Int = 0, isScreensho
                             viewModel = viewModel,
                             onPickSingle = { 
                                 if (isScreenshotRun) {
-                                    val file = java.io.File(context.cacheDir, "Annual_Report_2026.pdf")
+                                    val exportsDir = java.io.File(context.cacheDir, "exports").apply { mkdirs() }
+                                    val file = java.io.File(exportsDir, "Annual_Report_2026.pdf")
                                     if (!file.exists()) {
                                         context.assets.open("Annual_Report_2026.pdf").use { input ->
                                             file.outputStream().use { output ->

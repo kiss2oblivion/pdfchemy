@@ -17,6 +17,11 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <service
+            android:name=".jail.PdfJailService"
+            android:isolatedProcess="true"
+            android:exported="false" />
+
+        <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"
             android:exported="false">
