@@ -120,6 +120,8 @@ jobs:
           path: release-assets/
 
       - name: Generate Consolidated Checksums & Manifest
+        env:
+          UPDATE_PRIVATE_KEY: ${{ secrets.UPDATE_PRIVATE_KEY }}
         run: |
           cd release-assets
           rm -f SHA256SUMS*.txt
@@ -128,6 +130,19 @@ jobs:
           echo "# ARCH=Universal" >> SHA256SUMS.txt
           sha256sum * >> SHA256SUMS.txt
           cat SHA256SUMS.txt
+          
+          echo "Signing SHA256SUMS.txt..."
+          echo "$UPDATE_PRIVATE_KEY" > private.pem
+          
+          # Check if the private key was provided and valid
+          if [ -s private.pem ] && grep -q "BEGIN" private.pem; then
+            openssl pkeyutl -sign -inkey private.pem -rawin -in SHA256SUMS.txt | base64 -w 0 > SHA256SUMS.txt.sig
+            echo "Signature generated successfully."
+          else
+            echo "WARNING: UPDATE_PRIVATE_KEY secret is missing or invalid. Signature will not be generated."
+          fi
+          
+          rm -f private.pem
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
