@@ -49,17 +49,24 @@ object PdfSanitizerEngine {
         context: Context,
         pdfUri: Uri
     ): SanitizerAuditReport = withContext(Dispatchers.IO) {
+        val inputStream = context.contentResolver.openInputStream(pdfUri)
+            ?: return@withContext SanitizerAuditReport(threatsFound = 1, isClean = false, parseFailed = true)
+        auditDocumentThreats(context, inputStream)
+    }
+
+    suspend fun auditDocumentThreats(
+        context: Context,
+        inputStream: InputStream
+    ): SanitizerAuditReport = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
-        var inputStream: InputStream? = null
         var doc: PDDocument? = null
 
         try {
-            inputStream = context.contentResolver.openInputStream(pdfUri)
-                ?: return@withContext SanitizerAuditReport(threatsFound = 1, isClean = false, parseFailed = true)
-
             try {
-                doc = PDDocument.load(inputStream, "", com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
-            } catch (_: InvalidPasswordException) {
+                // Limit memory to 10MB and scratch disk usage to 250MB to prevent Zip/Object bombs
+                val memSettings = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupMixed(10 * 1024 * 1024, 250 * 1024 * 1024)
+                doc = PDDocument.load(inputStream, "", memSettings)
+            } catch (e: InvalidPasswordException) {
                 AppLogger.w("PdfSanitizerEngine: Document is encrypted / password protected")
                 return@withContext SanitizerAuditReport(
                     threatsFound = 1,
@@ -87,22 +94,21 @@ object PdfSanitizerEngine {
             if (doc.documentCatalog.names?.cosObject?.getDictionaryObject(COSName.getPDFName("JavaScript")) != null) jsCount++
 
             // 2. OpenAction and launch triggers
-            val catalogOpenAction = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("OpenAction"))
-            if (catalogOpenAction is COSDictionary) {
-                val s = catalogOpenAction.getNameAsString(COSName.S)
+            val processAction: (COSDictionary) -> Unit = { actionDict ->
+                val s = actionDict.getNameAsString(COSName.S)
                 if (s == "JavaScript") jsCount++
-                else if (s in listOf("Launch", "SubmitForm", "ImportData")) actionCount++
+                else if (s in listOf("Launch", "SubmitForm", "ImportData", "Sound", "Movie", "GoToE", "GoToR")) actionCount++
+                else if (s == "URI") uriCount++
             }
-            val catalogAa = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
-            if (catalogAa is COSDictionary && catalogAa.size() > 0) actionCount++
+
+            walkActions(doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("OpenAction")), mutableSetOf(), processAction)
+            scanAaDictionary(doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")), processAction)
 
             val acroForm = doc.documentCatalog.acroForm
             if (acroForm != null) {
-                val acroAa = acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
-                if (acroAa is COSDictionary && acroAa.size() > 0) actionCount++
+                scanAaDictionary(acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA")), processAction)
                 for (field in acroForm.fieldTree) {
-                    val fieldAa = field.cosObject.getDictionaryObject(COSName.getPDFName("AA"))
-                    if (fieldAa is COSDictionary && fieldAa.size() > 0) actionCount++
+                    scanAaDictionary(field.cosObject.getDictionaryObject(COSName.getPDFName("AA")), processAction)
                 }
             }
 
@@ -111,16 +117,10 @@ object PdfSanitizerEngine {
 
             // 4. Page-level interactive actions
             for (page in doc.pages) {
-                if (page.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
+                scanAaDictionary(page.cosObject.getDictionaryObject(COSName.getPDFName("AA")), processAction)
                 for (annot in page.annotations) {
-                    val action = annot.cosObject.getDictionaryObject(COSName.A)
-                    if (action is COSDictionary) {
-                        val s = action.getNameAsString(COSName.S)
-                        if (s == "JavaScript") jsCount++
-                        else if (s in listOf("Launch", "SubmitForm", "ImportData", "Sound", "Movie")) actionCount++
-                        else if (s == "URI") uriCount++
-                    }
-                    if (annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) actionCount++
+                    walkActions(annot.cosObject.getDictionaryObject(COSName.A), mutableSetOf(), processAction)
+                    scanAaDictionary(annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")), processAction)
                 }
             }
 
@@ -139,8 +139,7 @@ object PdfSanitizerEngine {
                 isClean = totalThreats == 0
             )
         } catch (e: Exception) {
-            val msg = e.message?.lowercase() ?: ""
-            val isEnc = msg.contains("password") || msg.contains("encrypted") || (e is InvalidPasswordException) || (e.cause is InvalidPasswordException)
+            val isEnc = e is InvalidPasswordException || e.cause is InvalidPasswordException
             AppLogger.e("PdfSanitizerEngine: audit failed (isEncrypted=$isEnc)", e)
             SanitizerAuditReport(
                 threatsFound = 1,
@@ -150,7 +149,7 @@ object PdfSanitizerEngine {
             )
         } finally {
             try { doc?.close() } catch (_: Exception) {}
-            try { inputStream?.close() } catch (_: Exception) {}
+            try { inputStream.close() } catch (_: Exception) {}
         }
     }
 
@@ -200,14 +199,28 @@ object PdfSanitizerEngine {
         purgeMetadata: Boolean = true,
         purgeAttachments: Boolean = true
     ): SanitizerResult = withContext(Dispatchers.IO) {
+        val inputStream = context.contentResolver.openInputStream(sourceUri)
+            ?: return@withContext SanitizerResult(false, 0, 0, 0, false, 0)
+        val outStream = context.contentResolver.openOutputStream(destUri)
+            ?: return@withContext SanitizerResult(false, 0, 0, 0, false, 0)
+        sanitizeDocument(context, inputStream, outStream, purgeJs, purgeActions, purgeMetadata, purgeAttachments)
+    }
+
+    suspend fun sanitizeDocument(
+        context: Context,
+        inputStream: InputStream,
+        outStream: java.io.OutputStream,
+        purgeJs: Boolean = true,
+        purgeActions: Boolean = true,
+        purgeMetadata: Boolean = true,
+        purgeAttachments: Boolean = true
+    ): SanitizerResult = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
-        var inputStream: InputStream? = null
         var doc: PDDocument? = null
 
         try {
-            inputStream = context.contentResolver.openInputStream(sourceUri)
-                ?: return@withContext SanitizerResult(false, 0, 0, 0, false, 0)
-            doc = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
+            val memSettings = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupMixed(10 * 1024 * 1024, 250 * 1024 * 1024)
+            doc = PDDocument.load(inputStream, memSettings)
 
             var jsPurged = 0
             var actionsPurged = 0
@@ -222,27 +235,28 @@ object PdfSanitizerEngine {
                     doc.documentCatalog.names?.cosObject?.removeItem(COSName.getPDFName("JavaScript"))
                     jsPurged++
                 }
-                if (doc.documentCatalog.openAction != null) {
-                    doc.documentCatalog.openAction = null
-                    actionsPurged++
-                }
-                doc.documentCatalog.actions = null
             }
 
-            if (purgeActions) {
-                if (doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+            if (purgeJs || purgeActions) {
+                val openAction = doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("OpenAction"))
+                if (hasMaliciousAction(openAction, purgeJs, purgeActions)) {
+                    doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("OpenAction"))
+                    actionsPurged++
+                }
+                
+                if (hasMaliciousAa(doc.documentCatalog.cosObject.getDictionaryObject(COSName.getPDFName("AA")), purgeJs, purgeActions)) {
                     doc.documentCatalog.cosObject.removeItem(COSName.getPDFName("AA"))
                     actionsPurged++
                 }
                 
                 val acroForm = doc.documentCatalog.acroForm
                 if (acroForm != null) {
-                    if (acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                    if (hasMaliciousAa(acroForm.cosObject.getDictionaryObject(COSName.getPDFName("AA")), purgeJs, purgeActions)) {
                         acroForm.cosObject.removeItem(COSName.getPDFName("AA"))
                         actionsPurged++
                     }
                     for (field in acroForm.fieldTree) {
-                        if (field.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                        if (hasMaliciousAa(field.cosObject.getDictionaryObject(COSName.getPDFName("AA")), purgeJs, purgeActions)) {
                             field.cosObject.removeItem(COSName.getPDFName("AA"))
                             actionsPurged++
                         }
@@ -273,33 +287,29 @@ object PdfSanitizerEngine {
 
             for (page in doc.pages) {
                 page.cosObject.removeItem(COSName.getPDFName("PieceInfo"))
-                page.cosObject.removeItem(COSName.getPDFName("AA"))
 
                 if (purgeActions || purgeJs) {
+                    if (hasMaliciousAa(page.cosObject.getDictionaryObject(COSName.getPDFName("AA")), purgeJs, purgeActions)) {
+                        page.cosObject.removeItem(COSName.getPDFName("AA"))
+                        actionsPurged++
+                    }
+                    
                     for (annot in page.annotations) {
-                        if (purgeActions && annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")) != null) {
+                        if (hasMaliciousAa(annot.cosObject.getDictionaryObject(COSName.getPDFName("AA")), purgeJs, purgeActions)) {
                             annot.cosObject.removeItem(COSName.getPDFName("AA"))
                             actionsPurged++
                         }
+                        
                         val action = annot.cosObject.getDictionaryObject(COSName.A)
-                        if (action is COSDictionary) {
-                            val s = action.getNameAsString(COSName.S)
-                            if (purgeJs && s == "JavaScript") {
-                                annot.cosObject.removeItem(COSName.A)
-                                jsPurged++
-                            }
-                            if (purgeActions && s in listOf("Launch", "SubmitForm", "ImportData", "URI", "Sound", "Movie")) {
-                                annot.cosObject.removeItem(COSName.A)
-                                actionsPurged++
-                            }
+                        if (hasMaliciousAction(action, purgeJs, purgeActions)) {
+                            annot.cosObject.removeItem(COSName.A)
+                            actionsPurged++
                         }
                     }
                 }
             }
 
-            context.contentResolver.openOutputStream(destUri)?.use { outStream ->
-                doc.save(outStream)
-            }
+            doc.save(outStream)
 
             SanitizerResult(
                 isSuccess = true,
@@ -314,7 +324,77 @@ object PdfSanitizerEngine {
             SanitizerResult(false, 0, 0, 0, false, 0)
         } finally {
             try { doc?.close() } catch (_: Exception) {}
-            try { inputStream?.close() } catch (_: Exception) {}
+            try { inputStream.close() } catch (_: Exception) {}
+            try { outStream.close() } catch (_: Exception) {}
         }
+    }
+
+    private fun walkActions(
+        actionObj: com.tom_roush.pdfbox.cos.COSBase?,
+        visited: MutableSet<com.tom_roush.pdfbox.cos.COSBase> = mutableSetOf(),
+        onAction: (COSDictionary) -> Unit
+    ) {
+        if (actionObj == null) return
+        if (!visited.add(actionObj)) return
+
+        when (actionObj) {
+            is COSDictionary -> {
+                onAction(actionObj)
+                walkActions(actionObj.getDictionaryObject(COSName.getPDFName("Next")), visited, onAction)
+            }
+            is com.tom_roush.pdfbox.cos.COSArray -> {
+                for (i in 0 until actionObj.size()) {
+                    walkActions(actionObj.getObject(i), visited, onAction)
+                }
+            }
+        }
+    }
+
+    private fun scanAaDictionary(
+        aaObj: com.tom_roush.pdfbox.cos.COSBase?,
+        onAction: (COSDictionary) -> Unit
+    ) {
+        if (aaObj is COSDictionary) {
+            for (key in aaObj.keySet()) {
+                walkActions(aaObj.getDictionaryObject(key), mutableSetOf(), onAction)
+            }
+        }
+    }
+
+    private fun hasMaliciousAction(
+        actionObj: com.tom_roush.pdfbox.cos.COSBase?,
+        checkJs: Boolean,
+        checkActions: Boolean,
+        visited: MutableSet<com.tom_roush.pdfbox.cos.COSBase> = mutableSetOf()
+    ): Boolean {
+        if (actionObj == null) return false
+        if (!visited.add(actionObj)) return false
+
+        when (actionObj) {
+            is COSDictionary -> {
+                val s = actionObj.getNameAsString(COSName.S)
+                if (checkJs && s == "JavaScript") return true
+                if (checkActions && s in listOf("Launch", "SubmitForm", "ImportData", "GoToE", "GoToR", "URI", "Sound", "Movie")) return true
+                return hasMaliciousAction(actionObj.getDictionaryObject(COSName.getPDFName("Next")), checkJs, checkActions, visited)
+            }
+            is com.tom_roush.pdfbox.cos.COSArray -> {
+                for (i in 0 until actionObj.size()) {
+                    if (hasMaliciousAction(actionObj.getObject(i), checkJs, checkActions, visited)) return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun hasMaliciousAa(
+        aaObj: com.tom_roush.pdfbox.cos.COSBase?,
+        checkJs: Boolean,
+        checkActions: Boolean
+    ): Boolean {
+        if (aaObj !is COSDictionary) return false
+        for (key in aaObj.keySet()) {
+            if (hasMaliciousAction(aaObj.getDictionaryObject(key), checkJs, checkActions, mutableSetOf())) return true
+        }
+        return false
     }
 }

@@ -23,21 +23,18 @@ object PdfToEpubEngine {
      */
     suspend fun pdfToEpub(
         context: Context,
-        sourcePdfUri: Uri,
-        destEpubUri: Uri,
+        inputStream: InputStream,
+        outputStream: java.io.OutputStream,
         bookTitle: String = "Untitled E-Book",
         authorName: String = "Unknown Author"
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
-        var inputStream: InputStream? = null
         var document: PDDocument? = null
         var tempEpubFile: File? = null
 
         try {
-            inputStream = context.contentResolver.openInputStream(sourcePdfUri)
-                ?: throw IllegalStateException("Cannot open input PDF")
-
-            document = PDDocument.load(inputStream, com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())
+            val memSettings = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupMixed(10 * 1024 * 1024, 250 * 1024 * 1024)
+            document = PDDocument.load(inputStream, memSettings)
             val pageCount = document.numberOfPages
             if (pageCount == 0) {
                 return@withContext Result.failure(IllegalStateException("PDF contains no pages"))
@@ -215,21 +212,12 @@ $ncxNavPoints
             }
 
             // Stream to destUri
-            context.contentResolver.openOutputStream(destEpubUri)?.use { outStream ->
-                tempEpubFile.inputStream().use { inStream ->
-                    inStream.copyTo(outStream)
-                }
-            } ?: throw IllegalStateException("Cannot open destination EPUB stream")
+            tempEpubFile.inputStream().use { inStream ->
+                inStream.copyTo(outputStream)
+            }
 
             tempEpubFile?.delete()
             tempEpubFile = null
-
-            val historyRepo = HistoryRepository(context)
-            historyRepo.addHistoryItem(
-                destEpubUri,
-                FileUtils.getFileName(context, destEpubUri) ?: "book.epub",
-                "PDF to EPUB 3.0"
-            )
 
             Result.success(true)
         } catch (e: Exception) {
@@ -247,8 +235,8 @@ $ncxNavPoints
      */
     suspend fun epubToPdf(
         context: Context,
-        sourceEpubUri: Uri,
-        destPdfUri: Uri,
+        inputStream: InputStream,
+        outputStream: java.io.OutputStream,
         onProgress: (Int, Int) -> Unit = { _, _ -> }
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         PDFBoxResourceLoader.init(context)
@@ -257,9 +245,7 @@ $ncxNavPoints
         val document = PDDocument()
         try {
             tempFile = File(context.cacheDir, "epub_in_${System.currentTimeMillis()}.epub")
-            context.contentResolver.openInputStream(sourceEpubUri)?.use { input ->
-                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-            } ?: throw IllegalStateException("Cannot open input EPUB file")
+            FileOutputStream(tempFile).use { output -> inputStream.copyTo(output) }
 
             val openZip = java.util.zip.ZipFile(tempFile)
             zip = openZip
@@ -387,16 +373,7 @@ $ncxNavPoints
             contentStream.close()
 
             // Save PDF to destination
-            context.contentResolver.openOutputStream(destPdfUri)?.use { out ->
-                document.save(out)
-            } ?: throw IllegalStateException("Cannot open destination PDF stream")
-
-            val historyRepo = HistoryRepository(context)
-            historyRepo.addHistoryItem(
-                destPdfUri,
-                FileUtils.getFileName(context, destPdfUri) ?: "book.pdf",
-                "EPUB to PDF"
-            )
+            document.save(outputStream)
 
             Result.success(true)
         } catch (e: Exception) {

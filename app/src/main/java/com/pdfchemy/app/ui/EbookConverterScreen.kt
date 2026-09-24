@@ -85,7 +85,7 @@ fun EbookConverterScreen(
                 isProcessing = true
                 val result: Result<Boolean> = when (selectedMode) {
                     EbookMode.PDF_TO_EPUB -> {
-                        PdfToEpubEngine.pdfToEpub(
+                        com.pdfchemy.app.sandbox.SandboxCoordinator.pdfToEpub(
                             context = context,
                             sourcePdfUri = selectedSourceUri!!,
                             destEpubUri = destUri,
@@ -94,7 +94,7 @@ fun EbookConverterScreen(
                         )
                     }
                     EbookMode.EPUB_TO_PDF -> {
-                        PdfToEpubEngine.epubToPdf(
+                        com.pdfchemy.app.sandbox.SandboxCoordinator.epubToPdf(
                             context = context,
                             sourceEpubUri = selectedSourceUri!!,
                             destPdfUri = destUri,

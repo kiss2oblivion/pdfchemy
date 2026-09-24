@@ -568,7 +568,7 @@ fun MainApp(
                     isVanguardScanning = true
                     vanguardScanningFileName = com.pdfchemy.app.utils.FileUtils.getFileName(context, uri)
                     try {
-                        val threatResult = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                        val threatResult = com.pdfchemy.app.sandbox.SandboxCoordinator.checkVanguardThreat(context, uri)
                         when (threatResult) {
                             is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
                                 currentScreen = Screen.PdfEditor(initialPdfUri = uri)
@@ -4006,7 +4006,7 @@ fun RecentFilesSection(
                                                 isVanguardScanning = true
                                                 vanguardScanningFileName = item.name
                                                 try {
-                                                    val threat = com.pdfchemy.app.logic.PdfSanitizerEngine.checkVanguardThreat(context, uri)
+                                                    val threat = com.pdfchemy.app.sandbox.SandboxCoordinator.checkVanguardThreat(context, uri)
                                                     when (threat) {
                                                         is com.pdfchemy.app.logic.VanguardThreatResult.Clean -> {
                                                             onNavigate(Screen.PdfEditor(initialPdfUri = uri))

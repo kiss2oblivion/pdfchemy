@@ -3,8 +3,11 @@ project(ArkhamLauncher)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(arkham-launcher arkham-launcher.cpp)
-
-target_link_libraries(arkham-launcher PRIVATE Userenv Bcrypt Advapi32)
+if(WIN32)
+    add_executable(arkham-launcher arkham-launcher.cpp)
+    target_link_libraries(arkham-launcher PRIVATE Userenv Bcrypt Advapi32)
+elseif(UNIX AND NOT APPLE)
+    add_executable(arkham-launcher-linux arkham-launcher-linux.cpp)
+endif()
 
 add_executable(hello hello.cpp)
