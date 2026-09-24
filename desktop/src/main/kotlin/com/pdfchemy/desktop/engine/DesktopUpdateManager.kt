@@ -336,25 +336,33 @@ object DesktopUpdateManager {
                 val expectedArch = "Universal"
 
                 if (manifest == null || manifest.version != release.tagName || manifest.platform != expectedPlatform || manifest.architecture != expectedArch) {
-                    System.err.println("CRITICAL: Manifest identity mismatch.")
+                    try { downloadedFile.delete() } catch (_: Exception) {}
+                    return@withContext Result.failure(SecurityException("Manifest mismatch. Expected ${release.tagName} $expectedPlatform $expectedArch, got ${manifest?.version} ${manifest?.platform} ${manifest?.architecture}"))
                 } else {
                     val expectedHash = manifest.hashes[asset.name]
                     if (expectedHash != null) {
                         verified = verifyFileSha256(downloadedFile, expectedHash)
+                        if (!verified) {
+                            try { downloadedFile.delete() } catch (_: Exception) {}
+                            return@withContext Result.failure(SecurityException("SHA256 mismatch for ${asset.name}. Expected $expectedHash"))
+                        }
                     } else {
-                        System.err.println("CRITICAL: Asset ${asset.name} not found in SHA256SUMS.txt")
+                        try { downloadedFile.delete() } catch (_: Exception) {}
+                        return@withContext Result.failure(SecurityException("Asset ${asset.name} not found in SHA256SUMS.txt"))
                     }
                 }
             } else {
-                System.err.println("CRITICAL: Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}")
+                try { downloadedFile.delete() } catch (_: Exception) {}
+                return@withContext Result.failure(SecurityException("Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}"))
             }
         } else {
-            System.err.println("CRITICAL: Release is missing SHA256SUMS.txt")
+            try { downloadedFile.delete() } catch (_: Exception) {}
+            return@withContext Result.failure(SecurityException("Release is missing SHA256SUMS.txt"))
         }
 
         if (!verified) {
             try { downloadedFile.delete() } catch (_: Exception) {}
-            return@withContext Result.failure(SecurityException("Update verification failed (checksum or manifest mismatch)."))
+            return@withContext Result.failure(SecurityException("Update verification failed internally (should not happen)."))
         }
 
         // Atomically move to final secure execution path and restrict permissions
