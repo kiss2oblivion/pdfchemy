@@ -52,7 +52,7 @@ object DesktopUpdateManager {
     private const val PREF_KEY_DISMISSED_TAG = "dismissed_update_tag"
 
     // PDFchemy Ed25519 Public Key for Release Verification
-    private const val UPDATE_PUBLIC_KEY_BASE64 = "MCowBQYDK2VwAyEAqOjXwE4lHJuQHQ+hE7n9pXwjaNFiKwleZZElkA+IBUI="
+    private const val UPDATE_PUBLIC_KEY_BASE64 = "MCowBQYDK2VwAyEAgezj3JQ6QKJgmIcxfb4Xyl5RrXdQjHIkmDuKDWd1w3I="
 
     private val prefs: Preferences by lazy {
         Preferences.userNodeForPackage(DesktopUpdateManager::class.java)
