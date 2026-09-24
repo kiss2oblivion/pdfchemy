@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfchemy.app.R
 import com.pdfchemy.app.logic.FileUtil
-import com.pdfchemy.app.logic.PdfSanitizerEngine
+import com.pdfchemy.app.sandbox.SandboxCoordinator
 import com.pdfchemy.app.logic.SanitizerAuditReport
 import com.pdfchemy.app.logic.SanitizerResult
 import com.pdfchemy.app.utils.AppLogger
@@ -62,7 +62,7 @@ fun DocumentSanitizerScreen(
         sanitizeResult = null
         scope.launch {
             try {
-                val report = PdfSanitizerEngine.auditDocumentThreats(context, uri)
+                val report = SandboxCoordinator.auditDocumentThreats(context, uri)
                 auditReport = report
             } catch (e: Exception) {
                 AppLogger.e("Audit failed", e)
@@ -94,13 +94,15 @@ fun DocumentSanitizerScreen(
             isSanitizing = true
             scope.launch {
                 try {
-                    val result = PdfSanitizerEngine.sanitizeDocument(
+                    val result = SandboxCoordinator.sanitizeDocument(
                         context, srcUri, destUri,
-                        purgeJs, purgeActions, purgeMetadata, purgeAttachments
+                        purgeJs, purgeActions, purgeMetadata
                     )
                     sanitizeResult = result
-                    if (result.isSuccess) {
+                    if (result != null && result.isSuccess) {
                         Toast.makeText(context, context.getString(R.string.sanitizer_success), Toast.LENGTH_SHORT).show()
+                    } else if (result == null) {
+                        Toast.makeText(context, "Sanitize failed (Timeout or Crash)", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     AppLogger.e("Sanitizing failed", e)

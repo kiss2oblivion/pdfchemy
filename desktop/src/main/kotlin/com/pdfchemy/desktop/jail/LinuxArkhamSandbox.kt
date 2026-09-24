@@ -10,7 +10,10 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.readBytes
 
-class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbox {
+class LinuxArkhamSandbox(
+    private val bwrapPath: String = "bwrap",
+    private val launcherExePath: Path = Path.of("arkham-launcher-linux")
+) : ArkhamSandbox {
 
     private var process: Process? = null
 
@@ -62,6 +65,11 @@ class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbo
         bwrapArgs.add(worker.classPath)
         bwrapArgs.add(worker.classPath)
 
+        // Bind the native launcher
+        bwrapArgs.add("--ro-bind")
+        bwrapArgs.add(launcherExePath.absolutePathString())
+        bwrapArgs.add(launcherExePath.absolutePathString())
+
         // Add the working directory
         if (!worker.workingDirectory.exists()) {
             worker.workingDirectory.mkdirs()
@@ -70,7 +78,13 @@ class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbo
         bwrapArgs.add(worker.workingDirectory.absolutePath)
         bwrapArgs.add(worker.workingDirectory.absolutePath)
         
-        // JVM execution
+        // JVM execution via native launcher
+        bwrapArgs.add(launcherExePath.absolutePathString())
+        bwrapArgs.add(worker.verifiedJarHash)
+        bwrapArgs.add(worker.maxMemoryBytes.toString())
+        bwrapArgs.add(worker.maxCpuPercentage.toString())
+        bwrapArgs.add(worker.classPath)
+        
         bwrapArgs.addAll(worker.toCommandList())
 
         // 3. (Optional but planned) Cgroups & Seccomp
@@ -95,7 +109,24 @@ class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbo
         }
 
         val pb = ProcessBuilder(commandToRun)
-        pb.environment().clear() // Purge environment
+        
+        // Strict environment allowlist to prevent leakage (e.g. JAVA_TOOL_OPTIONS, LD_PRELOAD)
+        val hostEnv = System.getenv()
+        pb.environment().clear()
+        
+        val allowlist = listOf(
+            "PATH", "LANG", "LC_ALL", "TZ", "USER"
+        )
+        
+        hostEnv.forEach { (key, value) ->
+            if (allowlist.any { it.equals(key, ignoreCase = true) }) {
+                pb.environment()[key] = value
+            }
+        }
+        
+        pb.environment()["HOME"] = worker.workingDirectory.absolutePath
+        pb.environment()["TMPDIR"] = worker.workingDirectory.absolutePath
+        
         pb.environment().putAll(worker.environment)
         pb.directory(worker.workingDirectory)
 
@@ -111,7 +142,10 @@ class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbo
                 override val errorStream: InputStream
                     get() = startedProcess.errorStream
                 override val pid: Long
-                    get() = startedProcess.toHandle().children().findFirst().orElseThrow { SecurityException("Missing worker PID") }.pid()
+                    get() {
+                        val handle = startedProcess.toHandle().children().findFirst().orElse(null)
+                        return handle?.pid() ?: -1L
+                    }
 
                 override fun waitFor(timeout: Long, unit: TimeUnit): Boolean {
                     return startedProcess.waitFor(timeout, unit)
@@ -145,8 +179,35 @@ class LinuxArkhamSandbox(private val bwrapPath: String = "bwrap") : ArkhamSandbo
 
     override fun getCapabilitySnapshot(): SandboxCapabilitySnapshot {
         val p = process ?: throw IllegalStateException("Process not launched")
+        
+        // Wait for explicit marker from the launcher to ensure the process tree is stable
+        val errorStream = p.errorStream
+        var markerReceived = false
+        val startTime = System.currentTimeMillis()
+        val lineBuffer = StringBuilder()
+        
+        while (System.currentTimeMillis() - startTime < 30000) {
+            if (errorStream.available() > 0) {
+                val b = errorStream.read()
+                if (b == -1) break
+                val c = b.toChar()
+                if (c == '\n') {
+                    val line = lineBuffer.toString().trim()
+                    if (line.startsWith("WORKER_PID:")) {
+                        markerReceived = true
+                        break
+                    }
+                    lineBuffer.clear()
+                } else if (c != '\r') {
+                    lineBuffer.append(c)
+                }
+            } else {
+                Thread.sleep(50)
+            }
+        }
+        
         val workerHandle = p.toHandle().children().findFirst().orElseThrow {
-            SecurityException("Failed to locate worker child process")
+            SecurityException(if (markerReceived) "Failed to locate worker child process despite receiving marker" else "Failed to receive worker marker or locate child")
         }
         val workerPid = workerHandle.pid()
 

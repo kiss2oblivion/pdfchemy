@@ -66,7 +66,7 @@ fun RedactionScreen(
 
         coroutineScope.launch {
             isSearching = true
-            val result = PdfRedactionEngine.searchRedactionTargets(
+            val result = com.pdfchemy.app.sandbox.SandboxCoordinator.searchRedactionTargets(
                 context = context,
                 pdfUri = uri,
                 query = query,
@@ -99,7 +99,7 @@ fun RedactionScreen(
                     forensicSanitize = forensicSanitize
                 )
 
-                val result = PdfRedactionEngine.applyRedactions(
+                val result = com.pdfchemy.app.sandbox.SandboxCoordinator.applyRedactions(
                     context = context,
                     sourcePdfUri = selectedPdfUri!!,
                     destPdfUri = destUri,
@@ -135,7 +135,7 @@ fun RedactionScreen(
                     defaultOverlayText = overlayText,
                     forensicSanitize = forensicSanitize
                 )
-                val result = PdfRedactionEngine.smartRedact(
+                val result = com.pdfchemy.app.sandbox.SandboxCoordinator.smartRedact(
                     context = context,
                     pdfUri = selectedPdfUri!!,
                     destUri = destUri,
