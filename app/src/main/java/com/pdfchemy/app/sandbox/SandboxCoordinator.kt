@@ -81,23 +81,27 @@ object SandboxCoordinator {
             return@withContext null
         }
 
-        val result = withTimeoutOrNull(HARD_TIMEOUT_MS) {
-            channel.receive()
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(HARD_TIMEOUT_MS) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try {
+                context.unbindService(connection)
+            } catch (e: Exception) {}
+        
+            if (timeoutOrCancel && workerPid != -1) {
+                // Hard timeout or death. Treat as hostile and kill the worker boundary.
+                            AppLogger.e("SandboxCoordinator: Audit timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
         }
-
-        // Cleanup
-        try {
-            context.unbindService(connection)
-        } catch (e: Exception) {
-            // Ignore
-        }
-
-        if (result == null && workerPid != -1) {
-            // Hard timeout or death. Treat as hostile and kill the worker boundary.
-            AppLogger.e("SandboxCoordinator: Audit timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-        }
-
+        
         result
     }
 
@@ -167,21 +171,26 @@ object SandboxCoordinator {
             return@withContext null
         }
 
-        val result = withTimeoutOrNull(HARD_TIMEOUT_MS) {
-            channel.receive()
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(HARD_TIMEOUT_MS) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try {
+                context.unbindService(connection)
+            } catch (e: Exception) {}
+        
+            if (timeoutOrCancel && workerPid != -1) {
+                AppLogger.e("SandboxCoordinator: Sanitize timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
         }
-
-        try {
-            context.unbindService(connection)
-        } catch (e: Exception) {
-            // Ignore
-        }
-
-        if (result == null && workerPid != -1) {
-            AppLogger.e("SandboxCoordinator: Sanitize timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-        }
-
+        
         result
     }
 
@@ -276,16 +285,25 @@ object SandboxCoordinator {
         }
 
         // EPUB conversion can take a while
-        val result = withTimeoutOrNull(180_000L) {
-            channel.receive()
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(180_000L) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try { context.unbindService(connection) } catch (_: Exception) {}
+            if (timeoutOrCancel && workerPid != -1) {
+                AppLogger.e("SandboxCoordinator: pdfToEpub timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
         }
 
-        try { context.unbindService(connection) } catch (_: Exception) {}
-
-        if (result == null && workerPid != -1) {
-            AppLogger.e("SandboxCoordinator: pdfToEpub timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-            return@withContext Result.failure(Exception("pdfToEpub timed out"))
+        if (result == null) {
+            return@withContext Result.failure(Exception("pdfToEpub timed out or cancelled"))
         }
 
         if (result?.isSuccess == true) {
@@ -356,19 +374,31 @@ object SandboxCoordinator {
         }
 
         // EPUB conversion can take a while
-        val result = withTimeoutOrNull(180_000L) {
-            channel.receive()
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(180_000L) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try {
+                context.unbindService(connection)
+            } catch (e: Exception) {}
+        
+            if (timeoutOrCancel && workerPid != -1) {
+                AppLogger.e("SandboxCoordinator: epubToPdf timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
         }
 
-        try { context.unbindService(connection) } catch (_: Exception) {}
-
-        if (result == null && workerPid != -1) {
-            AppLogger.e("SandboxCoordinator: epubToPdf timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-            return@withContext Result.failure(Exception("epubToPdf timed out"))
+        if (result == null) {
+            return@withContext Result.failure(Exception("epubToPdf timed out or cancelled"))
         }
 
-        if (result?.isSuccess == true) {
+if (result?.isSuccess == true) {
             val historyRepo = com.pdfchemy.app.logic.HistoryRepository(context)
             historyRepo.addHistoryItem(
                 destPdfUri,
@@ -453,19 +483,31 @@ object SandboxCoordinator {
             return@withContext Result.failure(Exception("Failed to bind service"))
         }
 
-        val result = withTimeoutOrNull(HARD_TIMEOUT_MS) {
-            channel.receive()
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(HARD_TIMEOUT_MS) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try {
+                context.unbindService(connection)
+            } catch (e: Exception) {}
+        
+            if (timeoutOrCancel && workerPid != -1) {
+                AppLogger.e("SandboxCoordinator: Search timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
         }
 
-        try { context.unbindService(connection) } catch (_: Exception) {}
-
-        if (result == null && workerPid != -1) {
-            AppLogger.e("SandboxCoordinator: Search timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-            return@withContext Result.failure(Exception("Search timed out"))
+        if (result == null) {
+            return@withContext Result.failure(Exception("Search timed out or cancelled"))
         }
 
-        result ?: Result.failure(Exception("Unknown search error"))
+result ?: Result.failure(Exception("Unknown search error"))
     }
 
     suspend fun applyRedactions(
@@ -545,19 +587,31 @@ object SandboxCoordinator {
         }
 
         // Redaction is slow, give it more time (3 minutes max)
-        val result = withTimeoutOrNull(180_000L) {
-            channel.receive()
-        }
-
-        try { context.unbindService(connection) } catch (_: Exception) {}
-
-        if (result == null && workerPid != -1) {
-            AppLogger.e("SandboxCoordinator: Redaction timed out or disconnected. Killing worker process PID $workerPid")
-            Process.killProcess(workerPid)
-            return@withContext Result.failure(Exception("Redaction timed out"))
-        }
+        var timeoutOrCancel = true
+        val result = try {
+            val res = withTimeoutOrNull(180_000L) {
+                channel.receive()
+            }
+            if (res != null) {
+                timeoutOrCancel = false
+            }
+            res
+        } finally {
+            try {
+                context.unbindService(connection)
+            } catch (e: Exception) {}
         
-        if (result?.isSuccess == true) {
+            if (timeoutOrCancel && workerPid != -1) {
+                AppLogger.e("SandboxCoordinator: Redaction timed out or disconnected. Killing worker process PID $workerPid")
+                Process.killProcess(workerPid)
+            }
+        }
+
+        if (result == null) {
+            return@withContext Result.failure(Exception("Redaction timed out or cancelled"))
+        }
+
+if (result?.isSuccess == true) {
             val count = result.getOrNull() ?: 0
             val historyRepo = com.pdfchemy.app.logic.HistoryRepository(context)
             historyRepo.addHistoryItem(

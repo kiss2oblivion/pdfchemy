@@ -63,7 +63,7 @@ compose.desktop {
 
             windows {
                 menuGroup = "PDFchemy"
-                upgradeUuid = "8a2f07d2-a7d0-4cb5-8d59-2fce4d15f129"
+                upgradeUuid = "8513DA13-D4B7-31E1-9C15-4ECBE0CAA4D7"
                 shortcut = true
                 iconFile.set(project.file("src/main/resources/icons/windows/icon.ico"))
             }
