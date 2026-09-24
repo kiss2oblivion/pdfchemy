@@ -187,11 +187,11 @@ object DesktopSpeechSynthesizer {
         Thread {
             try {
                 if (isWindows) {
-                    val textFile = File.createTempFile("pdfchemy_tts_text_", ".txt").apply {
+                    val textFile = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_tts_text_", ".txt").apply {
                         deleteOnExit()
                         writeText(clean.take(6000), Charsets.UTF_8)
                     }
-                    val tempScript = File.createTempFile("pdfchemy_tts_", ".ps1").apply {
+                    val tempScript = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_tts_", ".ps1").apply {
                         deleteOnExit()
                         val scriptContent = """
                             Add-Type -AssemblyName System.Speech

@@ -46,9 +46,9 @@ class DesktopUpdateManagerTest {
     @After
     fun teardown() {
         tempDir.deleteRecursively()
-        // Also cleanup possible left-over pdfchemy_installer_verified_PDFchemy-Windows.msi
-        val sysTmp = File(System.getProperty("java.io.tmpdir"))
-        File(sysTmp, "pdfchemy_installer_verified_PDFchemy-Windows.msi").delete()
+        // Also cleanup possible left-over pdfchemy-update-verified-PDFchemy-Windows.msi
+        val updateDir = com.pdfchemy.desktop.engine.DesktopUpdateManager.updateDir
+        File(updateDir, "pdfchemy-update-verified-PDFchemy-Windows.msi").delete()
     }
 
     private fun sign(payload: String): String {
@@ -119,7 +119,7 @@ class DesktopUpdateManagerTest {
         assertTrue("Update should succeed", result.isSuccess)
         val finalFile = result.getOrNull()!!
         assertTrue("Final file should exist", finalFile.exists())
-        assertEquals("pdfchemy_installer_verified_PDFchemy-Windows.msi", finalFile.name)
+        assertEquals("pdfchemy-update-verified-PDFchemy-Windows.msi", finalFile.name)
     }
 
     @Test
@@ -366,7 +366,7 @@ class DesktopUpdateManagerTest {
             assertFalse("Cleanup failed: temporary download file ${tempFile.name} exists", tempFile.exists())
         }
         
-        val finalFile = File(System.getProperty("java.io.tmpdir"), "pdfchemy_installer_verified_PDFchemy-Windows.msi")
+        val finalFile = File(com.pdfchemy.desktop.engine.DesktopUpdateManager.updateDir, "pdfchemy-update-verified-PDFchemy-Windows.msi")
         assertFalse("Cleanup failed: verified installer staged despite failure", finalFile.exists())
     }
 }

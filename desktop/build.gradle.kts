@@ -38,6 +38,35 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
+val buildArkhamLaunchers by tasks.registering {
+    doLast {
+        val isWin = org.gradle.internal.os.OperatingSystem.current().isWindows
+        val cppDir = file("src/main/cpp")
+        
+        try {
+            ProcessBuilder("cmake", "-S", ".", "-B", "build").directory(cppDir).inheritIO().start().waitFor()
+            ProcessBuilder("cmake", "--build", "build", "--config", "Release").directory(cppDir).inheritIO().start().waitFor()
+        } catch (e: Exception) {
+            println("Skipping Arkham launcher build: CMake not found or failed (${e.message})")
+        }
+        
+        val outDir = file("src/main/resources/jail")
+        outDir.mkdirs()
+        
+        if (isWin) {
+            val exe = file("src/main/cpp/build/Release/arkham-launcher.exe")
+            if (exe.exists()) exe.copyTo(file("src/main/resources/jail/arkham-launcher.exe"), overwrite = true)
+        } else {
+            val exe = file("src/main/cpp/build/arkham-launcher-linux")
+            if (exe.exists()) exe.copyTo(file("src/main/resources/jail/arkham-launcher-linux"), overwrite = true)
+        }
+    }
+}
+
+tasks.named("processResources") {
+    dependsOn(buildArkhamLaunchers)
+}
+
 compose.desktop {
     application {
         mainClass = "com.pdfchemy.desktop.MainKt"
@@ -56,7 +85,7 @@ compose.desktop {
                 TargetFormat.Rpm
             )
             packageName = "PDFchemy"
-            packageVersion = "1.0.8"
+            packageVersion = "1.0.9"
             description = "PDFchemy Tools - Local-First Offline PDF Utility"
             copyright = "© 2026 Andrei Ioan Cucos. All rights reserved."
             vendor = "PDFchemy"

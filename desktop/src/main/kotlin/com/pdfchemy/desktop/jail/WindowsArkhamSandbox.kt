@@ -38,16 +38,26 @@ class WindowsArkhamSandbox(private val launcherExePath: Path) : ArkhamSandbox {
         }
         
         fun runIcacls(vararg args: String) {
-            ProcessBuilder(*args)
+            val pb = ProcessBuilder(*args)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .redirectError(ProcessBuilder.Redirect.DISCARD)
                 .start()
-                .waitFor()
+            if (pb.waitFor() != 0) {
+                throw SecurityException("Failed to grant filesystem ACLs via icacls: ${args.joinToString(" ")}")
+            }
         }
         
-        runIcacls("icacls", jreDir.absolutePath, "/grant", "*S-1-15-2-1:(OI)(CI)(RX)")
-        runIcacls("icacls", worker.classPath, "/grant", "*S-1-15-2-1:(RX)")
-        runIcacls("icacls", worker.workingDirectory.absolutePath, "/grant", "*S-1-15-2-1:(OI)(CI)(M)")
+        // Retrieve exact AppContainer SID for precise ACL grants
+        val sidPb = ProcessBuilder(launcherExePath.toAbsolutePath().toString(), "--get-sid").start()
+        val sidStr = sidPb.inputStream.bufferedReader().use { it.readText().trim() }
+        if (sidPb.waitFor() != 0 || sidStr.isEmpty()) {
+            throw SecurityException("Failed to retrieve AppContainer SID from launcher")
+        }
+        val sidGrant = "*$sidStr"
+        
+        runIcacls("icacls", jreDir.absolutePath, "/grant", "$sidGrant:(OI)(CI)(RX)")
+        runIcacls("icacls", worker.classPath, "/grant", "$sidGrant:(RX)")
+        runIcacls("icacls", worker.workingDirectory.absolutePath, "/grant", "$sidGrant:(OI)(CI)(M)")
 
         println("DEBUG: launcherArgs = $launcherArgs")
 

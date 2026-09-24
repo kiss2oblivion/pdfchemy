@@ -65,7 +65,9 @@ object PdfSanitizerEngine {
             try {
                 // Limit memory to 10MB and scratch disk usage to 250MB to prevent Zip/Object bombs
                 val memSettings = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupMixed(10 * 1024 * 1024, 250 * 1024 * 1024)
-                doc = PDDocument.load(inputStream, "", memSettings)
+                doc = kotlinx.coroutines.withTimeout(30_000L) {
+                    PDDocument.load(inputStream, "", memSettings)
+                }
             } catch (e: InvalidPasswordException) {
                 AppLogger.w("PdfSanitizerEngine: Document is encrypted / password protected")
                 return@withContext SanitizerAuditReport(
@@ -127,7 +129,7 @@ object PdfSanitizerEngine {
             // 5. Metadata present
             val info = doc.documentInformation
             val hasMeta = info != null && (!info.author.isNullOrBlank() || !info.title.isNullOrBlank() || !info.creator.isNullOrBlank())
-            val totalThreats = jsCount + actionCount + attachmentCount + (if (hasMeta) 1 else 0)
+            val totalThreats = jsCount + actionCount + attachmentCount + uriCount + (if (hasMeta) 1 else 0)
 
             SanitizerAuditReport(
                 threatsFound = totalThreats,
@@ -164,7 +166,7 @@ object PdfSanitizerEngine {
         pdfUri: Uri
     ): Boolean = withContext(Dispatchers.IO) {
         val report = auditDocumentThreats(context, pdfUri)
-        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.isEncrypted || report.parseFailed
+        report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.uriCount > 0 || report.isEncrypted || report.parseFailed
     }
 
     /**
@@ -178,7 +180,7 @@ object PdfSanitizerEngine {
         if (report.isEncrypted) {
             return@withContext VanguardThreatResult.EncryptedCannotVerify(pdfUri)
         }
-        if (report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0) {
+        if (report.jsCount > 0 || report.launchActionsCount > 0 || report.attachmentCount > 0 || report.uriCount > 0) {
             return@withContext VanguardThreatResult.ExecutableThreat(report)
         }
         if (report.parseFailed) {
@@ -220,7 +222,9 @@ object PdfSanitizerEngine {
 
         try {
             val memSettings = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupMixed(10 * 1024 * 1024, 250 * 1024 * 1024)
-            doc = PDDocument.load(inputStream, memSettings)
+            doc = kotlinx.coroutines.withTimeout(30_000L) {
+                PDDocument.load(inputStream, memSettings)
+            }
 
             var jsPurged = 0
             var actionsPurged = 0

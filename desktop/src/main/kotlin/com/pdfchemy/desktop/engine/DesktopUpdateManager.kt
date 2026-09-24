@@ -16,6 +16,10 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 import java.util.Locale
 import java.util.prefs.Preferences
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.Paths
+import java.nio.file.attribute.PosixFilePermissions
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 
@@ -56,6 +60,37 @@ object DesktopUpdateManager {
 
     private val prefs: Preferences by lazy {
         Preferences.userNodeForPackage(DesktopUpdateManager::class.java)
+    }
+
+    val updateDir: File by lazy {
+        val path = Paths.get(System.getProperty("user.home"), ".pdfchemy", "updates")
+        
+        if (Files.exists(path, LinkOption.NOFOLLOW_LINKS) && Files.isSymbolicLink(path)) {
+            throw SecurityException("Security violation: ~/.pdfchemy/updates is a symbolic link.")
+        }
+        
+        val isWindows = System.getProperty("os.name", "").lowercase(Locale.ROOT).contains("win")
+        if (isWindows) {
+            Files.createDirectories(path)
+        } else {
+            val base = path.parent
+            if (base != null && !Files.exists(base)) {
+                Files.createDirectories(base)
+            }
+            if (!Files.exists(path)) {
+                Files.createDirectory(path, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")))
+            } else {
+                Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
+            }
+        }
+        path.toFile()
+    }
+
+    fun sweepStaleInstallers(maxAgeMs: Long = 60 * 60 * 1000) {
+        val now = System.currentTimeMillis()
+        updateDir.listFiles()
+            ?.filter { file -> file.isFile && file.name.startsWith("pdfchemy-update-") && now - file.lastModified() > maxAgeMs }
+            ?.forEach { file -> runCatching { file.delete() } }
     }
 
     var dismissedTag: String?
@@ -276,7 +311,7 @@ object DesktopUpdateManager {
                 else -> ".tmp"
             }
 
-            tempFile = File.createTempFile("pdfchemy_update_", extension)
+            tempFile = File.createTempFile("pdfchemy-update-", extension, updateDir)
             tempFile.deleteOnExit()
 
             val maxBytes = 250L * 1024 * 1024
@@ -338,7 +373,7 @@ object DesktopUpdateManager {
                 if (manifest == null || manifest.version != release.tagName || manifest.platform != expectedPlatform || manifest.architecture != expectedArch) {
                     try { downloadedFile.delete() } catch (_: Exception) {}
                     val err = SecurityException("Manifest mismatch. Expected ${release.tagName} $expectedPlatform $expectedArch, got ${manifest?.version} ${manifest?.platform} ${manifest?.architecture}")
-                    File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                    File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
                     return@withContext Result.failure(err)
                 } else {
                     val expectedHash = manifest.hashes[asset.name]
@@ -347,55 +382,60 @@ object DesktopUpdateManager {
                         if (!verified) {
                             try { downloadedFile.delete() } catch (_: Exception) {}
                             val err = SecurityException("SHA256 mismatch for ${asset.name}. Expected $expectedHash")
-                            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                            File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
                             return@withContext Result.failure(err)
                         }
                     } else {
                         try { downloadedFile.delete() } catch (_: Exception) {}
                         val err = SecurityException("Asset ${asset.name} not found in SHA256SUMS.txt")
-                        File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                        File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
                         return@withContext Result.failure(err)
                     }
                 }
             } else {
                 try { downloadedFile.delete() } catch (_: Exception) {}
                 val err = SecurityException("Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}")
-                File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
                 return@withContext Result.failure(err)
             }
         } else {
             try { downloadedFile.delete() } catch (_: Exception) {}
             val err = SecurityException("Release is missing SHA256SUMS.txt")
-            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
             return@withContext Result.failure(err)
         }
 
         if (!verified) {
             try { downloadedFile.delete() } catch (_: Exception) {}
             val err = SecurityException("Update verification failed internally (should not happen).")
-            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
             return@withContext Result.failure(err)
         }
 
-        // Atomically move to final secure execution path and restrict permissions
-        val finalFile = File(System.getProperty("java.io.tmpdir"), "pdfchemy_installer_verified_${asset.name}")
+        // Atomically move to final secure execution path
+        val finalFile = File(updateDir, "pdfchemy-update-verified-${asset.name}")
         try {
             if (finalFile.exists()) finalFile.delete()
             fileMover(downloadedFile, finalFile)
-            // Set executable/readable for the owner only, read-only
-            finalFile.setExecutable(true, true)
-            finalFile.setReadable(true, true)
-            finalFile.setWritable(false, false)
+            
+            // Best-effort hardening of verified artifact
+            val isWindows = System.getProperty("os.name", "").lowercase(Locale.ROOT).contains("win")
+            if (isWindows) {
+                finalFile.setReadOnly()
+            } else {
+                Files.setPosixFilePermissions(finalFile.toPath(), PosixFilePermissions.fromString("r-x------"))
+            }
+            
             Result.success(finalFile)
         } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
             System.err.println("CRITICAL: Atomic move unsupported on this filesystem. Aborting update for security.")
             try { downloadedFile.delete() } catch (_: Exception) {}
             val err = SecurityException("Critical Error: Atomic file move is not supported on this filesystem.")
-            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            File(updateDir, "pdfchemy_debug.txt").writeText(err.message ?: "")
             Result.failure(err)
         } catch (e: Exception) {
             try { downloadedFile.delete() } catch (_: Exception) {}
-            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(e.stackTraceToString())
+            File(updateDir, "pdfchemy_debug.txt").writeText(e.stackTraceToString())
             Result.failure(e)
         }
     }
@@ -458,8 +498,7 @@ object DesktopUpdateManager {
                 }
                 else -> {
                     if (osName.contains("win")) {
-                        val systemRoot = System.getenv("SystemRoot") ?: "C:\\Windows"
-                        ProcessBuilder("$systemRoot\\explorer.exe", canonicalPath)
+                        ProcessBuilder(canonicalPath)
                     } else {
                         ProcessBuilder("xdg-open", canonicalPath)
                     }
@@ -467,7 +506,7 @@ object DesktopUpdateManager {
             }
 
             processBuilder.start()
-            Result.success(Unit)
+            kotlin.system.exitProcess(0)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -16,6 +16,9 @@ import java.awt.dnd.DropTargetDropEvent
 import java.io.File
 
 fun main(args: Array<String>) = application {
+    // Best-effort garbage collection of stale installer artifacts
+    com.pdfchemy.desktop.engine.DesktopUpdateManager.sweepStaleInstallers()
+
     val langArg = args.firstOrNull { it.startsWith("--lang=", ignoreCase = true) }?.substringAfter("=")
         ?: args.firstOrNull { it.startsWith("--locale=", ignoreCase = true) }?.substringAfter("=")
     val forceSetup = args.any { it.equals("--setup", ignoreCase = true) || it.equals("-s", ignoreCase = true) }

@@ -87,17 +87,17 @@
 
 ---
 
-## 3. 📱 Android Edition (v2.0.2 / VersionCode 9)
+## 3. 📱 Android Edition (v2.0.5)
 * **Stack:** Kotlin, Jetpack Compose, Material 3, AndroidX.
 * **Localizare Internațională (i18n):** Paritate completă pe **20 de limbi / 21 de locale** (inclusiv suport complet RTL pentru arabă) în `res/values-*/strings.xml`.
 * **Binare Semnate de Producție:**
   * `app/release/app-release.aab`
-  * `distribution/android/app-release-v2.0.2.aab`
+  * `distribution/android/app-release-v2.0.5.aab`
 * **Google Play Status:** Gata de lansare în consolă cu descrieri ASO curate și release notes traduse.
 
 ---
 
-## 4. 💻 Desktop Edition — Windows & Linux (v1.0.2 "Multi-Language Edition")
+## 4. 💻 Desktop Edition — Windows & Linux (v1.0.8 "Multi-Language Edition")
 * **Stack:** Kotlin, Compose Multiplatform for Desktop (Skiko), Java 21 (`E:\Android_Studio\jbr`).
 * **Localizare Dinamică pe Desktop:**
   * 131 de șiruri de text per limbă compilate direct în bytecode (`DesktopStrings.kt`).
@@ -105,29 +105,23 @@
   * Detectare automată a limbii sistemului de operare la prima pornire + dialog de onboarding.
 * **Design UI:** Dashboard aerisit și curat, axat pe cele 6 superputeri de documente, fără billboard bannere agresive. Manifestul este accesibil discret în footer și în navigation rail (`∞ Our Manifesto`).
 * **Pachete Windows Construite & Publicate:**
-  * **MSI Installer:** `PDFchemy-1.0.2.msi` (~68.8 MB, instalator offline cu suport pentru 20 de limbi).
-  * **Single-file EXE:** `PDFchemy-1.0.2.exe` (~69.5 MB, executabil standalone portabil).
-  * **Portable JAR:** `PDFchemy-universal-1.0.2.jar` (~40.3 MB, JAR universal cross-platform).
+  * **MSI Installer:** `PDFchemy-1.0.8.msi` (~68.8 MB, instalator offline cu suport pentru 20 de limbi).
+  * **Single-file EXE:** `PDFchemy-1.0.8.exe` (~69.5 MB, executabil standalone portabil).
+  * **Portable JAR:** `PDFchemy-universal-1.0.8.jar` (~40.3 MB, JAR universal cross-platform).
 * **Pachete Linux Construite & Publicate:**
-  * **Debian / Ubuntu / Mint / Pop!_OS:** `pdfchemy_1.0.2_amd64.deb` (63.9 MB).
-  * **Fedora / RHEL / openSUSE:** `pdfchemy-1.0.2-1.x86_64.rpm` (77.1 MB).
+  * **Debian / Ubuntu / Mint / Pop!_OS:** `pdfchemy_1.0.8_amd64.deb` (63.9 MB).
+  * **Fedora / RHEL / openSUSE:** `pdfchemy-1.0.8-1.x86_64.rpm` (77.1 MB).
   * **Script Universal Linux:** `pdfchemy.sh` (rezolvă automat dependențele Java și lansează JAR-ul).
 
 ---
 
 ## 5. 🏬 Starea Canalelor de Distribuție & Magazine Digitale
-1. **GitHub Releases:** Release-ul oficial `v1.0.2` este publicat live pe `kiss2oblivion/pdfchemy` conținând toate artefactele Windows, Linux și sumele de control `SHA256SUMS.txt`.
+1. **GitHub Releases:** Release-ul oficial `v1.0.8` este publicat live pe `kiss2oblivion/pdfchemy` conținând toate artefactele Windows, Linux și sumele de control `SHA256SUMS.txt`.
 2. **Windows Package Manager (`winget`):** PR live: `microsoft/winget-pkgs #429064` (validări trecute, în moderare).
-3. **Scoop:** Manifest `packaging/scoop/pdfchemy.json` actualizat cu SHA256 v1.0.2.
-4. **Chocolatey:** Pachetul `pdfchemy.1.0.2.nupkg` este generat.
+3. **Scoop:** Manifest `packaging/scoop/pdfchemy.json` actualizat cu SHA256 v1.0.8.
+4. **Chocolatey:** Pachetul `pdfchemy.1.0.8.nupkg` este generat.
 5. **Flathub (Linux App Store):**
-   * PR deschis inițial: `flathub/flathub #10071`.
-   * Reviewerul Flathub (`@petershh`) a cerut clip video cu aplicația rulând pe Linux și bifarea noului checklist Flathub (istoric de dezvoltare, AI disclosure).
-   * **Rezolvare completă:**
-     * Am instalat Ubuntu 24.04 pe WSL2, am instalat pachetul `.deb` nativ cu Xvfb, Openbox și FFmpeg.
-     * Am creat un script automat de captură cu mișcare de mouse pe arce Bézier organice (`record_realistic_demo.py`).
-     * Am generat clipul oficial `pdfchemy-linux-demo.mp4` (284 KB, 1280x800, 30fps H.264) care demonstrează navigarea nativă prin aplicație pe Linux (Page Studio, Format Converter, Dashboard).
-     * Am urcat video-ul pe GitHub Releases, am actualizat descrierea PR-ului #10071 și am lăsat un comentariu profesional pentru redeschidere.
+   * PR `flathub/flathub #10071` a fost închis/abandonat conform deciziei curente. Ne concentrăm pe metodele de distribuție directe (DEB, RPM, JAR, AppImage, GitHub Releases).
 
 ---
 

@@ -90,7 +90,7 @@ object DesktopJailManager {
                 }
             }
         }
-        Pair(tempFiles.firstOrNull() ?: File.createTempFile("empty", ".pdf"), responsePayload)
+        Pair(tempFiles.firstOrNull() ?: com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("empty", ".pdf"), responsePayload)
     }
 
     suspend fun <T> executeInteractive(
