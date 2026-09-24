@@ -202,8 +202,8 @@ fun DesktopApp(
                 } else {
                     updateFeedbackMessage = String.format(strings.upToDateDesc, DesktopUpdateManager.CURRENT_VERSION)
                 }
-            }.onFailure {
-                updateFeedbackMessage = strings.updateCheckFailed
+            }.onFailure { err ->
+                updateFeedbackMessage = "${strings.updateCheckFailed}: ${err.message}"
             }
         }
     }

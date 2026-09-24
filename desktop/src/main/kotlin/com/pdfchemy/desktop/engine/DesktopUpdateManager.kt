@@ -44,7 +44,7 @@ data class ReleaseInfo(
 )
 
 object DesktopUpdateManager {
-    const val CURRENT_VERSION = "1.0.5"
+    const val CURRENT_VERSION = "1.0.8"
     const val GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/kiss2oblivion/pdfchemy/releases/latest"
     const val GITHUB_RELEASES_WEB = "https://github.com/kiss2oblivion/pdfchemy/releases"
 
@@ -337,32 +337,44 @@ object DesktopUpdateManager {
 
                 if (manifest == null || manifest.version != release.tagName || manifest.platform != expectedPlatform || manifest.architecture != expectedArch) {
                     try { downloadedFile.delete() } catch (_: Exception) {}
-                    return@withContext Result.failure(SecurityException("Manifest mismatch. Expected ${release.tagName} $expectedPlatform $expectedArch, got ${manifest?.version} ${manifest?.platform} ${manifest?.architecture}"))
+                    val err = SecurityException("Manifest mismatch. Expected ${release.tagName} $expectedPlatform $expectedArch, got ${manifest?.version} ${manifest?.platform} ${manifest?.architecture}")
+                    File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                    return@withContext Result.failure(err)
                 } else {
                     val expectedHash = manifest.hashes[asset.name]
                     if (expectedHash != null) {
                         verified = verifyFileSha256(downloadedFile, expectedHash)
                         if (!verified) {
                             try { downloadedFile.delete() } catch (_: Exception) {}
-                            return@withContext Result.failure(SecurityException("SHA256 mismatch for ${asset.name}. Expected $expectedHash"))
+                            val err = SecurityException("SHA256 mismatch for ${asset.name}. Expected $expectedHash")
+                            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                            return@withContext Result.failure(err)
                         }
                     } else {
                         try { downloadedFile.delete() } catch (_: Exception) {}
-                        return@withContext Result.failure(SecurityException("Asset ${asset.name} not found in SHA256SUMS.txt"))
+                        val err = SecurityException("Asset ${asset.name} not found in SHA256SUMS.txt")
+                        File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                        return@withContext Result.failure(err)
                     }
                 }
             } else {
                 try { downloadedFile.delete() } catch (_: Exception) {}
-                return@withContext Result.failure(SecurityException("Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}"))
+                val err = SecurityException("Checksum verification failed: ${manifestRes.exceptionOrNull()?.message}")
+                File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+                return@withContext Result.failure(err)
             }
         } else {
             try { downloadedFile.delete() } catch (_: Exception) {}
-            return@withContext Result.failure(SecurityException("Release is missing SHA256SUMS.txt"))
+            val err = SecurityException("Release is missing SHA256SUMS.txt")
+            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            return@withContext Result.failure(err)
         }
 
         if (!verified) {
             try { downloadedFile.delete() } catch (_: Exception) {}
-            return@withContext Result.failure(SecurityException("Update verification failed internally (should not happen)."))
+            val err = SecurityException("Update verification failed internally (should not happen).")
+            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            return@withContext Result.failure(err)
         }
 
         // Atomically move to final secure execution path and restrict permissions
@@ -378,9 +390,12 @@ object DesktopUpdateManager {
         } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
             System.err.println("CRITICAL: Atomic move unsupported on this filesystem. Aborting update for security.")
             try { downloadedFile.delete() } catch (_: Exception) {}
-            Result.failure(SecurityException("Critical Error: Atomic file move is not supported on this filesystem."))
+            val err = SecurityException("Critical Error: Atomic file move is not supported on this filesystem.")
+            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(err.message ?: "")
+            Result.failure(err)
         } catch (e: Exception) {
             try { downloadedFile.delete() } catch (_: Exception) {}
+            File(System.getProperty("java.io.tmpdir"), "pdfchemy_debug.txt").writeText(e.stackTraceToString())
             Result.failure(e)
         }
     }
