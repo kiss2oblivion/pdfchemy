@@ -11,7 +11,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.readBytes
 
 class LinuxArkhamSandbox(
-    private val bwrapPath: String = "bwrap",
+    private val bwrapPath: String = "/usr/bin/bwrap",
     private val launcherExePath: Path = Path.of("arkham-launcher-linux")
 ) : ArkhamSandbox {
 
@@ -93,7 +93,7 @@ class LinuxArkhamSandbox(
         // E.g., systemd-run --user --scope -p MemoryMax=... -p CPUQuota=... bwrap ...
 
         val commandToRun = if (worker.maxMemoryBytes > 0 || worker.maxCpuPercentage > 0) {
-            val systemdArgs = mutableListOf("systemd-run", "--user", "--scope", "--quiet")
+            val systemdArgs = mutableListOf("/usr/bin/systemd-run", "--user", "--scope", "--quiet")
             if (worker.maxMemoryBytes > 0) {
                 systemdArgs.add("-p")
                 systemdArgs.add("MemoryMax=${worker.maxMemoryBytes}")

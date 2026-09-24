@@ -4026,7 +4026,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
 
                                         // 1. Text Annotations (Form Filler)
                                         if (selectedMode == SignTabMode.TYPE && placedAnnotations.isNotEmpty()) {
-                                            val stepOut = File.createTempFile("pdfchemy_annotated_", ".pdf")
+                                            val stepOut = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_annotated_", ".pdf")
                                             tempFiles.add(stepOut)
                                             val ok = DesktopPdfEngine.addTextAnnotations(
                                                 inputFile = currentInput,
@@ -4059,7 +4059,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
                                                 else -> throw IllegalStateException()
                                             }
 
-                                            val stepOut = File.createTempFile("pdfchemy_stamped_", ".pdf")
+                                            val stepOut = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_stamped_", ".pdf")
                                             tempFiles.add(stepOut)
                                             val ok = DesktopPdfEngine.stampDocument(
                                                 inputFile = currentInput,
@@ -4075,7 +4075,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
 
                                         // 2. Watermark if enabled
                                         if (enableWatermark && watermarkText.isNotBlank()) {
-                                            val stepOut = File.createTempFile("pdfchemy_watermark_", ".pdf")
+                                            val stepOut = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_watermark_", ".pdf")
                                             tempFiles.add(stepOut)
                                             val ok = DesktopPdfEngine.addWatermark(
                                                 inputFile = currentInput,
@@ -4089,7 +4089,7 @@ private fun SignAndStampView(file: File?, onFileChange: (File) -> Unit) {
 
                                         // 3. Page Numbers if enabled
                                         if (enablePageNumbers) {
-                                            val stepOut = File.createTempFile("pdfchemy_pagenums_", ".pdf")
+                                            val stepOut = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("pdfchemy_pagenums_", ".pdf")
                                             tempFiles.add(stepOut)
                                             val ok = DesktopPdfEngine.addPageNumbers(
                                                 inputFile = currentInput,

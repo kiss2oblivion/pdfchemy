@@ -18,10 +18,7 @@
 
 void fail(const std::string& msg) {
     DWORD err = GetLastError();
-    std::ofstream out("arkham-launcher.log", std::ios_base::app);
-    out << "FAIL: " << msg << " (Error " << err << ")" << std::endl;
-    out.close();
-    std::cerr << "FAIL: " << msg << std::endl;
+    std::cerr << "FAIL: " << msg << " (Error " << err << ")" << std::endl;
     ExitProcess(1);
 }
 
@@ -114,6 +111,21 @@ bool AddAceToWindowStationAndDesktop(PSID sid) {
 }
 
 int main(int argc, char* argv[]) {
+    if (argc >= 2 && std::string(argv[1]) == "--get-sid") {
+        PCWSTR appContainerName = L"ArkhamAsylumWorker";
+        PSID appContainerSid = NULL;
+        HRESULT hr = DeriveAppContainerSidFromAppContainerName(appContainerName, &appContainerSid);
+        if (SUCCEEDED(hr)) {
+            LPSTR sidString = NULL;
+            if (ConvertSidToStringSidA(appContainerSid, &sidString)) {
+                std::cout << sidString << std::endl;
+                LocalFree(sidString);
+            }
+            FreeSid(appContainerSid);
+            return 0;
+        }
+        return 1;
+    }
     if (argc >= 3 && std::string(argv[1]) == "--inspect") {
         DWORD pid = std::stoul(argv[2]);
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
@@ -230,11 +242,6 @@ int main(int argc, char* argv[]) {
     }
 
     // Grant access to Window Station and Desktop so USER32.dll can initialize successfully
-    PSID allAppPackages = NULL;
-    if (ConvertStringSidToSidW(L"S-1-15-2-1", &allAppPackages)) {
-        AddAceToWindowStationAndDesktop(allAppPackages);
-        LocalFree(allAppPackages);
-    }
     AddAceToWindowStationAndDesktop(appContainerSid);
 
     // 4. Setup STARTUPINFOEX for AppContainer and Handle Allowlist
@@ -255,10 +262,10 @@ int main(int argc, char* argv[]) {
         fail("UpdateProcThreadAttribute SecurityCapabilities failed");
     }
 
-    // DWORD lpacPolicy = PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
-    // if (!UpdateProcThreadAttribute(siex.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY, &lpacPolicy, sizeof(lpacPolicy), NULL, NULL)) {
-    //     fail("UpdateProcThreadAttribute LPAC failed");
-    // }
+    DWORD lpacPolicy = PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
+    if (!UpdateProcThreadAttribute(siex.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY, &lpacPolicy, sizeof(lpacPolicy), NULL, NULL)) {
+        fail("UpdateProcThreadAttribute LPAC failed");
+    }
 
     HANDLE hStdInRaw = GetStdHandle(STD_INPUT_HANDLE);
     HANDLE hStdOutRaw = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -270,7 +277,7 @@ int main(int argc, char* argv[]) {
     sa.nLength = sizeof(sa);
     sa.bInheritHandle = TRUE;
     PSECURITY_DESCRIPTOR pSD = NULL;
-    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;OICI;GA;;;SY)(A;OICI;GA;;;BA)(A;OICI;GA;;;WD)(A;OICI;GA;;;AC)(A;OICI;GA;;;S-1-15-2-2)", SDDL_REVISION_1, &pSD, NULL)) {
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:(A;OICI;GA;;;SY)(A;OICI;GA;;;BA)(A;OICI;GA;;;S-1-15-2-2)", SDDL_REVISION_1, &pSD, NULL)) {
         fail("ConvertStringSecurityDescriptorToSecurityDescriptorW failed");
     }
     sa.lpSecurityDescriptor = pSD;
@@ -293,8 +300,21 @@ int main(int argc, char* argv[]) {
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {0};
     jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (maxRamBytes > 0) {
+        jeli.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_JOB_MEMORY;
+        jeli.JobMemoryLimit = maxRamBytes;
+    }
     if (!SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) {
-        fail("SetInformationJobObject kill-on-close failed");
+        fail("SetInformationJobObject extended limit failed");
+    }
+    
+    if (maxCpuPercent > 0 && maxCpuPercent <= 100) {
+        JOBOBJECT_CPU_RATE_CONTROL_INFORMATION jcpu = {0};
+        jcpu.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
+        jcpu.CpuRate = maxCpuPercent * 100; // out of 10,000
+        if (!SetInformationJobObject(hJob, JobObjectCpuRateControlInformation, &jcpu, sizeof(jcpu))) {
+            fail("SetInformationJobObject cpu rate failed");
+        }
     }
 
     std::vector<HANDLE> handleList;
@@ -307,18 +327,13 @@ int main(int argc, char* argv[]) {
     if (hStdOutRaw && hStdOutRaw != INVALID_HANDLE_VALUE) handleList.push_back(hStdOutRaw);
     if (hStdErrRaw && hStdErrRaw != INVALID_HANDLE_VALUE) handleList.push_back(hStdErrRaw);
     
-    // if (!UpdateProcThreadAttribute(siex.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, handleList.data(), handleList.size() * sizeof(HANDLE), NULL, NULL)) {
-    //     fail("UpdateProcThreadAttribute HandleList failed");
-    // }
+    if (!UpdateProcThreadAttribute(siex.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, handleList.data(), handleList.size() * sizeof(HANDLE), NULL, NULL)) {
+        fail("UpdateProcThreadAttribute HandleList failed");
+    }
 
     siex.StartupInfo.hStdInput = childInRead;
     siex.StartupInfo.hStdOutput = childOutWrite;
     siex.StartupInfo.hStdError = childErrWrite;
-
-    std::ofstream os("C:\\Users\\John\\AppData\\Local\\Temp\\pdfchemy_jail_cwd\\arkham-launcher.log", std::ios_base::app);
-    os << "DEBUG: inRaw=" << hStdInRaw << " outRaw=" << hStdOutRaw << " errRaw=" << hStdErrRaw << "\n";
-    os << "DEBUG: handleListSize=" << handleList.size() << "\n";
-    os.close();
 
     // 5. Create Process Suspended
     std::string ncmdLine(cmdLine.begin(), cmdLine.end());

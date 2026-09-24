@@ -24,7 +24,7 @@ object PdfOcrEngine {
      * Extracts tessdata from resources to a temporary folder to use with Tesseract.
      */
     private fun extractTessData(): File {
-        val tmpDir = File(System.getProperty("java.io.tmpdir"), "pdfchemy_tessdata")
+        val tmpDir = File(com.pdfchemy.desktop.engine.DesktopStaging.stagingDir, "pdfchemy_tessdata")
         if (!tmpDir.exists()) {
             tmpDir.mkdirs()
         }

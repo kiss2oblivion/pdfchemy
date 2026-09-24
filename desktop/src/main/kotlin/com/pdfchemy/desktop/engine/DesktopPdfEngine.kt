@@ -183,7 +183,7 @@ object DesktopPdfEngine {
     }
 
     fun rotateImage(src: BufferedImage, degrees: Int): BufferedImage {
-        val tempImg_src = File.createTempFile("img_", ".png")
+        val tempImg_src = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("img_", ".png")
         tempImg_src.deleteOnExit()
         ImageIO.write(src, "PNG", tempImg_src)
         return runBlocking {
@@ -387,7 +387,7 @@ object DesktopPdfEngine {
                         if (response.status == "SUCCESS") { done = true }
                         else if (response.status == "FILE_READY") {
                             val fname = response.config["fileName"] ?: "out.pdf"
-                            val outF = File(File(System.getProperty("java.io.tmpdir")), fname)
+                            val outF = File(com.pdfchemy.desktop.engine.DesktopStaging.stagingDir, fname)
                             FileOutputStream(outF).use { fos -> boundedStream.copyTo(fos) }
                             resultList.add(outF)
                         }
@@ -445,7 +445,7 @@ object DesktopPdfEngine {
     }
 
     fun stampDocument(inputFile: File,         outputFile: File,         pageIndex: Int,         stampImage: BufferedImage,         xRatio: Float,         yRatio: Float,         widthRatio: Float = 0.35f): Boolean {
-        val tempImg_stampImage = File.createTempFile("img_", ".png")
+        val tempImg_stampImage = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("img_", ".png")
         tempImg_stampImage.deleteOnExit()
         ImageIO.write(stampImage, "PNG", tempImg_stampImage)
             val jailResult = runBlocking {
@@ -745,7 +745,7 @@ object DesktopPdfEngine {
     }
 
     fun detectSkewAngle(image: BufferedImage): Float {
-        val tempImg_image = File.createTempFile("img_", ".png")
+        val tempImg_image = com.pdfchemy.desktop.engine.DesktopStaging.createTempFile("img_", ".png")
         tempImg_image.deleteOnExit()
         ImageIO.write(image, "PNG", tempImg_image)
         return runBlocking {

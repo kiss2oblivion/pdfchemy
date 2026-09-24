@@ -29,9 +29,10 @@ object SandboxCoordinator {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var pfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
+                    pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
                     if (pfd == null) {
                         channel.trySend(null)
                         return
@@ -66,6 +67,8 @@ object SandboxCoordinator {
                     })
                 } catch (e: Exception) {
                     channel.trySend(null)
+                } finally {
+                    try { pfd?.close() } catch (e: Exception) {}
                 }
             }
 
@@ -119,10 +122,12 @@ object SandboxCoordinator {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var inputPfd: ParcelFileDescriptor? = null
+                var outputPfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val inputPfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
-                    val outputPfd = context.contentResolver.openFileDescriptor(destUri, "w")
+                    inputPfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
+                    outputPfd = context.contentResolver.openFileDescriptor(destUri, "w")
                     
                     if (inputPfd == null || outputPfd == null) {
                         channel.trySend(null)
@@ -156,6 +161,9 @@ object SandboxCoordinator {
                     })
                 } catch (e: Exception) {
                     channel.trySend(null)
+                } finally {
+                    try { inputPfd?.close() } catch (e: Exception) {}
+                    try { outputPfd?.close() } catch (e: Exception) {}
                 }
             }
 
@@ -245,10 +253,12 @@ object SandboxCoordinator {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var inputPfd: ParcelFileDescriptor? = null
+                var outputPfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val inputPfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
-                    val outputPfd = context.contentResolver.openFileDescriptor(destEpubUri, "w")
+                    inputPfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
+                    outputPfd = context.contentResolver.openFileDescriptor(destEpubUri, "w")
                     
                     if (inputPfd == null || outputPfd == null) {
                         channel.trySend(Result.failure(IllegalArgumentException("Cannot open file descriptors")))
@@ -269,6 +279,9 @@ object SandboxCoordinator {
                     })
                 } catch (e: Exception) {
                     channel.trySend(Result.failure(e))
+                } finally {
+                    try { inputPfd?.close() } catch (e: Exception) {}
+                    try { outputPfd?.close() } catch (e: Exception) {}
                 }
             }
 
@@ -330,10 +343,12 @@ object SandboxCoordinator {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var inputPfd: ParcelFileDescriptor? = null
+                var outputPfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val inputPfd = context.contentResolver.openFileDescriptor(sourceEpubUri, "r")
-                    val outputPfd = context.contentResolver.openFileDescriptor(destPdfUri, "w")
+                    inputPfd = context.contentResolver.openFileDescriptor(sourceEpubUri, "r")
+                    outputPfd = context.contentResolver.openFileDescriptor(destPdfUri, "w")
                     
                     if (inputPfd == null || outputPfd == null) {
                         channel.trySend(Result.failure(IllegalArgumentException("Cannot open file descriptors")))
@@ -358,6 +373,9 @@ object SandboxCoordinator {
                     })
                 } catch (e: Exception) {
                     channel.trySend(Result.failure(e))
+                } finally {
+                    try { inputPfd?.close() } catch (e: Exception) {}
+                    try { outputPfd?.close() } catch (e: Exception) {}
                 }
             }
 
@@ -422,9 +440,10 @@ if (result?.isSuccess == true) {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var inputPfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val inputPfd = context.contentResolver.openFileDescriptor(pdfUri, "r")
+                    inputPfd = context.contentResolver.openFileDescriptor(pdfUri, "r")
                     if (inputPfd == null) {
                         channel.trySend(Result.failure(IllegalArgumentException("Cannot open file")))
                         return
@@ -468,6 +487,8 @@ if (result?.isSuccess == true) {
                     })
                 } catch (e: Exception) {
                     channel.trySend(Result.failure(e))
+                } finally {
+                    try { inputPfd?.close() } catch (e: Exception) {}
                 }
             }
 
@@ -523,10 +544,12 @@ result ?: Result.failure(Exception("Unknown search error"))
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val sandbox = IPdfSandboxService.Stub.asInterface(service)
+                var inputPfd: ParcelFileDescriptor? = null
+                var outputPfd: ParcelFileDescriptor? = null
                 try {
                     workerPid = sandbox.workerPid
-                    val inputPfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
-                    val outputPfd = context.contentResolver.openFileDescriptor(destPdfUri, "w")
+                    inputPfd = context.contentResolver.openFileDescriptor(sourcePdfUri, "r")
+                    outputPfd = context.contentResolver.openFileDescriptor(destPdfUri, "w")
                     
                     if (inputPfd == null || outputPfd == null) {
                         channel.trySend(Result.failure(IllegalArgumentException("Cannot open file descriptors")))
@@ -571,6 +594,9 @@ result ?: Result.failure(Exception("Unknown search error"))
                     })
                 } catch (e: Exception) {
                     channel.trySend(Result.failure(e))
+                } finally {
+                    try { inputPfd?.close() } catch (e: Exception) {}
+                    try { outputPfd?.close() } catch (e: Exception) {}
                 }
             }
 

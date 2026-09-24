@@ -103,30 +103,56 @@ interface ArkhamSandbox {
 object ArkhamSandboxFactory {
     fun create(): ArkhamSandbox {
         val osName = System.getProperty("os.name").lowercase()
+        val isWin = osName.contains("win")
+        val isLinux = osName.contains("linux")
         
+        if (!isWin && !isLinux) {
+            throw SecurityException("Arkham OS isolation unavailable on OS: $osName; secure processing cannot start.")
+        }
+        
+        val launcherName = if (isWin) "arkham-launcher.exe" else "arkham-launcher-linux"
+        val jailDir = Paths.get(System.getProperty("user.home"), ".pdfchemy", "jail")
+        if (!Files.exists(jailDir)) {
+            Files.createDirectories(jailDir)
+        }
+        val launcherPath = jailDir.resolve(launcherName)
+        
+        // Always try to extract from classpath first
+        val resourceStream = ArkhamSandboxFactory::class.java.getResourceAsStream("/jail/$launcherName")
+        if (resourceStream != null) {
+            resourceStream.use { input ->
+                Files.copy(input, launcherPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+            if (isLinux) {
+                launcherPath.toFile().setExecutable(true, true)
+            }
+        } else if (!Files.exists(launcherPath)) {
+            // Dev fallback if not built yet and not in JAR
+            val userDir = System.getProperty("user.dir")
+            val sourceLauncher = if (userDir.endsWith("desktop")) {
+                Paths.get(userDir, "src", "main", "cpp", "build", "Release", launcherName).takeIf { Files.exists(it) }
+                    ?: Paths.get(userDir, "src", "main", "cpp", "build", launcherName).takeIf { Files.exists(it) }
+                    ?: Paths.get(userDir, "src", "main", "cpp", launcherName)
+            } else {
+                Paths.get(userDir, "desktop", "src", "main", "cpp", "build", "Release", launcherName).takeIf { Files.exists(it) }
+                    ?: Paths.get(userDir, "desktop", "src", "main", "cpp", "build", launcherName).takeIf { Files.exists(it) }
+                    ?: Paths.get(userDir, "desktop", "src", "main", "cpp", launcherName)
+            }
+            
+            if (Files.exists(sourceLauncher)) {
+                Files.copy(sourceLauncher, launcherPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                if (isLinux) {
+                    launcherPath.toFile().setExecutable(true, true)
+                }
+            } else {
+                throw SecurityException("Arkham OS isolation unavailable; native launcher not found in resources or source tree.")
+            }
+        }
+
         return when {
-            osName.contains("win") -> {
-                // Windows uses the native C++ launcher. In a dev environment it might not be built.
-                val userDir = System.getProperty("user.dir")
-                val launcherPath = if (userDir.endsWith("desktop")) {
-                    Paths.get(userDir, "src", "main", "cpp", "arkham-launcher.exe")
-                } else {
-                    Paths.get(userDir, "desktop", "src", "main", "cpp", "arkham-launcher.exe")
-                }
-                if (!Files.exists(launcherPath)) {
-                     // Normally we'd throw SecurityException, but for dev fallback if not compiled yet.
-                     // Wait, the plan explicitly says NO INSECURE FALLBACK.
-                     throw SecurityException("Arkham OS isolation unavailable; Windows native launcher not found at $launcherPath")
-                }
-                WindowsArkhamSandbox(launcherPath)
-            }
-            osName.contains("linux") -> {
-                // Verify bubblewrap is available
-                LinuxArkhamSandbox("bwrap")
-            }
-            else -> {
-                throw SecurityException("Arkham OS isolation unavailable on OS: $osName; secure processing cannot start.")
-            }
+            isWin -> WindowsArkhamSandbox(launcherPath)
+            isLinux -> LinuxArkhamSandbox("/usr/bin/bwrap", launcherPath)
+            else -> throw SecurityException("Unreachable")
         }
     }
 }
